@@ -1,8 +1,16 @@
 import streamlit as st
 
 def app():
-    st.title('Home')
+    st.markdown("""
+# Home
 
-    st.write('This is the `home page` of this multi-page app.')
+This is a collection of workflows useful for LC-MS data analysis and metabolomics. Please choose your workflow.
 
-    st.write('In this app, we will be building a simple classification model using the Iris dataset.')
+## About
+
+This multi-page app is using the [streamlit-multiapps](https://github.com/upraneelnihar/streamlit-multiapps) framework developed by [Praneel Nihar](https://medium.com/@u.praneel.nihar).
+
+pyOpenMS
+
+pyMetabolomics
+""")

@@ -1,12 +1,16 @@
-from unittest import result
 import streamlit as st
 import pandas as pd
 from pymetabo.core import *
 from pymetabo.helpers import *
 from pymetabo.dataframes import *
 import plotly.express as px
+import time
 
 def app():
+    if "workflow" not in st.session_state.keys():
+        st.session_state["workflow"] = False
+    if "load data" not in st.session_state.keys():
+        st.session_state["dataframes loaded"] = ""
     st.markdown("""
 ## Metabolomics Preprocessing
 Generate a table with consesensus features and their quantities with optional re-quantification step.
@@ -71,7 +75,7 @@ Generate a table with consesensus features and their quantities with optional re
             
 
     st.markdown("#### Map ID")
-    use_map_id = st.checkbox("annotate MS2 spectra to features", True)
+    use_map_id = st.checkbox("annotate MS2 spectra to features", False)
     
 
     st.markdown("#### Feature linking")
@@ -185,12 +189,24 @@ Generate a table with consesensus features and their quantities with optional re
                                 "mz_unit": fl_mz_unit})
                 DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix_requant.consensusXML"), 
                                                     os.path.join(results_dir, "FeatureMatrix_requant.tsv"))
-        st.session_state["done"] = True
-        if st.session_state["done"]:
-            st.success("Complete!")
+        st.session_state["workflow"] = True
+        st.session_state["dataframes loaded"] = False
+        st.success("Complete!")
+    if col3.button("Display old results"):
+        st.session_state["workflow"] = True
+        st.session_state["dataframes loaded"] = "false"
 
-    if col3.checkbox("View results", True):
-        df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
+    @st.cache
+    def load_df(path):
+        print("was not cached"+path)
+        if os.path.isfile(path):
+            return pd.read_csv(path, sep="\t")
+        else:
+            return pd.DataFrame()
+
+    if st.session_state["workflow"]:
+        df = load_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
+        df_requant = load_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"))
         st.markdown("#### Feature Matrix")
         st.download_button(
         "Download",
@@ -203,7 +219,7 @@ Generate a table with consesensus features and their quantities with optional re
         if "q_threshold" not in st.session_state:
             st.session_state["q_threshold"] = min(df["quality"])
         st.session_state["q_threshold"] = st.slider('feature quality filter', min(df["quality"]), max(df["quality"]),
-                                                    st.session_state["q_threshold"])
+                                                    st.session_state["q_threshold"], step=0.02)
         for column in df.columns:
             if column.endswith(".mzML"):
                 df = df.rename(columns={column: column[:-5]})
@@ -215,7 +231,6 @@ Generate a table with consesensus features and their quantities with optional re
 
         if use_ffmid:
             st.markdown("#### Feature Matrix re-quantified")
-            df_requant = pd.read_csv(os.path.join(results_dir, "FeatureMatrix_requant.tsv"), sep="\t")
             for column in df_requant.columns:
                 if column.endswith(".mzML"):
                     df_requant = df_requant.rename(columns={column: column[:-5]})

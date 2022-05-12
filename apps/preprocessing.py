@@ -1,16 +1,63 @@
+from matplotlib import markers
 import streamlit as st
 import pandas as pd
 from pymetabo.core import *
 from pymetabo.helpers import *
 from pymetabo.dataframes import *
 import plotly.express as px
-import time
+import matplotlib.pyplot as plt
+
+# @st.cache(suppress_st_warning=True)
+def display_df(path, name):
+    if os.path.isfile(path):
+        df = pd.read_csv(path, sep="\t")
+    else:
+        return
+    st.markdown("***")
+    st.markdown("#### "+name)
+    st.download_button(
+    "Download",
+    df.to_csv(sep="\t").encode("utf-8"),
+    "FeatureMatrix.tsv",
+    "text/tsv",
+    key='download-tsv'
+    )
+    for column in df.columns:
+        if column.endswith(".mzML"):
+            df = df.rename(columns={column: column[:-5]})
+    st.dataframe(df.drop(columns=["id"]))
+    df["index"] =df.index
+    hover = df.columns.drop("id")
+    fig = px.scatter(df, x="RT", y="mz", color="quality", hover_data=hover)
+    st.plotly_chart(fig)
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("total missing values", str(1))
+
+
+def display_FFM_info(path):
+    col1, col2 = st.columns(2)
+    names = []
+    num_features = []
+    fig, ax = plt.subplots()
+    for file in os.listdir(path):
+        names.append(file[:-11])
+        fm = FeatureMap()
+        FeatureXMLFile().load(os.path.join(path, file), fm)
+        num_features.append(fm.size())
+        df = fm.get_df()
+        ax.plot(df["intensity"], df["quality"], label=file[:-11], marker="X")
+        ax.ticklabel_format(axis='x',style='sci',scilimits=(0,0),useMathText=True)
+        ax.set_xlabel("intensity")
+        ax.set_ylabel("quality")
+    col1.markdown("**Intensity to quality for each Feature Map**")
+    col1.pyplot(fig)
+    fig, ax = plt.subplots()
+    ax.bar(names, num_features)
+    ax.set_xticklabels(names, rotation=45, ha='right')
+    col2.markdown("**Number of features per sample**")
+    col2.pyplot(fig)
 
 def app():
-    if "workflow" not in st.session_state.keys():
-        st.session_state["workflow"] = False
-    if "load data" not in st.session_state.keys():
-        st.session_state["dataframes loaded"] = ""
     st.markdown("""
 ## Metabolomics Preprocessing
 Generate a table with consesensus features and their quantities with optional re-quantification step.
@@ -87,6 +134,7 @@ Generate a table with consesensus features and their quantities with optional re
     with col3:
         fl_rt_tol = float(st.number_input("link:rt_tol", 1, 200, 30))
 
+    st.markdown("")
 
     col1, col2, col3 = st.columns(3)
     if col2.button("Run Workflow"):
@@ -189,65 +237,13 @@ Generate a table with consesensus features and their quantities with optional re
                                 "mz_unit": fl_mz_unit})
                 DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix_requant.consensusXML"), 
                                                     os.path.join(results_dir, "FeatureMatrix_requant.tsv"))
-        st.session_state["workflow"] = True
-        st.session_state["dataframes loaded"] = False
         st.success("Complete!")
+        display_df(os.path.join(results_dir, "FeatureMatrix.tsv"), "Feature Matrix")
+        display_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"), "Feature Matrix requantified")
+
     if col3.button("Display old results"):
-        st.session_state["workflow"] = True
-        st.session_state["dataframes loaded"] = "false"
-
-    @st.cache
-    def load_df(path):
-        print("was not cached"+path)
-        if os.path.isfile(path):
-            return pd.read_csv(path, sep="\t")
-        else:
-            return pd.DataFrame()
-
-    if st.session_state["workflow"]:
-        df = load_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
-        df_requant = load_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"))
-        st.markdown("#### Feature Matrix")
-        st.download_button(
-        "Download",
-        df.to_csv(sep="\t").encode("utf-8"),
-        "FeatureMatrix.tsv",
-        "text/tsv",
-        key='download-tsv'
-        )
-        
-        if "q_threshold" not in st.session_state:
-            st.session_state["q_threshold"] = min(df["quality"])
-        st.session_state["q_threshold"] = st.slider('feature quality filter', min(df["quality"]), max(df["quality"]),
-                                                    st.session_state["q_threshold"], step=0.02)
-        for column in df.columns:
-            if column.endswith(".mzML"):
-                df = df.rename(columns={column: column[:-5]})
-        st.dataframe(df.drop(columns=["id"])[df["quality"] > st.session_state["q_threshold"]])
-        df["index"] =df.index
-        hover = df.columns.drop("id")
-        fig = px.scatter(df[df["quality"] > st.session_state["q_threshold"]], x="RT", y="mz", color="quality", hover_data=hover)
-        st.plotly_chart(fig)
-
-        if use_ffmid:
-            st.markdown("#### Feature Matrix re-quantified")
-            for column in df_requant.columns:
-                if column.endswith(".mzML"):
-                    df_requant = df_requant.rename(columns={column: column[:-5]})
-            st.dataframe(df_requant.drop(columns=["id"]))
-            st.download_button(
-            "Download requantified Feature Matrix (as tsv file)",
-            df_requant.to_csv(sep="\t").encode("utf-8"),
-            "FeatureMatrix_requant.tsv",
-            "text/tsv",
-            key='download-tsv'
-            )
-            df_requant["index"] =df_requant.index
-            hover = df.columns.drop("id")
-            fig = px.scatter(df_requant[df_requant["quality"] > 0.01], x="RT", y="mz", color="quality", hover_data=hover)
-            st.plotly_chart(fig)
+        display_df(os.path.join(results_dir, "FeatureMatrix.tsv"), "Feature Matrix")
+        display_FFM_info(os.path.join(results_dir, "interim", "FFM"))
+        display_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"), "Feature Matrix requantified")
 
 
-        
-
-        

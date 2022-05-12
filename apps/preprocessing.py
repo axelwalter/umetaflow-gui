@@ -22,6 +22,10 @@ def display_df(path, name):
     "text/tsv",
     key='download-tsv'
     )
+    # calculate some metrics
+    total_missing = sum([df[col].value_counts()[0] for col in df.columns if col.endswith(".mzML")])
+    mean_quality = df["quality"].mean()
+    median_quality = df["quality"].median()
     for column in df.columns:
         if column.endswith(".mzML"):
             df = df.rename(columns={column: column[:-5]})
@@ -30,8 +34,11 @@ def display_df(path, name):
     hover = df.columns.drop("id")
     fig = px.scatter(df, x="RT", y="mz", color="quality", hover_data=hover)
     st.plotly_chart(fig)
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("total missing values", str(1))
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("total missing values", total_missing)
+    col2.metric("mean quality", str(mean_quality)[:6])
+    col3.metric("median quality", str(median_quality)[:6])
 
 
 def display_FFM_info(path):

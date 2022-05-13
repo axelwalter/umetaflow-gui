@@ -40,9 +40,10 @@ class MultiApp:
 
     def run(self):
         # app = st.sidebar.radio(
-        app = st.selectbox(
-            'Select your workflow:',
-            self.apps,
-            format_func=lambda app: app['title'])
+        with st.sidebar:
+            app = st.selectbox(
+                'Select your workflow:',
+                self.apps,
+                format_func=lambda app: app['title'])
 
         app['function']()

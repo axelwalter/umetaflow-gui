@@ -1,31 +1,56 @@
 import streamlit as st
 import plotly.express as px
 import os
+from pathlib import Path
 from pyopenms import *
 import pandas as pd
 from pymetabo.helpers import Helper
 
 def app():
-    st.markdown("""
-# Chromatogram Extractor
-Get BPCs and EICs from mzML files.
-""")
-
     if "viewing" not in st.session_state:
         st.session_state.viewing = False
-    mzML = st.text_area("mzML input", "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML")
-    results_dir = st.text_input("results folder (will be deleted each time the workflow is started!)", "results")
+    with st.sidebar:
+        st.markdown("""
+### Extract Ion Chromatograms
 
-    masses_input = st.text_area("masses", "222.0972=GlcNAc\n294.1183=MurNAc")
-    col1, col2 = st.columns(2)
+Here you can get extracted ion chromatograms `EIC` from mzML files. A base peak chromatogram `BPC`
+will be automatically generated as well. Select the mass tolerance according to your data either as
+absolute values `Da` or relative to the metabolite mass in parts per million `ppm`.
 
-    col1, col2, col3 = st.columns(3)
-    tolerance = col1.number_input("mass tolerance", 0.01, 100.0, 10.0)
-    unit = col2.radio("mass tolerance unit", ["ppm", "Da"])
-    time_unit = col3.radio("time unit", ["seconds", "minutes"])
-    st.markdown("")
+As input files you can provide the path to a folder with your `mzML` or specify single files each in a new line.
+The results will be stored in the specified folder. Each time you run the extraction the old results will be deleted and newly generated.
 
-    if col2.button("Extract chromatograms"):
+You can enter the exact masses of your metabolites each in a new line. Optionally you can label them separated by an equal sign e.g.
+`222.0972=GlcNAc`. To store the list of metabolites for later use you can download them as a text file. Simply
+copy and paste the content of that file into the input field.
+
+The results will be displayed as one graph per sample. Choose the samples and chromatograms to display. 
+To get the resulting data as a table download them directly or get them from the results folder.
+""")
+    with st.expander("Parameters", expanded=True):
+        # mzML = st.text_area("mzML input", "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML")
+        mzML = st.text_area("mzML input", r"C:\Users\axel\Documents\mzML\mzML")
+        results_dir = st.text_input("results folder (will be deleted each time the workflow is started!)", "results")
+
+        col1, col2, col3 = st.columns(3)
+        unit = col2.radio("mass tolerance unit", ["ppm", "Da"])
+        if unit == "ppm":
+            tolerance = col1.number_input("mass tolerance", 1, 100, 10)
+        elif unit == "Da":
+            tolerance = col1.number_input("mass tolerance", 0.01, 10.0, 0.02)
+        time_unit = col3.radio("time unit", ["seconds", "minutes"])
+
+        col1, col2 = st.columns(2)
+        masses_input = col1.text_area("masses", "222.0972=GlcNAc\n294.1183=MurNAc")
+        col2.markdown("##")
+        col2.markdown("##")
+        col2.download_button("Download",
+                            masses_input,
+                            "masses.txt",
+                            "text/txt",
+                            key='download-txt')
+    _, _, _, _, col2, col1 = st.columns(6)
+    if col1.button("Run"):
         Helper().reset_directory(results_dir)
         if os.path.isdir(mzML):
             mzML_files = [os.path.join(mzML, file) for file in os.listdir(mzML)]
@@ -76,7 +101,7 @@ Get BPCs and EICs from mzML files.
             df.to_csv(os.path.join(results_dir, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
         st.session_state.viewing = True
 
-    if col3.button("View results") or st.session_state.viewing:
+    if col2.button("View") or st.session_state.viewing:
         st.session_state.viewing = True
 
         all_files = st.multiselect("Samples", [f[:-4] for f in os.listdir(results_dir) if f.endswith(".tsv")], 

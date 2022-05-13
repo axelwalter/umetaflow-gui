@@ -1,4 +1,5 @@
 import streamlit as st
+import plotly.express as px
 import os
 from pyopenms import *
 import pandas as pd
@@ -7,19 +8,22 @@ from pymetabo.helpers import Helper
 def app():
     st.markdown("""
 # Chromatogram Extractor
-Get BPCs and EICs from mzML files. Input can be either a path to a folder or path to a mzML file (one per line).
+Get BPCs and EICs from mzML files.
 """)
+
     if "viewing" not in st.session_state:
         st.session_state.viewing = False
     mzML = st.text_area("mzML input", "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML")
     results_dir = st.text_input("results folder (will be deleted each time the workflow is started!)", "results")
 
-    masses_input = st.text_area("masses", "222.08=GlcNAc\n260.05=GlcN6P")
+    masses_input = st.text_area("masses", "222.0972=GlcNAc\n294.1183=MurNAc")
+    col1, col2 = st.columns(2)
 
     col1, col2, col3 = st.columns(3)
     tolerance = col1.number_input("mass tolerance", 0.01, 100.0, 10.0)
     unit = col2.radio("mass tolerance unit", ["ppm", "Da"])
     time_unit = col3.radio("time unit", ["seconds", "minutes"])
+    st.markdown("")
 
     if col2.button("Extract chromatograms"):
         Helper().reset_directory(results_dir)
@@ -60,7 +64,10 @@ Get BPCs and EICs from mzML files. Input can be either a path to a folder or pat
                     intensity = []
                     for spec in exp:
                         _, intensities = spec.get_peaks()
-                        index_highest_peak_within_window = spec.findHighestInWindow(mass,0.02,0.02)
+                        if unit == "Da":
+                            index_highest_peak_within_window = spec.findHighestInWindow(mass, tolerance, tolerance)
+                        else:
+                            index_highest_peak_within_window = spec.findHighestInWindow(mass,float((tolerance/1000000)*mass),float((tolerance/1000000)*mass))
                         if index_highest_peak_within_window > -1:
                             intensity.append(int(spec[index_highest_peak_within_window].getIntensity()))
                         else:
@@ -71,19 +78,31 @@ Get BPCs and EICs from mzML files. Input can be either a path to a folder or pat
 
     if col3.button("View results") or st.session_state.viewing:
         st.session_state.viewing = True
-        all_files = [f[:-4] for f in os.listdir(results_dir)]
-        all_chroms = pd.read_csv(os.path.join(results_dir, os.listdir(results_dir)[0]),
-                                sep="\t").drop(columns=["time"]).columns.tolist()
 
-        all_files = st.multiselect("Samples", [f[:-4] for f in os.listdir(results_dir)], [f[:-4] for f in os.listdir(results_dir)])
+        all_files = st.multiselect("Samples", [f[:-4] for f in os.listdir(results_dir) if f.endswith(".tsv")], 
+                                [f[:-4] for f in os.listdir(results_dir) if f.endswith(".tsv")])
         all_chroms = st.multiselect("Chromatograms", pd.read_csv(os.path.join(results_dir, os.listdir(results_dir)[0]),
-                                sep="\t").drop(columns=["time"]).columns.tolist(), 
-                                                        pd.read_csv(os.path.join(results_dir, os.listdir(results_dir)[0]),
-                                sep="\t").drop(columns=["time"]).columns.tolist())
+                                                                sep="\t").drop(columns=["time"]).columns.tolist(), 
+                                    pd.read_csv(os.path.join(results_dir, os.listdir(results_dir)[0]),
+                                                sep="\t").drop(columns=["time"]).columns.tolist())
 
-        st.write(all_files)
-        st.write(all_chroms)
-        # dfs = []
-        # for file in os.listdir(results_dir):
-        #     if file.endswith("tsv"):
-        #         dfs.append(pd.read_csv(os.path.join(results_dir, file), sep="\t"))
+        for file in sorted(all_files):
+            df = pd.read_csv(os.path.join(results_dir, file+".tsv"), sep="\t")
+            if time_unit == "minutes":
+                time = df["time"]/60
+                time_label = "time (minutes)"
+            else:
+                time = df["time"]
+                time_label = "time (seconds)"
+            
+            fig = px.line(df, x=time, y=all_chroms)
+            fig.update_layout(title=file, xaxis=dict(title=time_label), yaxis=dict(title="intensity (cps)"))
+            col1, col2 = st.columns(2)
+            col1.plotly_chart(fig)
+            col2.download_button(
+            "Download",
+            df.to_csv(sep="\t").encode("utf-8"),
+            file+".tsv",
+            "text/tsv",
+            key='download-tsv'
+            )

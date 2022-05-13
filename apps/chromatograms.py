@@ -1,10 +1,14 @@
 import streamlit as st
 import plotly.express as px
-import os
-from pathlib import Path
 from pyopenms import *
+import os
 import pandas as pd
 from pymetabo.helpers import Helper
+
+
+# TODO deal with multiple file inputs (only problem on Windows?)
+# TODO how to enter path in Windows? raw string? conversion? works with Linux also?
+
 
 def app():
     if "viewing" not in st.session_state:
@@ -25,7 +29,7 @@ You can enter the exact masses of your metabolites each in a new line. Optionall
 copy and paste the content of that file into the input field.
 
 The results will be displayed as one graph per sample. Choose the samples and chromatograms to display. 
-To get the resulting data as a table download them directly or get them from the results folder.
+To get the resulting data as a table check the results folder.
 """)
     with st.expander("Parameters", expanded=True):
         # mzML = st.text_area("mzML input", "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML")
@@ -104,30 +108,37 @@ To get the resulting data as a table download them directly or get them from the
     if col2.button("View") or st.session_state.viewing:
         st.session_state.viewing = True
 
-        all_files = st.multiselect("Samples", [f[:-4] for f in os.listdir(results_dir) if f.endswith(".tsv")], 
-                                [f[:-4] for f in os.listdir(results_dir) if f.endswith(".tsv")])
+        all_files = sorted(st.multiselect("Samples", [f[:-4] for f in os.listdir(results_dir) if f.endswith(".tsv")], 
+                                [f[:-4] for f in os.listdir(results_dir) if f.endswith(".tsv")]), reverse=True)
         all_chroms = st.multiselect("Chromatograms", pd.read_csv(os.path.join(results_dir, os.listdir(results_dir)[0]),
                                                                 sep="\t").drop(columns=["time"]).columns.tolist(), 
                                     pd.read_csv(os.path.join(results_dir, os.listdir(results_dir)[0]),
                                                 sep="\t").drop(columns=["time"]).columns.tolist())
-
-        for file in sorted(all_files):
-            df = pd.read_csv(os.path.join(results_dir, file+".tsv"), sep="\t")
-            if time_unit == "minutes":
-                time = df["time"]/60
-                time_label = "time (minutes)"
-            else:
-                time = df["time"]
-                time_label = "time (seconds)"
-            
-            fig = px.line(df, x=time, y=all_chroms)
-            fig.update_layout(title=file, xaxis=dict(title=time_label), yaxis=dict(title="intensity (cps)"))
-            col1, col2 = st.columns(2)
-            col1.plotly_chart(fig)
-            col2.download_button(
-            "Download",
-            df.to_csv(sep="\t").encode("utf-8"),
-            file+".tsv",
-            "text/tsv",
-            key='download-tsv'
-            )
+        st.markdown("##")
+        col1, _, _, _, _, _, _, _, _, _ = st.columns(10)
+        num_cols = col1.number_input("number of columns", 1, 5, 2)
+        cols = st.columns(num_cols)
+        while all_files:
+            for col in cols:
+                try:
+                    file = all_files.pop()
+                except IndexError:
+                    break
+                df = pd.read_csv(os.path.join(results_dir, file+".tsv"), sep="\t")
+                if time_unit == "minutes":
+                    time = df["time"]/60
+                    time_label = "time (minutes)"
+                else:
+                    time = df["time"]
+                    time_label = "time (seconds)"
+                
+                fig = px.line(df, x=time, y=all_chroms)
+                fig.update_layout(title=file, xaxis=dict(title=time_label), yaxis=dict(title="intensity (cps)"))
+                col.plotly_chart(fig)
+                # col.download_button(
+                # "Download",
+                # df.to_csv(sep="\t").encode("utf-8"),
+                # file+".tsv",
+                # "text/tsv",
+                # key='download-tsv'
+                # )

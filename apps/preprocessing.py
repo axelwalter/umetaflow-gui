@@ -248,7 +248,7 @@ Generate a table with consesensus features and their quantities with optional re
         display_df(os.path.join(results_dir, "FeatureMatrix.tsv"), "Feature Matrix")
         display_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"), "Feature Matrix requantified")
 
-    if col3.button("Display old results"):
+    if col3.button("View results"):
         display_df(os.path.join(results_dir, "FeatureMatrix.tsv"), "Feature Matrix")
         display_FFM_info(os.path.join(results_dir, "interim", "FFM"))
         display_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"), "Feature Matrix requantified")

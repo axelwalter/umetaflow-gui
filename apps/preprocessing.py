@@ -6,6 +6,7 @@ from pymetabo.helpers import *
 from pymetabo.dataframes import *
 import plotly.express as px
 import matplotlib.pyplot as plt
+import time
 
 # @st.cache(suppress_st_warning=True)
 def display_df(path, name):

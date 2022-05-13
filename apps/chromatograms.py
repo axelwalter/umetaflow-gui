@@ -2,12 +2,15 @@ import streamlit as st
 import os
 from pyopenms import *
 import pandas as pd
+from pymetabo.helpers import Helper
 
 def app():
     st.markdown("""
 # Chromatogram Extractor
 Get BPCs and EICs from mzML files. Input can be either a path to a folder or path to a mzML file (one per line).
 """)
+    if "viewing" not in st.session_state:
+        st.session_state.viewing = False
     mzML = st.text_area("mzML input", "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML")
     results_dir = st.text_input("results folder (will be deleted each time the workflow is started!)", "results")
 
@@ -19,6 +22,7 @@ Get BPCs and EICs from mzML files. Input can be either a path to a folder or pat
     time_unit = col3.radio("time unit", ["seconds", "minutes"])
 
     if col2.button("Extract chromatograms"):
+        Helper().reset_directory(results_dir)
         if os.path.isdir(mzML):
             mzML_files = [os.path.join(mzML, file) for file in os.listdir(mzML)]
         else:
@@ -63,14 +67,23 @@ Get BPCs and EICs from mzML files. Input can be either a path to a folder or pat
                             intensity.append(0)
                     df[str(mass)+"_"+name] = intensity
             df.to_csv(os.path.join(results_dir, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
+        st.session_state.viewing = True
 
-    if col3.button("View results"):
-        if "all_files" not in st.session_state.keys():
-            st.session_state["all_files"] = [f[:-4] for f in os.listdir(results_dir)]
-        if "all_chroms" not in st.session_state.keys():
-            pass
-        dfs = []
-        for file in os.listdir(results_dir):
-            if file.endswith("tsv"):
-                dfs.append(pd.read_csv(os.path.join(results_dir, file), sep="\t"))
-        st.multiselect("Choose samples", os.listdir(results_dir), os.listdir(results_dir))
+    if col3.button("View results") or st.session_state.viewing:
+        st.session_state.viewing = True
+        all_files = [f[:-4] for f in os.listdir(results_dir)]
+        all_chroms = pd.read_csv(os.path.join(results_dir, os.listdir(results_dir)[0]),
+                                sep="\t").drop(columns=["time"]).columns.tolist()
+
+        all_files = st.multiselect("Samples", [f[:-4] for f in os.listdir(results_dir)], [f[:-4] for f in os.listdir(results_dir)])
+        all_chroms = st.multiselect("Chromatograms", pd.read_csv(os.path.join(results_dir, os.listdir(results_dir)[0]),
+                                sep="\t").drop(columns=["time"]).columns.tolist(), 
+                                                        pd.read_csv(os.path.join(results_dir, os.listdir(results_dir)[0]),
+                                sep="\t").drop(columns=["time"]).columns.tolist())
+
+        st.write(all_files)
+        st.write(all_chroms)
+        # dfs = []
+        # for file in os.listdir(results_dir):
+        #     if file.endswith("tsv"):
+        #         dfs.append(pd.read_csv(os.path.join(results_dir, file), sep="\t"))

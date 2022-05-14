@@ -15,8 +15,8 @@ def app():
     if "viewing" not in st.session_state:
         st.session_state.viewing = False
     if "mzML_files" not in st.session_state:
-        st.session_state.mzML_files = set(["/home/axel/dev/easy-MS/example_data/mzML/standards_1.mzML",
-                                        "/home/axel/dev/easy-MS/example_data/mzML/standards_2.mzML"])
+        st.session_state.mzML_files = set(["example_data/mzML/standards_1.mzML",
+                                        "example_data/mzML/standards_2.mzML"])
     if "results_dir" not in st.session_state:
         st.session_state.results_dir = "results"
 
@@ -134,8 +134,8 @@ To get the resulting data as a table check the results folder.
                                     pd.read_csv(os.path.join(st.session_state.results_dir, os.listdir(st.session_state.results_dir)[0]),
                                                 sep="\t").drop(columns=["time"]).columns.tolist())
         st.markdown("##")
-        col1, _, _, _, _, _ = st.columns(6)
-        num_cols = col1.number_input("number of columns", 1, 5, 2)
+        col1, _, _, _, _, _, _, _, _,_, _, _, _, _, _,_ = st.columns(16)
+        num_cols = col1.number_input("columns", 1, 5, 2)
         cols = st.columns(num_cols)
         while all_files:
             for col in cols:

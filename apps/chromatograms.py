@@ -28,7 +28,7 @@ Here you can get extracted ion chromatograms `EIC` from mzML files. A base peak 
 will be automatically generated as well. Select the mass tolerance according to your data either as
 absolute values `Da` or relative to the metabolite mass in parts per million `ppm`.
 
-As input files you can provide the path to a folder with your `mzML` or specify single files each in a new line.
+As input you can add `mzML` files and select which ones to use for the chromatogram extraction.
 The results will be stored in the specified folder. Each time you run the extraction the old results will be deleted and newly generated.
 
 You can enter the exact masses of your metabolites each in a new line. Optionally you can label them separated by an equal sign e.g.
@@ -40,19 +40,19 @@ To get the resulting data as a table check the results folder.
 """)
 
     with st.expander("Parameters", expanded=True):
-        mzML_button = st.button("Select mzML files")
+        col1, col2 = st.columns(2)
+        mzML_button = col1.button("Add mzML Files")
         if mzML_button:
             files = get_mzML_files()
             for file in files:
                 st.session_state.mzML_files.add(file)
-        mzML_files = st.multiselect("mzML files", st.session_state.mzML_files, st.session_state.mzML_files)
-    
-        st.write(st.session_state.mzML_files)
-        if st.button("Select Results", help="Select a folder where your results will be stored."):
+        mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files, st.session_state.mzML_files,
+                                    format_func=lambda x: os.path.basename(x)[:-5])
+        if col2.button("Select Results", help="Select a folder where your results will be stored."):
             result = get_result_dir()
             if result:
                 st.session_state.results_dir = result
-        alternative_results = st.text_input("current results folder", st.session_state.results_dir)
+        alternative_results = col2.text_input("current results folder", st.session_state.results_dir)
         if os.path.isdir(alternative_results):
             st.session_state.results_dir = alternative_results
         else:
@@ -70,19 +70,15 @@ To get the resulting data as a table check the results folder.
                     help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.")
         col2.markdown("##")
         col2.markdown("##")
-        col2.download_button("Download",
+        col2.download_button("Download Masses",
                             masses_input,
                             "masses.txt",
                             "text/txt",
                             key='download-txt',
                             help="Download mass list as a text file.")
-    _, _, _, _, col2, col1 = st.columns(6)
-    if col1.button("Run"):
+    _, col2, _, _, col1, _ = st.columns(6)
+    if col1.button("Extract Data"):
         Helper().reset_directory(st.session_state.results_dir)
-        # if os.path.isdir(mzML):
-        #     mzML_files = [os.path.join(mzML, file) for file in os.listdir(mzML)]
-        # else:
-        #     mzML_files = [path.strip() for path in mzML.split("\n") if os.path.isfile(path) and path.endswith(".mzML")]
         masses = []
         names = []
         for line in [line for line in masses_input.split('\n') if line != '']:
@@ -128,10 +124,8 @@ To get the resulting data as a table check the results folder.
             df.to_csv(os.path.join(st.session_state.results_dir, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
         st.session_state.viewing = True
 
-    if col2.button("View") or st.session_state.viewing:
+    if col2.button("View Results") or st.session_state.viewing:
         st.session_state.viewing = True
-
-        # st.write(filenames)
 
         all_files = sorted(st.multiselect("Samples", [f[:-4] for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv")], 
                                 [f[:-4] for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv")]), reverse=True)
@@ -140,7 +134,7 @@ To get the resulting data as a table check the results folder.
                                     pd.read_csv(os.path.join(st.session_state.results_dir, os.listdir(st.session_state.results_dir)[0]),
                                                 sep="\t").drop(columns=["time"]).columns.tolist())
         st.markdown("##")
-        col1, _, _, _, _, _, _, _ = st.columns(8)
+        col1, _, _, _, _, _ = st.columns(6)
         num_cols = col1.number_input("number of columns", 1, 5, 2)
         cols = st.columns(num_cols)
         while all_files:

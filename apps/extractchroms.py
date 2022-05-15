@@ -38,7 +38,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
 """)
 
     with st.expander("settings", expanded=True):
-        col1, col2 = st.columns([9,1]) # 40, 10, (HALFTE)
+        col1, col2 = st.columns([9,1])
         col2.markdown("##")
         mzML_button = col2.button("Add", "Add new mzML files.")
         if mzML_button:

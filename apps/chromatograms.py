@@ -5,7 +5,7 @@ import os
 import pandas as pd
 from pymetabo.helpers import Helper
 from filehandler.filehandler import get_mzML_files, get_result_dir
-
+import shutil
 
 # TODO deal with multiple file inputs (only problem on Windows?)
 # TODO how to enter path in Windows? raw string? conversion? works with Linux also?
@@ -21,63 +21,55 @@ def app():
         st.session_state.results_dir = "results"
 
     with st.sidebar:
-        st.markdown("""
-### Extract Ion Chromatograms
-
+        with st.expander("help", expanded=False):
+            st.markdown("""
 Here you can get extracted ion chromatograms `EIC` from mzML files. A base peak chromatogram `BPC`
 will be automatically generated as well. Select the mass tolerance according to your data either as
 absolute values `Da` or relative to the metabolite mass in parts per million `ppm`.
 
 As input you can add `mzML` files and select which ones to use for the chromatogram extraction.
-The results will be stored in the specified folder. Each time you run the extraction the old results will be deleted and newly generated.
+Download the results of single samples or all as `tsv` files that can be opened in Excel.
 
 You can enter the exact masses of your metabolites each in a new line. Optionally you can label them separated by an equal sign e.g.
 `222.0972=GlcNAc`. To store the list of metabolites for later use you can download them as a text file. Simply
 copy and paste the content of that file into the input field.
 
-The results will be displayed as one graph per sample. Choose the samples and chromatograms to display. 
-To get the resulting data as a table check the results folder.
+The results will be displayed as one graph per sample. Choose the samples and chromatograms to display.
 """)
 
-    with st.expander("Parameters", expanded=True):
-        col1, col2 = st.columns(2)
-        mzML_button = col1.button("Add mzML Files")
+    with st.expander("settings", expanded=True):
+        col1, col2 = st.columns([9,1]) # 40, 10, (HALFTE)
+        col2.markdown("##")
+        mzML_button = col2.button("Add", "Add new mzML files.")
         if mzML_button:
             files = get_mzML_files()
             for file in files:
                 st.session_state.mzML_files.add(file)
         mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files, st.session_state.mzML_files,
                                     format_func=lambda x: os.path.basename(x)[:-5])
-        if col2.button("Select Results", help="Select a folder where your results will be stored."):
-            result = get_result_dir()
-            if result:
-                st.session_state.results_dir = result
-        alternative_results = col2.text_input("current results folder", st.session_state.results_dir)
-        if os.path.isdir(alternative_results):
-            st.session_state.results_dir = alternative_results
-        else:
-            st.warning("The specified results folder does not exists!")
-        col1, col2, col3 = st.columns(3)
-        unit = col2.radio("mass tolerance unit", ["ppm", "Da"])
+
+        col1, col2, _, col3 = st.columns([4, 1, 0.5, 1.5])
+        unit = col3.radio("mass tolerance unit", ["ppm", "Da"])
         if unit == "ppm":
-            tolerance = col1.number_input("mass tolerance", 1, 100, 10)
+            tolerance = col3.number_input("mass tolerance", 1, 100, 10)
         elif unit == "Da":
-            tolerance = col1.number_input("mass tolerance", 0.01, 10.0, 0.02)
+            tolerance = col3.number_input("mass tolerance", 0.01, 10.0, 0.02)
         time_unit = col3.radio("time unit", ["seconds", "minutes"])
 
-        col1, col2 = st.columns(2)
         masses_input = col1.text_area("masses", "222.0972=GlcNAc\n294.1183=MurNAc",
-                    help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.")
+                    help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.",
+                    height=250)
+
         col2.markdown("##")
-        col2.markdown("##")
-        col2.download_button("Download Masses",
+        col2.download_button("Download",
                             masses_input,
                             "masses.txt",
                             "text/txt",
                             key='download-txt',
                             help="Download mass list as a text file.")
-    _, col2, _, _, col1, _ = st.columns(6)
-    if col1.button("Extract Data"):
+        run_button = col3.button("Extract Chromatograms!")
+
+    if run_button:
         Helper().reset_directory(st.session_state.results_dir)
         masses = []
         names = []
@@ -124,40 +116,45 @@ To get the resulting data as a table check the results folder.
             df.to_csv(os.path.join(st.session_state.results_dir, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
         st.session_state.viewing = True
 
-    if col2.button("View Results") or st.session_state.viewing:
-        st.session_state.viewing = True
+    if st.session_state.viewing:
+        if st.session_state.viewing:
+            all_files = sorted(st.multiselect("samples", [f for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv")], 
+                                    [f for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv")], format_func=lambda x: os.path.basename(x)[:-4]),
+                                    reverse=True)
+            
+            col1, col2 = st.columns([9,1])
+            all_chroms = col1.multiselect("chromatograms", pd.read_csv(os.path.join(st.session_state.results_dir, os.listdir(st.session_state.results_dir)[0]),
+                                                                    sep="\t").drop(columns=["time"]).columns.tolist(), 
+                                        pd.read_csv(os.path.join(st.session_state.results_dir, os.listdir(st.session_state.results_dir)[0]),
+                                                    sep="\t").drop(columns=["time"]).columns.tolist())
+    
+            num_cols = col2.number_input("columns", 1, 5, 1)
 
-        all_files = sorted(st.multiselect("Samples", [f[:-4] for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv")], 
-                                [f[:-4] for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv")]), reverse=True)
-        all_chroms = st.multiselect("Chromatograms", pd.read_csv(os.path.join(st.session_state.results_dir, os.listdir(st.session_state.results_dir)[0]),
-                                                                sep="\t").drop(columns=["time"]).columns.tolist(), 
-                                    pd.read_csv(os.path.join(st.session_state.results_dir, os.listdir(st.session_state.results_dir)[0]),
-                                                sep="\t").drop(columns=["time"]).columns.tolist())
-        st.markdown("##")
-        col1, _, _, _, _, _, _, _, _,_, _, _, _, _, _,_ = st.columns(16)
-        num_cols = col1.number_input("columns", 1, 5, 2)
-        cols = st.columns(num_cols)
-        while all_files:
-            for col in cols:
-                try:
-                    file = all_files.pop()
-                except IndexError:
-                    break
-                df = pd.read_csv(os.path.join(st.session_state.results_dir, file+".tsv"), sep="\t")
-                if time_unit == "minutes":
-                    time = df["time"]/60
-                    time_label = "time (minutes)"
-                else:
-                    time = df["time"]
-                    time_label = "time (seconds)"
-                
-                fig = px.line(df, x=time, y=all_chroms)
-                fig.update_layout(title=file, xaxis=dict(title=time_label), yaxis=dict(title="intensity (cps)"))
-                col.plotly_chart(fig)
-                # col.download_button(
-                # "Download",
-                # df.to_csv(sep="\t").encode("utf-8"),
-                # file+".tsv",
-                # "text/tsv",
-                # key='download-tsv'
-                # )
+            _, col1 = st.columns([9, 1])
+            if col1.button("Download", help="Select a folder where data from all samples gets stored."):
+                results_folder = get_result_dir()
+                for file in all_files:
+                    shutil.copy(os.path.join(st.session_state.results_dir, file), os.path.join(results_folder, os.path.basename(file)))
+            cols = st.columns(num_cols)
+            while all_files:
+                for col in cols:
+                    try:
+                        file = all_files.pop()
+                    except IndexError:
+                        break
+                    df = pd.read_csv(os.path.join(st.session_state.results_dir, file), sep="\t")
+                    if time_unit == "minutes":
+                        time = df["time"]/60
+                        time_label = "time (minutes)"
+                    else:
+                        time = df["time"]
+                        time_label = "time (seconds)"
+                    
+                    fig = px.line(df, x=time, y=all_chroms)
+                    fig.update_layout(xaxis=dict(title=time_label), yaxis=dict(title="intensity (cps)"))
+                    col.download_button(file[:-4],
+                                        df.to_csv(sep="\t").encode("utf-8"),
+                                        file,
+                                        "text/tsv",
+                                        key='download-tsv', help="Download file.")
+                    col.plotly_chart(fig)

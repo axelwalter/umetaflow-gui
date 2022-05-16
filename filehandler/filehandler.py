@@ -26,3 +26,7 @@ def get_result_dir():
 def get_tsv_files():
     code, out, err = run([sys.executable, os.path.join("filehandler","tsvfiles.py")])
     return [f for f in out.decode("utf-8").strip().split("\n") if len(f) > 0]
+
+def get_tsv_file():
+    code, out, err = run([sys.executable, os.path.join("filehandler","tsvfile.py")])
+    return out.decode("utf-8").strip()

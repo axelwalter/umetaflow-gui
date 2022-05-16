@@ -1,15 +1,13 @@
+from email.utils import collapse_rfc2231_value
+from matplotlib.style import library
 import streamlit as st
 import plotly.express as px
 from pyopenms import *
 import os
 import pandas as pd
 from pymetabo.helpers import Helper
-from filehandler.filehandler import get_mzML_files, get_result_dir
+from filehandler.filehandler import get_mzML_files, get_result_dir, get_tsv_file
 import shutil
-
-# TODO deal with multiple file inputs (only problem on Windows?)
-# TODO how to enter path in Windows? raw string? conversion? works with Linux also?
-
 
 def app():
     if "viewing" not in st.session_state:
@@ -19,6 +17,13 @@ def app():
                                         "example_data/mzML/standards_2.mzML"])
     if "results_dir" not in st.session_state:
         st.session_state.results_dir = "results"
+    
+    if "library_options" not in st.session_state:
+        st.session_state.library_options = [os.path.join("example_data", "FeatureFinderMetaboIdent", file) 
+                                            for file in os.listdir(os.path.join("example_data", "FeatureFinderMetaboIdent"))]
+    if "library" not in st.session_state:
+        st.session_state.library = pd.read_csv([os.path.join("example_data", "FeatureFinderMetaboIdent", file) 
+                                            for file in os.listdir(os.path.join("example_data", "FeatureFinderMetaboIdent"))][0], sep="\t")
 
     with st.sidebar:
         with st.expander("info", expanded=False):
@@ -48,26 +53,25 @@ The results will be displayed as one graph per sample. Choose the samples and ch
         mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files, st.session_state.mzML_files,
                                     format_func=lambda x: os.path.basename(x)[:-5])
 
-        col1, col2, col3, _ = st.columns([4, 1, 1.5, 0.5])
-        unit = col3.radio("mass tolerance unit", ["ppm", "Da"])
+        col1, col2, _ = st.columns([4, 1, 0.5])
+        unit = col2.radio("mass tolerance unit", ["ppm", "Da"])
         if unit == "ppm":
-            tolerance = col3.number_input("mass tolerance", 1, 100, 10)
+            tolerance = col2.number_input("mass tolerance", 1, 100, 10)
         elif unit == "Da":
-            tolerance = col3.number_input("mass tolerance", 0.01, 10.0, 0.02)
-        time_unit = col3.radio("time unit", ["seconds", "minutes"])
+            tolerance = col2.number_input("mass tolerance", 0.01, 10.0, 0.02)
+        time_unit = col2.radio("time unit", ["seconds", "minutes"])
 
-        masses_input = col1.text_area("masses", "222.0972=GlcNAc\n294.1183=MurNAc",
-                    help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.",
-                    height=250)
+        col1.dataframe(st.session_state.library)
 
-        col2.markdown("##")
-        col2.download_button("Download",
-                            masses_input,
-                            "masses.txt",
-                            "text/txt",
-                            key='download-txt',
-                            help="Download mass list as a text file.")
-        run_button = col3.button("Extract Chromatograms!")
+        col1, col2 = st.columns([8,2])
+        select_library = col1.selectbox("select library", st.session_state.library_options)
+        if select_library:
+            st.session_state.library = pd.read_csv(select_library, sep='\t')
+        load_library = col2.button("Add Library")
+        if load_library:
+            st.session_state.library_options.insert(0, get_tsv_file())
+
+        run_button = col2.button("Extract Chromatograms!")
 
     if run_button:
         Helper().reset_directory(st.session_state.results_dir)

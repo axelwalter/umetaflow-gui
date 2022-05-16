@@ -65,9 +65,12 @@ def display_FFM_info(path):
 
 def app():
     if "mzML_dir" not in st.session_state:
-        st.session_state.mzML_dir = "a"
+        st.session_state.mzML_dir = "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML"
     if "results_dir" not in st.session_state:
         st.session_state.results_dir = "results"
+    if "viewing" not in st.session_state:
+        st.session_state.viewing = False
+    
     with st.sidebar:
         with st.expander("info"):
             st.markdown("""
@@ -150,7 +153,7 @@ def app():
             fl_mz_tol = float(st.number_input("link:mz_tol", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
         with col2:
             fl_mz_unit = st.radio("mz_unit", ["ppm", "Da"])
-            view_button = st.button("View Other Results!", help="Select a folder where the complete data from an other run is stored.")
+            view_button = st.button("View Other Results!", help="Show results that are in the currently specified results folder.")
         with col3:
             fl_rt_tol = float(st.number_input("link:rt_tol", 1, 200, 30))
             run_button = st.button("Run Workflow!")
@@ -159,6 +162,7 @@ def app():
 
     col1, col2, col3 = st.columns(3)
     if run_button:
+        st.session_state.viewing = True
         results = Helper().reset_directory(results_dir)
         interim = Helper().reset_directory(os.path.join(results, "interim"))
 
@@ -262,7 +266,8 @@ def app():
         display_df(os.path.join(results_dir, "FeatureMatrix.tsv"), "Feature Matrix")
         display_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"), "Feature Matrix requantified")
 
-    if view_button:
+    if view_button or st.session_state.viewing:
+        st.session_state.viewing = True
         display_df(os.path.join(results_dir, "FeatureMatrix.tsv"), "Feature Matrix")
         display_FFM_info(os.path.join(results_dir, "interim", "FFM"))
         display_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"), "Feature Matrix requantified")

@@ -42,6 +42,7 @@ Simply load the `tsv` files that you stored earlier.
     col2.write("")
     num_cols = col2.number_input("columns", 1, 5, 1)
     cols = st.columns(num_cols)
+
     while all_files:
         for col in cols:
             try:
@@ -49,7 +50,7 @@ Simply load the `tsv` files that you stored earlier.
             except IndexError:
                 break
             df = pd.read_csv(file, sep="\t")
-            
+
             fig = px.line(df, x=df["time"], y=all_chroms, title=file)
             fig.update_layout(xaxis=dict(title="time"), yaxis=dict(title="intensity (cps)"))
             col.plotly_chart(fig)

@@ -1,11 +1,11 @@
 import streamlit as st
-from utils.filehandler import get_files
+from utils.filehandler import get_files, get_dir
 
 def app():
 
     btn = st.button("choose dir")
     if btn:
-        st.write(get_files("tsv", True))
+        print(get_dir())
 
     select_samples = st.multiselect("Samples", ["bear", "bee", "bussard", "blue whale", "bonobo"], ["bear", "bee", "bussard", "blue whale", "bonobo"])
     select_chroms = st.multiselect("Chromatograms", ["red", "blue", "green", "yellow"], ["red", "blue", "yellow"])

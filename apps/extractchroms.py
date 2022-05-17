@@ -39,7 +39,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
         col2.markdown("##")
         mzML_button = col2.button("Add", "Add new mzML files.")
         if mzML_button:
-            files = get_files("mzML", True)
+            files = get_files("Add mzML files", ("MS Data", ".mzML"))
             if files:
                 for file in files:
                     st.session_state.mzML_files.add(file)

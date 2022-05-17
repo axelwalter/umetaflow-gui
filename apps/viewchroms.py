@@ -26,7 +26,7 @@ Simply load the `tsv` files that you stored earlier.
     col2.markdown("##")
     load_button = col2.button("Add", help="Add tsv files with chromatogram data.")
     if load_button:
-        files = get_files("tsv", True)
+        files = get_files("Open chromatogram data", ("chromatogram data", ".tsv"))
         for file in files:
             st.session_state.loaded.add(file)
             columns = pd.read_csv(file, sep="\t").drop(columns=["time"]).columns.tolist()

@@ -88,7 +88,7 @@ def app():
         col2.markdown("##")
         mzML_button = col2.button("Select", help="Choose a folder for your results.")
         if mzML_button:
-            st.session_state.results_dir = get_dir(title="Open folder for your results.")
+            st.session_state.results_dir = get_dir("Open folder for your results.")
         results_dir = col1.text_input("results folder (will be deleted each time the workflow is started!)", st.session_state.results_dir)
 
 

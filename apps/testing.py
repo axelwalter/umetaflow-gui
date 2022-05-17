@@ -1,12 +1,12 @@
 import streamlit as st
-import time
-
-def update_session(state, data):
-    state = data
-    time.sleep(2)
-    return state
+from utils.filehandler import get_files
 
 def app():
+
+    btn = st.button("choose dir")
+    if btn:
+        st.write(get_files("tsv", True))
+
     select_samples = st.multiselect("Samples", ["bear", "bee", "bussard", "blue whale", "bonobo"], ["bear", "bee", "bussard", "blue whale", "bonobo"])
     select_chroms = st.multiselect("Chromatograms", ["red", "blue", "green", "yellow"], ["red", "blue", "yellow"])
 

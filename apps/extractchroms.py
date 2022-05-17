@@ -1,15 +1,12 @@
+from matplotlib import use
 import streamlit as st
 import plotly.express as px
 from pyopenms import *
 import os
 import pandas as pd
 from pymetabo.helpers import Helper
-from filehandler.filehandler import get_mzML_files, get_result_dir
 import shutil
-
-# TODO deal with multiple file inputs (only problem on Windows?)
-# TODO how to enter path in Windows? raw string? conversion? works with Linux also?
-
+from utils.filehandler import get_files
 
 def app():
     if "viewing" not in st.session_state:
@@ -42,9 +39,10 @@ The results will be displayed as one graph per sample. Choose the samples and ch
         col2.markdown("##")
         mzML_button = col2.button("Add", "Add new mzML files.")
         if mzML_button:
-            files = get_mzML_files()
-            for file in files:
-                st.session_state.mzML_files.add(file)
+            files = get_files("mzML", True)
+            if files:
+                for file in files:
+                    st.session_state.mzML_files.add(file)
         mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files, st.session_state.mzML_files,
                                     format_func=lambda x: os.path.basename(x)[:-5])
 
@@ -129,8 +127,11 @@ The results will be displayed as one graph per sample. Choose the samples and ch
 
         num_cols = col2.number_input("columns", 1, 5, 1)
 
-        _, col1 = st.columns([9, 1])
-        if col1.button("Download", help="Select a folder where data from all samples gets stored."):
+        col1, col2, _,col3 = st.columns([2,2,5, 1])
+        use_auc = col1.checkbox("calculate AUC", True)
+        if use_auc:
+            baseline = col2.number_input("AUC baseline", 0, 1000000, 5000, 1000)
+        if col3.button("Download", help="Select a folder where data from all samples gets stored."):
             results_folder = get_result_dir()
             for file in all_files:
                 shutil.copy(os.path.join(st.session_state.results_dir, file), os.path.join(results_folder, os.path.basename(file)))
@@ -142,11 +143,17 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                 except IndexError:
                     break
                 df = pd.read_csv(os.path.join(st.session_state.results_dir, file), sep="\t")
+                if use_auc:
+                    df["AUC baseline"] = [baseline] * len(df)
+                    all_chroms.append("AUC baseline")
+                    print(all_chroms)
+                    print(df.columns)
+                    # all_chroms = all_chroms.append("AUC baseline")
 
                 fig = px.line(df, x=df["time"], y=all_chroms)
                 fig.update_layout(xaxis=dict(title="time"), yaxis=dict(title="intensity (cps)"))
                 col.download_button(file[:-4],
-                                    df.to_csv(sep="\t").encode("utf-8"),
+                                    df.to_csv(sep="\t", index=False).encode("utf-8"),
                                     file,
                                     "text/tsv",
                                     key='download-tsv', help="Download file.")

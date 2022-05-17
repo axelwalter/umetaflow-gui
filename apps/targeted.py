@@ -1,13 +1,9 @@
-from email.utils import collapse_rfc2231_value
-from matplotlib.style import library
 import streamlit as st
 import plotly.express as px
 from pyopenms import *
 import os
 import pandas as pd
-from pymetabo.helpers import Helper
-from filehandler.filehandler import get_mzML_files, get_result_dir, get_tsv_file
-import shutil
+import easygui
 
 def app():
     if "viewing" not in st.session_state:
@@ -47,7 +43,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
         col2.markdown("##")
         mzML_button = col2.button("Add", "Add new mzML files.")
         if mzML_button:
-            files = get_mzML_files()
+            files = easygui.fileopenbox(title="Open mzML files", multiple=True, filetypes=["mzML"])
             for file in files:
                 st.session_state.mzML_files.add(file)
         mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files, st.session_state.mzML_files,
@@ -69,7 +65,8 @@ The results will be displayed as one graph per sample. Choose the samples and ch
             st.session_state.library = pd.read_csv(select_library, sep='\t')
         load_library = col2.button("Add Library")
         if load_library:
-            st.session_state.library_options.insert(0, get_tsv_file())
+            pass
+            # st.session_state.library_options.insert(0, easygui.fileopenbox(title="Open library file", filetypes=["mzML"])
 
         run_button = col2.button("Extract Chromatograms!")
 

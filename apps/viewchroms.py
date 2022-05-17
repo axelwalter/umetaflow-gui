@@ -3,9 +3,7 @@ import plotly.express as px
 from pyopenms import *
 import os
 import pandas as pd
-from pymetabo.helpers import Helper
-from filehandler.filehandler import get_tsv_files
-import shutil
+from utils.filehandler import get_files
 
 # TODO deal with multiple file inputs (only problem on Windows?)
 # TODO how to enter path in Windows? raw string? conversion? works with Linux also?
@@ -28,7 +26,7 @@ Simply load the `tsv` files that you stored earlier.
     col2.markdown("##")
     load_button = col2.button("Add", help="Add tsv files with chromatogram data.")
     if load_button:
-        files = get_tsv_files()
+        files = get_files("tsv", True)
         for file in files:
             st.session_state.loaded.add(file)
             columns = pd.read_csv(file, sep="\t").drop(columns=["time"]).columns.tolist()

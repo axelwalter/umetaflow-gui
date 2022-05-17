@@ -6,7 +6,7 @@ from pymetabo.helpers import *
 from pymetabo.dataframes import *
 import plotly.express as px
 import matplotlib.pyplot as plt
-from filehandler.filehandler import get_result_dir
+from utils.filehandler import get_files, get_dir
 
 # @st.cache(suppress_st_warning=True)
 def display_df(path, name):
@@ -19,7 +19,6 @@ def display_df(path, name):
     df.to_csv(sep="\t").encode("utf-8"),
     name+".tsv",
     "text/tsv",
-    key='download-tsv'
     )
     # calculate some metrics
     total_missing = sum([df[col].value_counts()[0] for col in df.columns if col.endswith(".mzML")])
@@ -82,14 +81,14 @@ def app():
         col2.markdown("##")
         mzML_button = col2.button("Select", help="Choose a folder with mzML files.")
         if mzML_button:
-            st.session_state.mzML_dir = get_result_dir()
+            st.session_state.mzML_dir = get_dir("Open folder with mzML files")
         mzML_dir = col1.text_input("mzML files folder", st.session_state.mzML_dir)
 
         col1, col2 = st.columns([9,1])
         col2.markdown("##")
         mzML_button = col2.button("Select", help="Choose a folder for your results.")
         if mzML_button:
-            st.session_state.results_dir = get_result_dir()
+            st.session_state.results_dir = get_dir(title="Open folder for your results.")
         results_dir = col1.text_input("results folder (will be deleted each time the workflow is started!)", st.session_state.results_dir)
 
 
@@ -263,8 +262,6 @@ def app():
                 DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix_requant.consensusXML"), 
                                                     os.path.join(results_dir, "FeatureMatrix_requant.tsv"))
         st.success("Complete!")
-        display_df(os.path.join(results_dir, "FeatureMatrix.tsv"), "Feature Matrix")
-        display_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"), "Feature Matrix requantified")
 
     if view_button or st.session_state.viewing:
         st.session_state.viewing = True

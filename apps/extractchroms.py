@@ -1,16 +1,16 @@
-from matplotlib import use
 import streamlit as st
 import plotly.express as px
 from pyopenms import *
 import os
 import pandas as pd
+import numpy as np
 from pymetabo.helpers import Helper
 import shutil
-from utils.filehandler import get_files
+from utils.filehandler import get_files, get_dir
 
 def app():
-    if "viewing" not in st.session_state:
-        st.session_state.viewing = False
+    if "viewing_extract" not in st.session_state:
+        st.session_state.viewing_extract = False
     if "mzML_files" not in st.session_state:
         st.session_state.mzML_files = set(["example_data/mzML/standards_1.mzML",
                                         "example_data/mzML/standards_2.mzML"])
@@ -112,18 +112,16 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                             intensity.append(0)
                     df[str(mass)+"_"+name] = intensity
             df.to_csv(os.path.join(st.session_state.results_dir, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
-        st.session_state.viewing = True
+        st.session_state.viewing_extract = True
 
 
-    if st.session_state.viewing:
-        all_files = st.multiselect("samples", [f for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv")], 
-                                [f for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv")], format_func=lambda x: os.path.basename(x)[:-4])
+    if st.session_state.viewing_extract:
+        all_files = st.multiselect("samples", [f for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv") and "AUC" not in f], 
+                                [f for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv") and "AUC" not in f], format_func=lambda x: os.path.basename(x)[:-4])
         all_files = sorted(all_files, reverse=True)
         col1, col2 = st.columns([9,1])
-        all_chroms = col1.multiselect("chromatograms", pd.read_csv(os.path.join(st.session_state.results_dir, os.listdir(st.session_state.results_dir)[0]),
-                                                                sep="\t").drop(columns=["time"]).columns.tolist(), 
-                                    pd.read_csv(os.path.join(st.session_state.results_dir, os.listdir(st.session_state.results_dir)[0]),
-                                                sep="\t").drop(columns=["time"]).columns.tolist())
+        all_chroms = col1.multiselect("chromatograms", pd.read_csv(os.path.join(st.session_state.results_dir, all_files[0]), sep="\t").drop(columns=["time"]).columns.tolist(), 
+                                                        pd.read_csv(os.path.join(st.session_state.results_dir, all_files[0]), sep="\t").drop(columns=["time"]).columns.tolist())
 
         num_cols = col2.number_input("columns", 1, 5, 1)
 
@@ -132,9 +130,10 @@ The results will be displayed as one graph per sample. Choose the samples and ch
         if use_auc:
             baseline = col2.number_input("AUC baseline", 0, 1000000, 5000, 1000)
         if col3.button("Download", help="Select a folder where data from all samples gets stored."):
-            results_folder = get_result_dir()
-            for file in all_files:
-                shutil.copy(os.path.join(st.session_state.results_dir, file), os.path.join(results_folder, os.path.basename(file)))
+            new_folder = get_dir()
+            for file in os.listdir(st.session_state.results_dir):
+                shutil.copy(os.path.join(st.session_state.results_dir, file), os.path.join(new_folder, os.path.basename(file)))
+        st.markdown("***")
         cols = st.columns(num_cols)
         while all_files:
             for col in cols:
@@ -143,18 +142,37 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                 except IndexError:
                     break
                 df = pd.read_csv(os.path.join(st.session_state.results_dir, file), sep="\t")
+
                 if use_auc:
                     df["AUC baseline"] = [baseline] * len(df)
                     all_chroms.append("AUC baseline")
-                    print(all_chroms)
-                    print(df.columns)
-                    # all_chroms = all_chroms.append("AUC baseline")
-
-                fig = px.line(df, x=df["time"], y=all_chroms)
+                fig = px.line(df, x=df["time"], y=[c for c in df.columns if c in all_chroms])
                 fig.update_layout(xaxis=dict(title="time"), yaxis=dict(title="intensity (cps)"))
-                col.download_button(file[:-4],
+                col.markdown(file[:-4])
+                col.plotly_chart(fig)
+
+                if use_auc:
+                    auc = pd.DataFrame()
+                    for chrom in all_chroms:
+                        if chrom != "AUC baseline" and chrom != "BPC":
+                            auc[chrom] = [int(np.trapz([x for x in df[chrom] if x > baseline]))]
+                    auc.index = ["AUC"]
+                    fig_auc = px.bar(x=auc.columns.tolist(), y=auc.loc["AUC", :].values.tolist())
+                    fig_auc.update_traces(width=0.1)
+                    fig_auc.update_layout(xaxis=dict(title=""), yaxis=dict(title="area under curve (counts)"))
+                    col.plotly_chart(fig_auc)
+                    auc.to_csv(os.path.join(st.session_state.results_dir, file[:-4]+"_AUC.tsv"), sep="\t", index=False)
+                
+                # download single files
+                col.download_button("Download "+file,
                                     df.to_csv(sep="\t", index=False).encode("utf-8"),
                                     file,
                                     "text/tsv",
                                     key='download-tsv', help="Download file.")
-                col.plotly_chart(fig)
+                if use_auc:
+                    col.download_button("Download "+file[:-4]+"_AUC.tsv",
+                                        auc.to_csv(sep="\t", index=False).encode("utf-8"),
+                                        file[:-4]+"_AUC.tsv",
+                                        "text/tsv",
+                                        key='download-tsv', help="Download file.")
+                col.markdown("***")

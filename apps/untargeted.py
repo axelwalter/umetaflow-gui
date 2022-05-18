@@ -67,8 +67,8 @@ def app():
         st.session_state.mzML_dir = "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML"
     if "results_dir" not in st.session_state:
         st.session_state.results_dir = "results"
-    if "viewing" not in st.session_state:
-        st.session_state.viewing = False
+    if "viewing_untargeted" not in st.session_state:
+        st.session_state.viewing_untargeted = False
     
     with st.sidebar:
         with st.expander("info"):
@@ -161,7 +161,7 @@ def app():
 
     col1, col2, col3 = st.columns(3)
     if run_button:
-        st.session_state.viewing = True
+        st.session_state.viewing_untargeted = True
         results = Helper().reset_directory(results_dir)
         interim = Helper().reset_directory(os.path.join(results, "interim"))
 
@@ -263,8 +263,8 @@ def app():
                                                     os.path.join(results_dir, "FeatureMatrix_requant.tsv"))
         st.success("Complete!")
 
-    if view_button or st.session_state.viewing:
-        st.session_state.viewing = True
+    if view_button or st.session_state.viewing_untargeted:
+        st.session_state.viewing_untargeted = True
         display_df(os.path.join(results_dir, "FeatureMatrix.tsv"), "Feature Matrix")
         display_FFM_info(os.path.join(results_dir, "interim", "FFM"))
         display_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"), "Feature Matrix requantified")

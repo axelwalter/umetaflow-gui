@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 from pymetabo.helpers import Helper
 import shutil
-from utils.filehandler import get_files, get_dir
+from utils.filehandler import get_files, get_dir, get_file
 
 def app():
     if "viewing_extract" not in st.session_state:
@@ -16,7 +16,8 @@ def app():
                                         "example_data/mzML/standards_2.mzML"])
     if "results_dir" not in st.session_state:
         st.session_state.results_dir = "results"
-
+    if "masses_text_field" not in st.session_state:
+        st.session_state.masses_text_field = "222.0972=GlcNAc\n294.1183=MurNAc"
     with st.sidebar:
         with st.expander("info", expanded=False):
             st.markdown("""
@@ -54,11 +55,18 @@ The results will be displayed as one graph per sample. Choose the samples and ch
             tolerance = col3.number_input("mass tolerance", 0.01, 10.0, 0.02)
         time_unit = col3.radio("time unit", ["seconds", "minutes"])
 
-        masses_input = col1.text_area("masses", "222.0972=GlcNAc\n294.1183=MurNAc",
+        col2.markdown("##")
+        upload_mass_button = col2.button("Upload")
+        if upload_mass_button:
+            mass_file = get_file("Open mass file for chromatogram extraction", ("Mass File", ".txt"))
+            if os.path.isfile(mass_file):
+                with open(mass_file, "r") as f:
+                    st.session_state.masses_text_field = f.read()
+
+        masses_input = col1.text_area("masses", st.session_state.masses_text_field,
                     help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.",
                     height=250)
 
-        col2.markdown("##")
         col2.download_button("Download",
                             masses_input,
                             "masses.txt",
@@ -66,6 +74,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                             key='download-txt',
                             help="Download mass list as a text file.")
         run_button = col3.button("Extract Chromatograms!")
+
 
     if run_button:
         Helper().reset_directory(st.session_state.results_dir)
@@ -164,13 +173,13 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                     auc.to_csv(os.path.join(st.session_state.results_dir, file[:-4]+"_AUC.tsv"), sep="\t", index=False)
                 
                 # download single files
-                col.download_button("Download "+file,
+                col.download_button(file,
                                     df.to_csv(sep="\t", index=False).encode("utf-8"),
                                     file,
                                     "text/tsv",
                                     key='download-tsv', help="Download file.")
                 if use_auc:
-                    col.download_button("Download "+file[:-4]+"_AUC.tsv",
+                    col.download_button(file[:-4]+"_AUC.tsv",
                                         auc.to_csv(sep="\t", index=False).encode("utf-8"),
                                         file[:-4]+"_AUC.tsv",
                                         "text/tsv",

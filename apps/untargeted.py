@@ -63,12 +63,16 @@ def display_FFM_info(path):
     col2.pyplot(fig)
 
 def app():
-    if "mzML_dir" not in st.session_state:
-        st.session_state.mzML_dir = "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML"
-    if "results_dir" not in st.session_state:
-        st.session_state.results_dir = "results"
+    # set all other viewing states to False
+    st.session_state.viewing_extract = False
+    # set untargeted specific states
     if "viewing_untargeted" not in st.session_state:
         st.session_state.viewing_untargeted = False
+    if "mzML_dir_untargeted" not in st.session_state:
+        st.session_state.mzML_dir_untargeted = "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML"
+    if "results_dir_untargeted" not in st.session_state:
+        st.session_state.results_dir_untargeted = "results"
+
     
     with st.sidebar:
         with st.expander("info"):
@@ -81,15 +85,15 @@ def app():
         col2.markdown("##")
         mzML_button = col2.button("Select", help="Choose a folder with mzML files.")
         if mzML_button:
-            st.session_state.mzML_dir = get_dir("Open folder with mzML files")
-        mzML_dir = col1.text_input("mzML files folder", st.session_state.mzML_dir)
+            st.session_state.mzML_dir_untargeted = get_dir("Open folder with mzML files")
+        mzML_dir = col1.text_input("mzML files folder", st.session_state.mzML_dir_untargeted)
 
         col1, col2 = st.columns([9,1])
         col2.markdown("##")
         mzML_button = col2.button("Select", help="Choose a folder for your results.")
         if mzML_button:
-            st.session_state.results_dir = get_dir("Open folder for your results.")
-        results_dir = col1.text_input("results folder (will be deleted each time the workflow is started!)", st.session_state.results_dir)
+            st.session_state.results_dir_untargeted = get_dir("Open folder for your results.")
+        results_dir = col1.text_input("results folder (will be deleted each time the workflow is started!)", st.session_state.results_dir_untargeted)
 
 
         st.markdown("feature detection")

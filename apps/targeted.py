@@ -1,18 +1,19 @@
 import streamlit as st
 import plotly.express as px
 from pyopenms import *
+from pymetabo.helpers import Helper
 import os
 import pandas as pd
-import easygui
+from utils.filehandler import get_files
 
 def app():
-    if "viewing" not in st.session_state:
-        st.session_state.viewing = False
-    if "mzML_files" not in st.session_state:
-        st.session_state.mzML_files = set(["example_data/mzML/standards_1.mzML",
+    if "viewing_targeted" not in st.session_state:
+        st.session_state.viewing_targeted = False
+    if "mzML_files_targeted" not in st.session_state:
+        st.session_state.mzML_files_targeted = set(["example_data/mzML/standards_1.mzML",
                                         "example_data/mzML/standards_2.mzML"])
-    if "results_dir" not in st.session_state:
-        st.session_state.results_dir = "results"
+    if "results_dir_targeted" not in st.session_state:
+        st.session_state.results_dir_targeted = "results"
     
     if "library_options" not in st.session_state:
         st.session_state.library_options = [os.path.join("example_data", "FeatureFinderMetaboIdent", file) 
@@ -24,54 +25,50 @@ def app():
     with st.sidebar:
         with st.expander("info", expanded=False):
             st.markdown("""
-Here you can get extracted ion chromatograms `EIC` from mzML files. A base peak chromatogram `BPC`
-will be automatically generated as well. Select the mass tolerance according to your data either as
-absolute values `Da` or relative to the metabolite mass in parts per million `ppm`.
-
-As input you can add `mzML` files and select which ones to use for the chromatogram extraction.
-Download the results of single samples or all as `tsv` files that can be opened in Excel.
-
-You can enter the exact masses of your metabolites each in a new line. Optionally you can label them separated by an equal sign e.g.
-`222.0972=GlcNAc`. To store the list of metabolites for later use you can download them as a text file. Simply
-copy and paste the content of that file into the input field.
-
-The results will be displayed as one graph per sample. Choose the samples and chromatograms to display.
+Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
 """)
 
     with st.expander("settings", expanded=True):
         col1, col2 = st.columns([9,1])
-        col2.markdown("##")
-        mzML_button = col2.button("Add", "Add new mzML files.")
-        if mzML_button:
-            files = easygui.fileopenbox(title="Open mzML files", multiple=True, filetypes=["mzML"])
-            for file in files:
-                st.session_state.mzML_files.add(file)
-        mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files, st.session_state.mzML_files,
-                                    format_func=lambda x: os.path.basename(x)[:-5])
+        with col1:
+            mzML_files = st.multiselect("mzML files", st.session_state.mzML_files_targeted, st.session_state.mzML_files_targeted,
+                                        format_func=lambda x: os.path.basename(x)[:-5])
+            st.dataframe(st.session_state.library)
+            select_library = st.selectbox("select library", st.session_state.library_options)
 
-        col1, col2, _ = st.columns([4, 1, 0.5])
-        unit = col2.radio("mass tolerance unit", ["ppm", "Da"])
+        with col2:
+            st.markdown("##")
+            mzML_button = st.button("Add", help="Add new mzML files.")
+            st.markdown("##")
+            load_library = st.button("Add", help="Load a library file.")
+
+        if mzML_button:
+            files = get_files("Open mzML files", ("MS Data", ".mzML"))
+            for file in files:
+                st.session_state.mzML_files_targeted.add(file)
+
+        if select_library:
+            st.session_state.library = pd.read_csv(select_library, sep='\t')
+
+        if load_library:
+            pass
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            unit = col2.radio("mass tolerance unit", ["ppm", "Da"])
+
+        with col3: 
+            time_unit = col2.radio("time unit", ["seconds", "minutes"])
+
         if unit == "ppm":
             tolerance = col2.number_input("mass tolerance", 1, 100, 10)
         elif unit == "Da":
             tolerance = col2.number_input("mass tolerance", 0.01, 10.0, 0.02)
-        time_unit = col2.radio("time unit", ["seconds", "minutes"])
-
-        col1.dataframe(st.session_state.library)
-
-        col1, col2 = st.columns([8,2])
-        select_library = col1.selectbox("select library", st.session_state.library_options)
-        if select_library:
-            st.session_state.library = pd.read_csv(select_library, sep='\t')
-        load_library = col2.button("Add Library")
-        if load_library:
-            pass
-            # st.session_state.library_options.insert(0, easygui.fileopenbox(title="Open library file", filetypes=["mzML"])
 
         run_button = col2.button("Extract Chromatograms!")
 
     if run_button:
-        Helper().reset_directory(st.session_state.results_dir)
+        Helper().reset_directory(st.session_state.results_dir_targeted)
         masses = []
         names = []
         for line in [line for line in masses_input.split('\n') if line != '']:
@@ -114,18 +111,18 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                         else:
                             intensity.append(0)
                     df[str(mass)+"_"+name] = intensity
-            df.to_csv(os.path.join(st.session_state.results_dir, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
-        st.session_state.viewing = True
+            df.to_csv(os.path.join(st.session_state.results_dir_targeted, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
+        st.session_state.viewing_targeted = True
 
 
-    if st.session_state.viewing:
-        all_files = st.multiselect("samples", [f for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv")], 
-                                [f for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv")], format_func=lambda x: os.path.basename(x)[:-4])
+    if st.session_state.viewing_targeted:
+        all_files = st.multiselect("samples", [f for f in os.listdir(st.session_state.results_dir_targeted) if f.endswith(".tsv")], 
+                                [f for f in os.listdir(st.session_state.results_dir_targeted) if f.endswith(".tsv")], format_func=lambda x: os.path.basename(x)[:-4])
         all_files = sorted(all_files, reverse=True)
         col1, col2 = st.columns([9,1])
-        all_chroms = col1.multiselect("chromatograms", pd.read_csv(os.path.join(st.session_state.results_dir, os.listdir(st.session_state.results_dir)[0]),
+        all_chroms = col1.multiselect("chromatograms", pd.read_csv(os.path.join(st.session_state.results_dir_targeted, os.listdir(st.session_state.results_dir_targeted)[0]),
                                                                 sep="\t").drop(columns=["time"]).columns.tolist(), 
-                                    pd.read_csv(os.path.join(st.session_state.results_dir, os.listdir(st.session_state.results_dir)[0]),
+                                    pd.read_csv(os.path.join(st.session_state.results_dir_targeted, os.listdir(st.session_state.results_dir_targeted)[0]),
                                                 sep="\t").drop(columns=["time"]).columns.tolist())
 
         num_cols = col2.number_input("columns", 1, 5, 1)
@@ -134,7 +131,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
         if col1.button("Download", help="Select a folder where data from all samples gets stored."):
             results_folder = get_result_dir()
             for file in all_files:
-                shutil.copy(os.path.join(st.session_state.results_dir, file), os.path.join(results_folder, os.path.basename(file)))
+                shutil.copy(os.path.join(st.session_state.results_dir_targeted, file), os.path.join(results_folder, os.path.basename(file)))
         cols = st.columns(num_cols)
         while all_files:
             for col in cols:
@@ -142,7 +139,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                     file = all_files.pop()
                 except IndexError:
                     break
-                df = pd.read_csv(os.path.join(st.session_state.results_dir, file), sep="\t")
+                df = pd.read_csv(os.path.join(st.session_state.results_dir_targeted, file), sep="\t")
 
                 fig = px.line(df, x=df["time"], y=all_chroms)
                 fig.update_layout(xaxis=dict(title="time"), yaxis=dict(title="intensity (cps)"))

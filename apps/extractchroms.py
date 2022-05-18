@@ -9,13 +9,16 @@ import shutil
 from utils.filehandler import get_files, get_dir, get_file
 
 def app():
+    # set all other viewing states to False
+    st.session_state.viewing_untargeted = False
+    # set extract specific session states
     if "viewing_extract" not in st.session_state:
         st.session_state.viewing_extract = False
-    if "mzML_files" not in st.session_state:
-        st.session_state.mzML_files = set(["example_data/mzML/standards_1.mzML",
+    if "mzML_files_extract" not in st.session_state:
+        st.session_state.mzML_files_extract = set(["example_data/mzML/standards_1.mzML",
                                         "example_data/mzML/standards_2.mzML"])
-    if "results_dir" not in st.session_state:
-        st.session_state.results_dir = "results"
+    if "results_dir_extract" not in st.session_state:
+        st.session_state.results_dir_extract = "results"
     if "masses_text_field" not in st.session_state:
         st.session_state.masses_text_field = "222.0972=GlcNAc\n294.1183=MurNAc"
     with st.sidebar:
@@ -43,8 +46,8 @@ The results will be displayed as one graph per sample. Choose the samples and ch
             files = get_files("Add mzML files", ("MS Data", ".mzML"))
             if files:
                 for file in files:
-                    st.session_state.mzML_files.add(file)
-        mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files, st.session_state.mzML_files,
+                    st.session_state.mzML_files_extract.add(file)
+        mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files_extract, st.session_state.mzML_files_extract,
                                     format_func=lambda x: os.path.basename(x)[:-5])
 
         col1, col2, col3, _ = st.columns([4, 1, 1.5, 0.5])
@@ -56,7 +59,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
         time_unit = col3.radio("time unit", ["seconds", "minutes"])
 
         col2.markdown("##")
-        upload_mass_button = col2.button("Upload")
+        upload_mass_button = col2.button("Upload", help="Upload a mass list file.")
         if upload_mass_button:
             mass_file = get_file("Open mass file for chromatogram extraction", ("Mass File", ".txt"))
             if os.path.isfile(mass_file):
@@ -77,7 +80,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
 
 
     if run_button:
-        Helper().reset_directory(st.session_state.results_dir)
+        Helper().reset_directory(st.session_state.results_dir_extract)
         masses = []
         names = []
         for line in [line for line in masses_input.split('\n') if line != '']:
@@ -120,17 +123,17 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                         else:
                             intensity.append(0)
                     df[str(mass)+"_"+name] = intensity
-            df.to_csv(os.path.join(st.session_state.results_dir, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
+            df.to_csv(os.path.join(st.session_state.results_dir_extract, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
         st.session_state.viewing_extract = True
 
 
     if st.session_state.viewing_extract:
-        all_files = st.multiselect("samples", [f for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv") and "AUC" not in f], 
-                                [f for f in os.listdir(st.session_state.results_dir) if f.endswith(".tsv") and "AUC" not in f], format_func=lambda x: os.path.basename(x)[:-4])
+        all_files = st.multiselect("samples", [f for f in os.listdir(st.session_state.results_dir_extract) if f.endswith(".tsv") and "AUC" not in f], 
+                                [f for f in os.listdir(st.session_state.results_dir_extract) if f.endswith(".tsv") and "AUC" not in f], format_func=lambda x: os.path.basename(x)[:-4])
         all_files = sorted(all_files, reverse=True)
         col1, col2 = st.columns([9,1])
-        all_chroms = col1.multiselect("chromatograms", pd.read_csv(os.path.join(st.session_state.results_dir, all_files[0]), sep="\t").drop(columns=["time"]).columns.tolist(), 
-                                                        pd.read_csv(os.path.join(st.session_state.results_dir, all_files[0]), sep="\t").drop(columns=["time"]).columns.tolist())
+        all_chroms = col1.multiselect("chromatograms", pd.read_csv(os.path.join(st.session_state.results_dir_extract, all_files[0]), sep="\t").drop(columns=["time"]).columns.tolist(), 
+                                                        pd.read_csv(os.path.join(st.session_state.results_dir_extract, all_files[0]), sep="\t").drop(columns=["time"]).columns.tolist())
 
         num_cols = col2.number_input("columns", 1, 5, 1)
 
@@ -140,8 +143,8 @@ The results will be displayed as one graph per sample. Choose the samples and ch
             baseline = col2.number_input("AUC baseline", 0, 1000000, 5000, 1000)
         if col3.button("Download", help="Select a folder where data from all samples gets stored."):
             new_folder = get_dir()
-            for file in os.listdir(st.session_state.results_dir):
-                shutil.copy(os.path.join(st.session_state.results_dir, file), os.path.join(new_folder, os.path.basename(file)))
+            for file in os.listdir(st.session_state.results_dir_extract):
+                shutil.copy(os.path.join(st.session_state.results_dir_extract, file), os.path.join(new_folder, os.path.basename(file)))
         st.markdown("***")
         cols = st.columns(num_cols)
         while all_files:
@@ -150,7 +153,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                     file = all_files.pop()
                 except IndexError:
                     break
-                df = pd.read_csv(os.path.join(st.session_state.results_dir, file), sep="\t")
+                df = pd.read_csv(os.path.join(st.session_state.results_dir_extract, file), sep="\t")
 
                 if use_auc:
                     df["AUC baseline"] = [baseline] * len(df)
@@ -170,7 +173,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                     fig_auc.update_traces(width=0.1)
                     fig_auc.update_layout(xaxis=dict(title=""), yaxis=dict(title="area under curve (counts)"))
                     col.plotly_chart(fig_auc)
-                    auc.to_csv(os.path.join(st.session_state.results_dir, file[:-4]+"_AUC.tsv"), sep="\t", index=False)
+                    auc.to_csv(os.path.join(st.session_state.results_dir_extract, file[:-4]+"_AUC.tsv"), sep="\t", index=False)
                 
                 # download single files
                 col.download_button(file,

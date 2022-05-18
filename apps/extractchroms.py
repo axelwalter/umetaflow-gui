@@ -179,7 +179,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                                     "text/tsv",
                                     key='download-tsv', help="Download file.")
                 if use_auc:
-                    col.download_button(file[:-4]+"_AUC.tsv",
+                    col.download_button(file[:-4]+"_AUC_"+str(baseline)+".tsv",
                                         auc.to_csv(sep="\t", index=False).encode("utf-8"),
                                         file[:-4]+"_AUC.tsv",
                                         "text/tsv",

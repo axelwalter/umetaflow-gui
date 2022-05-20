@@ -13,17 +13,17 @@ from tkinter import filedialog as fd
 #         return []
 #     return [file for file in files if file.endswith(type)]
 
-def get_file(title="", type=()):
+def get_file(title="", type=[("All files", "*.*")]):
     root = tk.Tk()
     root.wm_attributes("-topmost", True)
     root.withdraw()
-    return fd.askopenfilename(parent=root, title=title, filetypes=[type])
+    return fd.askopenfilename(parent=root, title=title, filetypes=type)
 
-def get_files(title="", type=()):
+def get_files(title="", type=[("All files", "*.*")]):
     root = tk.Tk()
     root.wm_attributes("-topmost", True)
     root.withdraw()
-    return fd.askopenfilenames(parent=root, title=title, filetypes=[type])
+    return fd.askopenfilenames(parent=root, title=title, filetypes=type)
 
 def get_dir(title=""):
     root = tk.Tk()

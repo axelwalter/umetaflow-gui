@@ -43,7 +43,7 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
             load_library = st.button("Add", help="Load a library file.")
 
         if mzML_button:
-            files = get_files("Open mzML files", ("MS Data", ".mzML"))
+            files = get_files("Open mzML files", [("MS Data", ".mzML")])
             for file in files:
                 st.session_state.mzML_files_targeted.add(file)
 

@@ -41,7 +41,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
         col2.markdown("##")
         mzML_button = col2.button("Add", "Add new mzML files.")
         if mzML_button:
-            files = get_files("Add mzML files", ("MS Data", ".mzML"))
+            files = get_files("Add mzML files", [("MS Data", ".mzML")])
             if files:
                 for file in files:
                     st.session_state.mzML_files_extract.add(file)
@@ -59,8 +59,8 @@ The results will be displayed as one graph per sample. Choose the samples and ch
         col2.markdown("##")
         upload_mass_button = col2.button("Upload", help="Upload a mass list file.")
         if upload_mass_button:
-            mass_file = get_file("Open mass file for chromatogram extraction", ("Mass File", ".txt"))
-            if os.path.isfile(mass_file):
+            mass_file = get_file("Open mass file for chromatogram extraction", [("Mass File", ".txt")])
+            if mass_file:
                 with open(mass_file, "r") as f:
                     st.session_state.masses_text_field = f.read()
 

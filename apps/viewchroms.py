@@ -26,15 +26,18 @@ Simply load the `tsv` files that you stored earlier.
     col2.markdown("##")
     load_button = col2.button("Add", help="Add tsv files with chromatogram data.")
     if load_button:
-        files = get_files("Open chromatogram data", ("chromatogram data", ".tsv"))
+        files = get_files("Open chromatogram data", [("chromatogram data", ".xlsx"), ("chromatogram data", ".tsv")])
         for file in files:
             st.session_state.loaded.add(file)
-            columns = pd.read_csv(file, sep="\t").drop(columns=["time"]).columns.tolist()
+            if file.endswith(".tsv"):
+                columns = pd.read_csv(file, sep="\t").drop(columns=["time"]).columns.tolist()
+            elif file.endswith(".xlsx"):
+                columns = pd.read_excel(file).drop(columns=["time"]).columns.tolist()
             for column in columns:
                 st.session_state.chroms.add(column)
 
     all_files = col1.multiselect("samples", list(st.session_state.loaded), 
-                            list(st.session_state.loaded), format_func=lambda x: os.path.basename(x)[:-4])
+                            list(st.session_state.loaded))
     all_chroms = col1.multiselect("chromatograms", list(st.session_state.chroms), list(st.session_state.chroms))
     
     col2.write("")
@@ -47,7 +50,10 @@ Simply load the `tsv` files that you stored earlier.
                 file = all_files.pop()
             except IndexError:
                 break
-            df = pd.read_csv(file, sep="\t")
+            if file.endswith(".tsv"):
+                df = pd.read_csv(file, sep="\t")
+            if file.endswith(".xlsx"):
+                df = pd.read_excel(file)
 
             fig = px.line(df, x=df["time"], y=all_chroms, title=file)
             fig.update_layout(xaxis=dict(title="time"), yaxis=dict(title="intensity (cps)"))

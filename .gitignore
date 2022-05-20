@@ -3,3 +3,4 @@ apps/__pycache__/
 results
 results_extractchroms
 results_untargeted
+results_targeted

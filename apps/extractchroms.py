@@ -5,7 +5,6 @@ import os
 import pandas as pd
 import numpy as np
 from pymetabo.helpers import Helper
-import shutil
 from utils.filehandler import get_files, get_dir, get_file
 
 def app():
@@ -17,8 +16,6 @@ def app():
     if "mzML_files_extract" not in st.session_state:
         st.session_state.mzML_files_extract = set(["example_data/mzML/standards_1.mzML",
                                         "example_data/mzML/standards_2.mzML"])
-    if "results_dir_extract" not in st.session_state:
-        st.session_state.results_dir_extract = "results"
     if "masses_text_field" not in st.session_state:
         st.session_state.masses_text_field = "222.0972=GlcNAc\n294.1183=MurNAc"
     with st.sidebar:
@@ -29,7 +26,7 @@ will be automatically generated as well. Select the mass tolerance according to 
 absolute values `Da` or relative to the metabolite mass in parts per million `ppm`.
 
 As input you can add `mzML` files and select which ones to use for the chromatogram extraction.
-Download the results of single samples or all as `tsv` files that can be opened in Excel.
+Download the results of selected samples and chromatograms as `tsv` or `xlsx` files.
 
 You can enter the exact masses of your metabolites each in a new line. Optionally you can label them separated by an equal sign e.g.
 `222.0972=GlcNAc`. To store the list of metabolites for later use you can download them as a text file. Simply
@@ -38,6 +35,7 @@ copy and paste the content of that file into the input field.
 The results will be displayed as one graph per sample. Choose the samples and chromatograms to display.
 """)
 
+    results_dir = "results_extractchroms"
     with st.expander("settings", expanded=True):
         col1, col2 = st.columns([9,1])
         col2.markdown("##")
@@ -80,7 +78,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
 
 
     if run_button:
-        Helper().reset_directory(st.session_state.results_dir_extract)
+        Helper().reset_directory(results_dir)
         masses = []
         names = []
         for line in [line for line in masses_input.split('\n') if line != '']:
@@ -123,28 +121,45 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                         else:
                             intensity.append(0)
                     df[str(mass)+"_"+name] = intensity
-            df.to_csv(os.path.join(st.session_state.results_dir_extract, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
+            df.to_feather(os.path.join(results_dir, os.path.basename(file)[:-5]+".ftr"))
         st.session_state.viewing_extract = True
 
+    files = [f for f in os.listdir(results_dir) if f.endswith(".ftr") and "AUC" not in f]
+    chroms = pd.read_feather(os.path.join(results_dir, files[0])).drop(columns=["time"]).columns.tolist()
 
     if st.session_state.viewing_extract:
-        all_files = st.multiselect("samples", [f for f in os.listdir(st.session_state.results_dir_extract) if f.endswith(".tsv") and "AUC" not in f], 
-                                [f for f in os.listdir(st.session_state.results_dir_extract) if f.endswith(".tsv") and "AUC" not in f], format_func=lambda x: os.path.basename(x)[:-4])
-        all_files = sorted(all_files, reverse=True)
-        col1, col2 = st.columns([9,1])
-        all_chroms = col1.multiselect("chromatograms", pd.read_csv(os.path.join(st.session_state.results_dir_extract, all_files[0]), sep="\t").drop(columns=["time"]).columns.tolist(), 
-                                                        pd.read_csv(os.path.join(st.session_state.results_dir_extract, all_files[0]), sep="\t").drop(columns=["time"]).columns.tolist())
+        all_files = sorted(st.multiselect("samples", files, files, format_func=lambda x: os.path.basename(x)[:-4]), reverse=True)
+        all_chroms = st.multiselect("chromatograms", chroms, chroms) 
 
-        num_cols = col2.number_input("columns", 1, 5, 1)
-
-        col1, col2, _,col3 = st.columns([2,2,5, 1])
+        col1, col2, _, col3, _, col4, col5 = st.columns([2,2,1,2,1,1,2])
+        col1.markdown("##")
         use_auc = col1.checkbox("calculate AUC", True)
         if use_auc:
             baseline = col2.number_input("AUC baseline", 0, 1000000, 5000, 1000)
-        if col3.button("Download", help="Select a folder where data from all samples gets stored."):
+        num_cols = col3.number_input("show columns", 1, 5, 1)
+        download_as = col4.radio("download as", [".xlsx", ".tsv"])
+        col5.markdown("##")
+        if col5.button("Download Selection", help="Select a folder where data from selceted samples and chromatograms gets stored."):
             new_folder = get_dir()
-            for file in os.listdir(st.session_state.results_dir_extract):
-                shutil.copy(os.path.join(st.session_state.results_dir_extract, file), os.path.join(new_folder, os.path.basename(file)))
+            if new_folder:
+                for file in all_files:
+                    df = pd.read_feather(os.path.join(results_dir, file))[["time"]+all_chroms]
+                    path = os.path.join(new_folder, file[:-4]+"_"+str(tolerance)+unit)
+                    if download_as == ".tsv":
+                        df.to_csv(path+".tsv", sep="\t", index=False)
+                    if download_as == ".xlsx":
+                        df.to_excel(path+".xlsx", index=False)
+                if use_auc:
+                    auc_files = [file[:-4]+"_AUC.ftr" for file in all_files]
+                    for file in auc_files:
+                        df = pd.read_feather(os.path.join(results_dir, file))
+                        path = os.path.join(new_folder, file[:-7]+"_"+str(tolerance)+unit)+"_"+str(baseline)+"AUC"
+                        if download_as == ".tsv":
+                            df.to_csv(path+".tsv", sep="\t", index=False)
+                        if download_as == ".xlsx":
+                            df.to_excel(path+".xlsx", index=False)
+                col5.success("Download done!")
+
         st.markdown("***")
         cols = st.columns(num_cols)
         while all_files:
@@ -153,7 +168,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                     file = all_files.pop()
                 except IndexError:
                     break
-                df = pd.read_csv(os.path.join(st.session_state.results_dir_extract, file), sep="\t")
+                df = pd.read_feather(os.path.join(results_dir, file))
 
                 if use_auc:
                     df["AUC baseline"] = [baseline] * len(df)
@@ -173,18 +188,6 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                     fig_auc.update_traces(width=0.1)
                     fig_auc.update_layout(xaxis=dict(title=""), yaxis=dict(title="area under curve (counts)"))
                     col.plotly_chart(fig_auc)
-                    auc.to_csv(os.path.join(st.session_state.results_dir_extract, file[:-4]+"_AUC.tsv"), sep="\t", index=False)
-                
-                # download single files
-                col.download_button(file,
-                                    df.to_csv(sep="\t", index=False).encode("utf-8"),
-                                    file,
-                                    "text/tsv",
-                                    key='download-tsv', help="Download file.")
-                if use_auc:
-                    col.download_button(file[:-4]+"_AUC_"+str(baseline)+".tsv",
-                                        auc.to_csv(sep="\t", index=False).encode("utf-8"),
-                                        file[:-4]+"_AUC.tsv",
-                                        "text/tsv",
-                                        key='download-tsv', help="Download file.")
+                    auc.reset_index().to_feather(os.path.join(results_dir, file[:-4]+"_AUC.ftr"))
+
                 col.markdown("***")

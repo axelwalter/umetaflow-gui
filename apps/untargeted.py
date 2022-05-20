@@ -71,7 +71,7 @@ def app():
     if "mzML_dir_untargeted" not in st.session_state:
         st.session_state.mzML_dir_untargeted = "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML"
     if "results_dir_untargeted" not in st.session_state:
-        st.session_state.results_dir_untargeted = "results"
+        st.session_state.results_dir_untargeted = "results_untargeted"
 
     
     with st.sidebar:

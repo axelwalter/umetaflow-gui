@@ -173,17 +173,20 @@ The results will be displayed as one graph per sample. Choose the samples and ch
 
                 if use_auc:
                     df["AUC baseline"] = [baseline] * len(df)
-                    all_chroms.append("AUC baseline")
+                    if "AUC baseline" not in all_chroms:
+                        all_chroms.append("AUC baseline")
 
+                auc = pd.DataFrame()
                 if use_auc:
-                    auc = pd.DataFrame()
                     for chrom in all_chroms:
                         if chrom != "AUC baseline" and chrom != "BPC":
-                            auc[chrom] = [int(np.trapz([x for x in df[chrom] if x > baseline]))]
-                    auc.index = ["AUC"]
-                    auc.reset_index().to_feather(os.path.join(results_dir, file[:-4]+"_AUC.ftr"))
+                            auc[chrom] = [int(np.trapz([x-baseline for x in df[chrom] if x > baseline]))]
+                    if len(auc.columns) > 0:
+                        auc.index = ["AUC"]
+                        auc.reset_index().to_feather(os.path.join(results_dir, file[:-4]+"_AUC.ftr"))
 
-                fig_chrom, fig_auc = Plot().extracted_chroms(df, chroms=all_chroms, df_auc=auc.reset_index())
+                fig_chrom, fig_auc = Plot().extracted_chroms(df, chroms=all_chroms, df_auc=auc)
                 col.plotly_chart(fig_chrom)
-                col.plotly_chart(fig_auc)
+                if use_auc:
+                    col.plotly_chart(fig_auc)
                 col.markdown("***")

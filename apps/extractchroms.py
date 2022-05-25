@@ -5,6 +5,7 @@ import os
 import pandas as pd
 import numpy as np
 from pymetabo.helpers import Helper
+from pymetabo.plotting import Plot
 from utils.filehandler import get_files, get_dir, get_file
 
 def app():
@@ -173,10 +174,6 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                 if use_auc:
                     df["AUC baseline"] = [baseline] * len(df)
                     all_chroms.append("AUC baseline")
-                fig = px.line(df, x=df["time"], y=[c for c in df.columns if c in all_chroms])
-                fig.update_layout(xaxis=dict(title="time"), yaxis=dict(title="intensity (cps)"))
-                col.markdown(file[:-4])
-                col.plotly_chart(fig)
 
                 if use_auc:
                     auc = pd.DataFrame()
@@ -184,10 +181,9 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                         if chrom != "AUC baseline" and chrom != "BPC":
                             auc[chrom] = [int(np.trapz([x for x in df[chrom] if x > baseline]))]
                     auc.index = ["AUC"]
-                    fig_auc = px.bar(x=auc.columns.tolist(), y=auc.loc["AUC", :].values.tolist())
-                    fig_auc.update_traces(width=0.1)
-                    fig_auc.update_layout(xaxis=dict(title=""), yaxis=dict(title="area under curve (counts)"))
-                    col.plotly_chart(fig_auc)
                     auc.reset_index().to_feather(os.path.join(results_dir, file[:-4]+"_AUC.ftr"))
 
+                fig_chrom, fig_auc = Plot().extracted_chroms(df, chroms=all_chroms, df_auc=auc.reset_index())
+                col.plotly_chart(fig_chrom)
+                col.plotly_chart(fig_auc)
                 col.markdown("***")

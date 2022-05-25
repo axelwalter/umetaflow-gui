@@ -3,9 +3,11 @@ import plotly.express as px
 from pyopenms import *
 from pymetabo.helpers import Helper
 from pymetabo.core import FeatureFinderMetaboIdent
+from pymetabo.dataframes import DataFrames
+from pymetabo.plotting import Plot
 import os
 import pandas as pd
-from utils.filehandler import get_files
+from utils.filehandler import get_files, get_dir
 
 def app():
     if "viewing_targeted" not in st.session_state:
@@ -66,40 +68,43 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
 
     if run_button:
         Helper().reset_directory(results_dir)
-        featureXML_dir = Helper().reset_directory(os.path.join(results_dir, "feature_maps"))
         for file in mzML_files:
             with st.spinner("Extracting from: " + file):
-                exp = MSExperiment()
-                MzMLFile().load(file, exp)
-                df = pd.DataFrame()
 
                 FeatureFinderMetaboIdent().run(file,
-                            os.path.join(featureXML_dir,  os.path.basename(file[:-4]+"featureXML")), library,
+                            os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")), library,
                             params={"extract:mz_window": ffmid_mz,
                                     "detect:peak_width": ffmid_peak_width,
                                     "extract:n_isotopes": ffmid_n_isotopes})
 
-                fm = FeatureMap()
+                DataFrames().FFMID_chroms_to_df(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")), os.path.join(results_dir,  os.path.basename(file[:-4]+"ftr")))
+
+                os.remove(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")))
+
         st.session_state.viewing_targeted = True
 
-
+    files = [f for f in os.listdir(results_dir) if f.endswith(".ftr") and "AUC" not in f]
     if st.session_state.viewing_targeted:
-        all_files = st.multiselect("samples", [f for f in os.listdir(results_dir) if f.endswith(".tsv")], 
-                                [f for f in os.listdir(results_dir) if f.endswith(".tsv")], format_func=lambda x: os.path.basename(x)[:-4])
-        all_files = sorted(all_files, reverse=True)
-        col1, col2 = st.columns([9,1])
-        all_chroms = col1.multiselect("chromatograms", pd.read_csv(os.path.join(results_dir, os.listdir(results_dir)[0]),
-                                                                sep="\t").drop(columns=["time"]).columns.tolist(), 
-                                    pd.read_csv(os.path.join(results_dir, os.listdir(results_dir)[0]),
-                                                sep="\t").drop(columns=["time"]).columns.tolist())
+        all_files = sorted(st.multiselect("samples", files, files, format_func=lambda x: os.path.basename(x)[:-4]), reverse=True)
 
-        num_cols = col2.number_input("columns", 1, 5, 1)
+        col1, col2, _, col3, _, col4, col5 = st.columns([2,2,1,2,1,1,2])
+        col1.markdown("##")
+        num_cols = col3.number_input("show columns", 1, 5, 1)
+        download_as = col4.radio("download as", [".xlsx", ".tsv"])
+        col5.markdown("##")
+        if col5.button("Download Selection", help="Select a folder where data from selceted samples and chromatograms gets stored."):
+            new_folder = get_dir()
+            if new_folder:
+                for file in all_files:
+                    df = pd.read_feather(os.path.join(results_dir, file))
+                    path = os.path.join(new_folder, file[:-4])
+                    if download_as == ".tsv":
+                        df.to_csv(path+".tsv", sep="\t", index=False)
+                    if download_as == ".xlsx":
+                        df.to_excel(path+".xlsx", index=False)
+                col5.success("Download done!")
 
-        _, col1 = st.columns([9, 1])
-        if col1.button("Download", help="Select a folder where data from all samples gets stored."):
-            results_folder = get_result_dir()
-            for file in all_files:
-                shutil.copy(os.path.join(results_dir, file), os.path.join(results_folder, os.path.basename(file)))
+        st.markdown("***")
         cols = st.columns(num_cols)
         while all_files:
             for col in cols:
@@ -107,13 +112,21 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
                     file = all_files.pop()
                 except IndexError:
                     break
-                df = pd.read_csv(os.path.join(results_dir, file), sep="\t")
+                df = pd.read_feather(os.path.join(results_dir, file))
 
-                fig = px.line(df, x=df["time"], y=all_chroms)
-                fig.update_layout(xaxis=dict(title="time"), yaxis=dict(title="intensity (cps)"))
-                col.download_button(file[:-4],
-                                    df.to_csv(sep="\t").encode("utf-8"),
-                                    file,
-                                    "text/tsv",
-                                    key='download-tsv', help="Download file.")
-                col.plotly_chart(fig)
+                col.markdown(file[:-4])
+                col.plotly_chart(Plot().FFMID_chroms_from_df(df))
+
+                # if use_auc:
+                #     auc = pd.DataFrame()
+                #     for chrom in all_chroms:
+                #         if chrom != "AUC baseline" and chrom != "BPC":
+                #             auc[chrom] = [int(np.trapz([x for x in df[chrom] if x > baseline]))]
+                #     auc.index = ["AUC"]
+                #     fig_auc = px.bar(x=auc.columns.tolist(), y=auc.loc["AUC", :].values.tolist())
+                #     fig_auc.update_traces(width=0.1)
+                #     fig_auc.update_layout(xaxis=dict(title=""), yaxis=dict(title="area under curve (counts)"))
+                #     col.plotly_chart(fig_auc)
+                #     auc.reset_index().to_feather(os.path.join(results_dir, file[:-4]+"_AUC.ftr"))
+
+                col.markdown("***")

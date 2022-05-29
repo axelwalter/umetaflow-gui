@@ -9,6 +9,9 @@ from pymetabo.plotting import Plot
 from utils.filehandler import get_files, get_dir, get_file
 
 def app():
+    results_dir = "results_extractchroms"
+    if not os.path.exists(results_dir):
+        os.mkdir(results_dir)
     # set all other viewing states to False
     st.session_state.viewing_untargeted = False
     # set extract specific session states
@@ -20,7 +23,7 @@ def app():
     if "masses_text_field" not in st.session_state:
         st.session_state.masses_text_field = "222.0972=GlcNAc\n294.1183=MurNAc"
     with st.sidebar:
-        with st.expander("info", expanded=False):
+        with st.expander("info", expanded=True):
             st.markdown("""
 Here you can get extracted ion chromatograms `EIC` from mzML files. A base peak chromatogram `BPC`
 will be automatically generated as well. Select the mass tolerance according to your data either as
@@ -36,7 +39,6 @@ copy and paste the content of that file into the input field.
 The results will be displayed as one graph per sample. Choose the samples and chromatograms to display.
 """)
 
-    results_dir = "results_extractchroms"
     with st.expander("settings", expanded=True):
         col1, col2 = st.columns([9,1])
         col2.markdown("##")

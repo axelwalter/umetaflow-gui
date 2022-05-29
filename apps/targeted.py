@@ -10,6 +10,9 @@ import pandas as pd
 from utils.filehandler import get_files, get_dir
 
 def app():
+    results_dir = "results_targeted"
+    if not os.path.exists(results_dir):
+        os.mkdir(results_dir)
     if "viewing_targeted" not in st.session_state:
         st.session_state.viewing_targeted = False
     if "mzML_files_targeted" not in st.session_state:
@@ -19,7 +22,6 @@ def app():
         st.session_state.library_options = [os.path.join("example_data", "FeatureFinderMetaboIdent", file) 
                                             for file in os.listdir(os.path.join("example_data", "FeatureFinderMetaboIdent"))]
 
-    results_dir = "results_targeted"
     with st.sidebar:
         with st.expander("info", expanded=False):
             st.markdown("""

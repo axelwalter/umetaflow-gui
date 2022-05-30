@@ -33,7 +33,7 @@ As input you can add `mzML` files and select which ones to use for the chromatog
 Download the results of selected samples and chromatograms as `tsv` or `xlsx` files.
 
 You can enter the exact masses of your metabolites each in a new line. Optionally you can label them separated by an equal sign e.g.
-`222.0972=GlcNAc`. To store the list of metabolites for later use you can download them as a text file. Simply
+`222.0972=GlcNAc` or add RT limits with a further equal sign e.g. `222.0972=GlcNAc=2.4-2.6`. The specified time unit will be used for the RT limits. To store the list of metabolites for later use you can download them as a text file. Simply
 copy and paste the content of that file into the input field.
 
 The results will be displayed as one graph per sample. Choose the samples and chromatograms to display.
@@ -84,14 +84,26 @@ The results will be displayed as one graph per sample. Choose the samples and ch
         Helper().reset_directory(results_dir)
         masses = []
         names = []
+        times = []
         for line in [line for line in masses_input.split('\n') if line != '']:
-            if '=' in line:
-                mass, name = line.split('=')
+            if len(line.split("=")) == 3:
+                mass, name, time = line.split("=")
+            elif len(line.split("=")) == 2:
+                mass, name = line.split("=")
+                time = "all"
             else:
                 mass = line
                 name = ''
+                time = "all"
             masses.append(float(mass.strip()))
             names.append(name.strip())
+            time_factor = 1.0
+            if time_unit == "minutes":
+                time_factor = 60.0
+            if "-" in time:
+                times.append([float(time.split("-")[0].strip())*time_factor, float(time.split("-")[1].strip())*time_factor])
+            else:
+                times.append([0,0])
         for file in mzML_files:
             with st.spinner("Extracting from: " + file):
                 exp = MSExperiment()
@@ -111,16 +123,19 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                 df["time"] = time
                 df["BPC"] = intensity
                 # get EICs
-                for mass, name in zip(masses, names):
+                for mass, name, time in zip(masses, names, times):
                     intensity = []
                     for spec in exp:
-                        _, intensities = spec.get_peaks()
-                        if unit == "Da":
-                            index_highest_peak_within_window = spec.findHighestInWindow(mass, tolerance, tolerance)
-                        else:
-                            index_highest_peak_within_window = spec.findHighestInWindow(mass,float((tolerance/1000000)*mass),float((tolerance/1000000)*mass))
-                        if index_highest_peak_within_window > -1:
-                            intensity.append(int(spec[index_highest_peak_within_window].getIntensity()))
+                        if (time == [0,0]) or (time[0] < spec.getRT() and time[1] > spec.getRT()):
+                            _, intensities = spec.get_peaks()
+                            if unit == "Da":
+                                index_highest_peak_within_window = spec.findHighestInWindow(mass, tolerance, tolerance)
+                            else:
+                                index_highest_peak_within_window = spec.findHighestInWindow(mass,float((tolerance/1000000)*mass),float((tolerance/1000000)*mass))
+                            if index_highest_peak_within_window > -1:
+                                intensity.append(int(spec[index_highest_peak_within_window].getIntensity()))
+                            else:
+                                intensity.append(0)
                         else:
                             intensity.append(0)
                     df[str(mass)+"_"+name] = intensity
@@ -187,7 +202,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                         auc.index = ["AUC"]
                         auc.reset_index().to_feather(os.path.join(results_dir, file[:-4]+"_AUC.ftr"))
 
-                fig_chrom, fig_auc = Plot().extracted_chroms(df, chroms=all_chroms, df_auc=auc)
+                fig_chrom, fig_auc = Plot().extracted_chroms(df, chroms=all_chroms, df_auc=auc, title=file[:-4])
                 col.plotly_chart(fig_chrom)
                 if use_auc:
                     col.plotly_chart(fig_auc)

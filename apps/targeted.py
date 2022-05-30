@@ -23,7 +23,7 @@ def app():
                                             for file in os.listdir(os.path.join("example_data", "FeatureFinderMetaboIdent"))]
 
     with st.sidebar:
-        with st.expander("info", expanded=False):
+        with st.expander("info", expanded=True):
             st.markdown("""
 Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
 """)
@@ -80,7 +80,7 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
                                     "extract:n_isotopes": ffmid_n_isotopes})
 
                 DataFrames().FFMID_chroms_to_df(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")), os.path.join(results_dir,  os.path.basename(file[:-4]+"ftr")))
-
+                DataFrames().FFMID_auc_to_df(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")), os.path.join(results_dir,  os.path.basename(file[:-5]+"AUC.ftr")))
                 os.remove(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")))
 
         st.session_state.viewing_targeted = True
@@ -118,6 +118,10 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
 
                 col.markdown(file[:-4])
                 col.plotly_chart(Plot().FFMID_chroms_from_df(df))
+
+                df = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
+
+                
 
                 # if use_auc:
                 #     auc = pd.DataFrame()

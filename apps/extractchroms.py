@@ -205,7 +205,7 @@ The results will be displayed as one graph per sample. Choose the samples and ch
                         auc.index = ["AUC"]
                         auc.reset_index().to_feather(os.path.join(results_dir, file[:-4]+"_AUC.ftr"))
 
-                fig_chrom, fig_auc = Plot().extracted_chroms(df, chroms=all_chroms, df_auc=auc, title=file[:-4])
+                fig_chrom, fig_auc = Plot().extracted_chroms(df, chroms=all_chroms, df_auc=auc, title=file[:-4], time_unit=time_unit)
                 col.plotly_chart(fig_chrom)
                 if use_auc:
                     col.plotly_chart(fig_auc)

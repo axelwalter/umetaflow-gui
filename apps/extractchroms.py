@@ -7,6 +7,7 @@ import numpy as np
 from pymetabo.helpers import Helper
 from pymetabo.plotting import Plot
 from utils.filehandler import get_files, get_dir, get_file
+from collections import OrderedDict
 
 def app():
     results_dir = "results_extractchroms"
@@ -18,8 +19,7 @@ def app():
     if "viewing_extract" not in st.session_state:
         st.session_state.viewing_extract = False
     if "mzML_files_extract" not in st.session_state:
-        st.session_state.mzML_files_extract = set(["example_data/mzML/standards_1.mzML",
-                                        "example_data/mzML/standards_2.mzML"])
+        st.session_state.mzML_files_extract = set()
     if "masses_text_field" not in st.session_state:
         st.session_state.masses_text_field = "222.0972=GlcNAc\n294.1183=MurNAc"
     with st.sidebar:
@@ -48,8 +48,11 @@ The results will be displayed as one graph per sample. Choose the samples and ch
             if files:
                 for file in files:
                     st.session_state.mzML_files_extract.add(file)
-        mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files_extract, st.session_state.mzML_files_extract,
-                                    format_func=lambda x: os.path.basename(x)[:-5])
+        if st.session_state.mzML_files_extract:
+            mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files_extract, st.session_state.mzML_files_extract,
+                                        format_func=lambda x: os.path.basename(x)[:-5])
+        else:
+            mzML_files = col1.multiselect("mzML files", [], [])
 
         col1, col2, col3, _ = st.columns([4, 1, 1.5, 0.5])
         unit = col3.radio("mass tolerance unit", ["ppm", "Da"])

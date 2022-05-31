@@ -81,6 +81,7 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
 
                 DataFrames().FFMID_chroms_to_df(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")), os.path.join(results_dir,  os.path.basename(file[:-4]+"ftr")))
                 DataFrames().FFMID_auc_to_df(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")), os.path.join(results_dir,  os.path.basename(file[:-5]+"AUC.ftr")))
+                DataFrames().FFMID_auc_combined_to_df(os.path.join(results_dir,  os.path.basename(file[:-5]+"AUC.ftr")), os.path.join(results_dir,  os.path.basename(file[:-5]+"AUC_combined.ftr")))
                 os.remove(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")))
 
         st.session_state.viewing_targeted = True
@@ -120,6 +121,9 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
                 col.plotly_chart(Plot().FFMID_chroms_from_df(df))
 
                 df = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
+                col.dataframe(df)
+                df = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC_combined.ftr"))
+                col.dataframe(df)
 
                 
 

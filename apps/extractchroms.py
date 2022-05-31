@@ -146,7 +146,10 @@ The results will be displayed as one graph per sample. Choose the samples and ch
         st.session_state.viewing_extract = True
 
     files = [f for f in os.listdir(results_dir) if f.endswith(".ftr") and "AUC" not in f]
-    chroms = pd.read_feather(os.path.join(results_dir, files[0])).drop(columns=["time"]).columns.tolist()
+    if files:
+        chroms = pd.read_feather(os.path.join(results_dir, files[0])).drop(columns=["time"]).columns.tolist()
+    else:
+        chroms = []
 
     if st.session_state.viewing_extract:
         all_files = sorted(st.multiselect("samples", files, files, format_func=lambda x: os.path.basename(x)[:-4]), reverse=True)

@@ -79,9 +79,16 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
                                     "detect:peak_width": ffmid_peak_width,
                                     "extract:n_isotopes": ffmid_n_isotopes})
 
-                DataFrames().FFMID_chroms_to_df(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")), os.path.join(results_dir,  os.path.basename(file[:-4]+"ftr")))
-                DataFrames().FFMID_auc_to_df(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")), os.path.join(results_dir,  os.path.basename(file[:-5]+"AUC.ftr")))
-                DataFrames().FFMID_auc_combined_to_df(os.path.join(results_dir,  os.path.basename(file[:-5]+"AUC.ftr")), os.path.join(results_dir,  os.path.basename(file[:-5]+"AUC_combined.ftr")))
+                DataFrames().FFMID_chroms_to_df(os.path.join(results_dir, os.path.basename(file[:-4]+"featureXML")),
+                                                os.path.join(results_dir,  os.path.basename(file[:-4]+"ftr")),
+                                                time_unit=time_unit)
+
+                DataFrames().FFMID_auc_to_df(os.path.join(results_dir,os.path.basename(file[:-4]+"featureXML")),
+                                            os.path.join(results_dir,  os.path.basename(file[:-5]+"AUC.ftr")))
+
+                DataFrames().FFMID_auc_combined_to_df(os.path.join(results_dir,  os.path.basename(file[:-5]+"AUC.ftr")),
+                                                os.path.join(results_dir,  os.path.basename(file[:-5]+"AUC_combined.ftr")))
+
                 os.remove(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")))
 
         st.session_state.viewing_targeted = True
@@ -115,28 +122,15 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
                     file = all_files.pop()
                 except IndexError:
                     break
-                df = pd.read_feather(os.path.join(results_dir, file))
+                df_chrom = pd.read_feather(os.path.join(results_dir, file))
+                df_auc = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
+                df_auc_combined = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC_combined.ftr"))
 
-                col.markdown(file[:-4])
-                col.plotly_chart(Plot().FFMID_chroms_from_df(df))
-
-                df = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
-                col.dataframe(df)
-                df = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC_combined.ftr"))
-                col.dataframe(df)
-
-                
-
-                # if use_auc:
-                #     auc = pd.DataFrame()
-                #     for chrom in all_chroms:
-                #         if chrom != "AUC baseline" and chrom != "BPC":
-                #             auc[chrom] = [int(np.trapz([x for x in df[chrom] if x > baseline]))]
-                #     auc.index = ["AUC"]
-                #     fig_auc = px.bar(x=auc.columns.tolist(), y=auc.loc["AUC", :].values.tolist())
-                #     fig_auc.update_traces(width=0.1)
-                #     fig_auc.update_layout(xaxis=dict(title=""), yaxis=dict(title="area under curve (counts)"))
-                #     col.plotly_chart(fig_auc)
-                #     auc.reset_index().to_feather(os.path.join(results_dir, file[:-4]+"_AUC.ftr"))
+                fig_chrom, fig_auc, fig_auc_combined = Plot().FFMID(df_chrom, df_auc=df_auc, df_auc_combined=df_auc_combined, time_unit=time_unit, title=file[:-4])
+                col.plotly_chart(fig_chrom)
+                col.plotly_chart(fig_auc)
+                col.dataframe(df_auc)
+                col.plotly_chart(fig_auc_combined)
+                col.dataframe(df_auc_combined)
 
                 col.markdown("***")

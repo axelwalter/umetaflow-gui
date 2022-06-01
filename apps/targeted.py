@@ -91,11 +91,15 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
 
                 os.remove(os.path.join(results_dir,  os.path.basename(file[:-4]+"featureXML")))
 
+
         st.session_state.viewing_targeted = True
 
     files = [f for f in os.listdir(results_dir) if f.endswith(".ftr") and "AUC" not in f]
     if st.session_state.viewing_targeted:
         all_files = sorted(st.multiselect("samples", files, files, format_func=lambda x: os.path.basename(x)[:-4]), reverse=True)
+
+        DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC.ftr") for file in sorted(all_files, reverse=True)], os.path.join(results_dir, "summary.ftr"))
+        # DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC_combined.ftr") for file in sorted(all_files, reverse=True)], os.path.join(results_dir, "summary_combined.ftr"))
 
         col1, col2, _, col3, _, col4, col5 = st.columns([2,2,1,2,1,1,2])
         col1.markdown("##")
@@ -115,6 +119,10 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
                 col5.success("Download done!")
 
         st.markdown("***")
+        df_summary = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
+        # df_summary_combined = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
+        st.dataframe(df_summary)
+        # st.dataframe(df_summary_combined)
         cols = st.columns(num_cols)
         while all_files:
             for col in cols:

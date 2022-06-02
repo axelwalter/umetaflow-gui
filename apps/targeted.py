@@ -131,8 +131,8 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
                 except IndexError:
                     break
                 df_chrom = pd.read_feather(os.path.join(results_dir, file))
-                df_auc = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
-                df_auc_combined = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC_combined.ftr"))
+                df_auc = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr")).drop(columns=["index"])
+                df_auc_combined = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC_combined.ftr")).drop(columns=["index"])
 
                 fig_chrom, fig_auc, fig_auc_combined = Plot().FFMID(df_chrom, df_auc=df_auc, df_auc_combined=df_auc_combined, time_unit=time_unit, title=file[:-4])
                 col.plotly_chart(fig_chrom)

@@ -7,7 +7,7 @@ from pymetabo.dataframes import DataFrames
 from pymetabo.plotting import Plot
 import os
 import pandas as pd
-from utils.filehandler import get_files, get_dir
+from utils.filehandler import get_files, get_dir, save_file
 
 def app():
     results_dir = "results_targeted"
@@ -16,10 +16,7 @@ def app():
     if "viewing_targeted" not in st.session_state:
         st.session_state.viewing_targeted = False
     if "mzML_files_targeted" not in st.session_state:
-        st.session_state.mzML_files_targeted = set(["example_data/mzML/standards_1.mzML",
-                                        "example_data/mzML/standards_2.mzML",
-                                        "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML/Bs_WT_3mL_T#1.mzML",
-                                        "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML/Bs_WT_3mL_C#1.mzML"])
+        st.session_state.mzML_files_targeted = set([])
     if "library_options" not in st.session_state:
         st.session_state.library_options = [os.path.join("example_data", "FeatureFinderMetaboIdent", file) 
                                             for file in os.listdir(os.path.join("example_data", "FeatureFinderMetaboIdent"))]
@@ -104,22 +101,37 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
         DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC.ftr") for file in all_files], os.path.join(results_dir, "summary.ftr"))
         DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC_combined.ftr") for file in all_files], os.path.join(results_dir, "summary_combined.ftr"))
 
-        col1, col2, _, col3, _, col4, col5 = st.columns([2,2,1,2,1,1,2])
-        col1.markdown("##")
-        num_cols = col3.number_input("show columns", 1, 5, 1)
-        download_as = col4.radio("download as", [".xlsx", ".tsv"])
-        col5.markdown("##")
-        if col5.button("Download Selection", help="Select a folder where data from selceted samples and chromatograms gets stored."):
+        col1, _, col2, col3, col4 = st.columns(5)
+        num_cols = col1.number_input("show columns", 1, 5, 1)
+        download_as = col2.radio("download as", [".xlsx", ".tsv"])
+        col3.markdown("##")
+        if col3.button("Download Selection", help="Select a folder where data from selceted samples and chromatograms gets stored."):
             new_folder = get_dir()
             if new_folder:
-                for file in all_files:
+                for file in all_files+["summary.ftr", "summary_combined.ftr"]:
                     df = pd.read_feather(os.path.join(results_dir, file))
                     path = os.path.join(new_folder, file[:-4])
                     if download_as == ".tsv":
                         df.to_csv(path+".tsv", sep="\t", index=False)
-                    if download_as == ".xlsx":
+                    elif download_as == ".xlsx":
                         df.to_excel(path+".xlsx", index=False)
-                col5.success("Download done!")
+                col3.success("Download done!")
+        col4.markdown("##")
+        if col4.button("Download Summary", help="Download only the summary file with combined intensities."):
+            if download_as == ".tsv":
+                file_type = [("Tab separated table", "*.tsv")]
+                default_ext = ".tsv"
+            elif download_as == ".xlsx":
+                file_type = [("Excel table", "*.xlsx")]
+                default_ext = ".xlsx"
+            path = save_file("Download Summary", type=file_type, default_ext=default_ext)
+            if path:
+                df = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
+                if download_as == ".tsv":
+                    df.to_csv(path, sep="\t", index=False)
+                elif download_as == ".xlsx":
+                    df.to_excel(path, index=False)
+                col4.success("Download done!")
 
         st.markdown("***")
         st.markdown("Summary with combined intensities")

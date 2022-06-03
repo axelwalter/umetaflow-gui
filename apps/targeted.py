@@ -56,6 +56,7 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
             new_lib_files = get_files("Open library file(s)", [("Standards library", ".tsv")])
             for file in new_lib_files:
                 st.session_state.library_options.insert(0, file)
+            st.experimental_rerun()
 
         col1, col2, col3, col4 = st.columns([2,2,2,2])
         with col1:

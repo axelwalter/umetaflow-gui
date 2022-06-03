@@ -20,10 +20,7 @@ def app():
     if "viewing_extract" not in st.session_state:
         st.session_state.viewing_extract = False
     if "mzML_files_extract" not in st.session_state:
-        st.session_state.mzML_files_extract = set(["example_data/mzML/standards_1.mzML",
-                                                    "example_data/mzML/standards_2.mzML",
-                                                    "example_data/mzML/Bs_WT_3mL_C#1.mzML",
-                                                    "example_data/mzML/Bs_WT_3mL_T#1.mzML"])
+        st.session_state.mzML_files_extract = set()
     if "masses_text_field" not in st.session_state:
         st.session_state.masses_text_field = "222.0972=GlcNAc\n294.1183=MurNAc"
     with st.sidebar:

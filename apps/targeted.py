@@ -16,7 +16,7 @@ def app():
     if "viewing_targeted" not in st.session_state:
         st.session_state.viewing_targeted = False
     if "mzML_files_targeted" not in st.session_state:
-        st.session_state.mzML_files_targeted = set([])
+        st.session_state.mzML_files_targeted = set()
     if "library_options" not in st.session_state:
         st.session_state.library_options = [os.path.join("example_data", "FeatureFinderMetaboIdent", file) 
                                             for file in os.listdir(os.path.join("example_data", "FeatureFinderMetaboIdent"))]
@@ -30,8 +30,11 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
     with st.expander("settings", expanded=True):
         col1, col2 = st.columns([9,1])
         with col1:
-            mzML_files = st.multiselect("mzML files", st.session_state.mzML_files_targeted, st.session_state.mzML_files_targeted,
-                                        format_func=lambda x: os.path.basename(x)[:-5])
+            if st.session_state.mzML_files_targeted:
+                mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files_targeted, st.session_state.mzML_files_targeted,
+                                            format_func=lambda x: os.path.basename(x)[:-5])
+            else:
+                mzML_files = col1.multiselect("mzML files", [], [])
         with col2:
             st.markdown("##")
             mzML_button = st.button("Add", help="Add new mzML files.")

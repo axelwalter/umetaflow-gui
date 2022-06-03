@@ -7,8 +7,7 @@ import numpy as np
 from pymetabo.helpers import Helper
 from pymetabo.plotting import Plot
 from pymetabo.dataframes import DataFrames
-from utils.filehandler import get_files, get_dir, get_file
-from collections import OrderedDict
+from utils.filehandler import get_files, get_dir, get_file, save_file
 
 def app():
     results_dir = "results_extractchroms"
@@ -152,8 +151,6 @@ The results will be displayed as a summary with all samples and EICs AUC values 
         chroms = pd.read_feather(os.path.join(results_dir, files[0])).drop(columns=["time"]).reset_index().columns.tolist()
         if "index" in chroms:
             chroms.remove("index")
-        if "level_0" in chroms:
-            chroms.remove("level_0")
     else:
         chroms = []
 
@@ -162,12 +159,12 @@ The results will be displayed as a summary with all samples and EICs AUC values 
         all_chroms = st.multiselect("chromatograms", chroms, chroms) 
 
 
-        _, col2, _, col3, _, col4, col5 = st.columns([2,2,1,2,1,1,2])
-        baseline = col2.number_input("AUC baseline", 0, 1000000, 5000, 1000)
-        num_cols = col3.number_input("show columns", 1, 5, 1)
-        download_as = col4.radio("download as", [".xlsx", ".tsv"])
-        col5.markdown("##")
-        if col5.button("Download Selection", help="Select a folder where data from selceted samples and chromatograms gets stored."):
+        col1, col2, col3, col4, col5 = st.columns(5)
+        baseline = col1.number_input("AUC baseline", 0, 1000000, 5000, 1000)
+        num_cols = col2.number_input("show columns", 1, 5, 1)
+        download_as = col3.radio("download as", [".xlsx", ".tsv"])
+        col4.markdown("##")
+        if col4.button("Download Chromatograms", help="Select a folder where data from selceted samples and chromatograms gets stored."):
             new_folder = get_dir()
             if new_folder:
                 for file in all_files:
@@ -177,17 +174,23 @@ The results will be displayed as a summary with all samples and EICs AUC values 
                         df.to_csv(path+".tsv", sep="\t", index=False)
                     if download_as == ".xlsx":
                         df.to_excel(path+".xlsx", index=False)
-
-                auc_files = [file[:-4]+"_AUC.ftr" for file in all_files]
-                for file in auc_files:
-                    df = pd.read_feather(os.path.join(results_dir, file))
-                    path = os.path.join(new_folder, file[:-7]+"_"+str(tolerance)+unit)+"_"+str(baseline)+"AUC"
-                    if download_as == ".tsv":
-                        df.to_csv(path+".tsv", sep="\t", index=False)
-                    if download_as == ".xlsx":
-                        df.to_excel(path+".xlsx", index=False)
+                col4.success("Download done!")
+        col5.markdown("##")
+        if col5.button("Download Summary", help="Download only the summary file with combined intensities."):
+            if download_as == ".tsv":
+                file_type = [("Tab separated table", "*.tsv")]
+                default_ext = ".tsv"
+            elif download_as == ".xlsx":
+                file_type = [("Excel table", "*.xlsx")]
+                default_ext = ".xlsx"
+            path = save_file("Download Summary", type=file_type, default_ext=default_ext)
+            if path:
+                df = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
+                if download_as == ".tsv":
+                    df.to_csv(path, sep="\t", index=False)
+                elif download_as == ".xlsx":
+                    df.to_excel(path, index=False)
                 col5.success("Download done!")
-
 
         for file in all_files:
             df = pd.read_feather(os.path.join(results_dir, file))

@@ -154,7 +154,7 @@ The results will be displayed as a summary with all samples and intensity values
         df_summary_combined = pd.read_feather(os.path.join(results_dir, "summary_combined.ftr"))
         df_summary_combined.index = df_summary_combined["index"]
         df_summary_combined = df_summary_combined.drop(columns=["index"])
-        fig = Plot().FeatureMatrix(df_summary_combined)#, samples=[sample[:-4] for sample in all_files])
+        fig = Plot().FeatureMatrix(df_summary_combined)
         st.plotly_chart(fig)
         st.dataframe(df_summary_combined)
         st.markdown("***")
@@ -162,7 +162,7 @@ The results will be displayed as a summary with all samples and intensity values
         df_summary = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
         df_summary.index = df_summary["index"]
         df_summary = df_summary.drop(columns=["index"])
-        fig = Plot().FeatureMatrix(df_summary, samples=[sample[:-4] for sample in all_files])
+        fig = Plot().FeatureMatrix(df_summary)
         st.plotly_chart(fig)
         st.dataframe(df_summary)
         st.markdown("***")

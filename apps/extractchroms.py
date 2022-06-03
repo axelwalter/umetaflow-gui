@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from pymetabo.helpers import Helper
 from pymetabo.plotting import Plot
+from pymetabo.dataframes import DataFrames
 from utils.filehandler import get_files, get_dir, get_file
 from collections import OrderedDict
 
@@ -19,7 +20,10 @@ def app():
     if "viewing_extract" not in st.session_state:
         st.session_state.viewing_extract = False
     if "mzML_files_extract" not in st.session_state:
-        st.session_state.mzML_files_extract = set()
+        st.session_state.mzML_files_extract = set(["example_data/mzML/standards_1.mzML",
+                                                    "example_data/mzML/standards_2.mzML",
+                                                    "example_data/mzML/Bs_WT_3mL_C#1.mzML",
+                                                    "example_data/mzML/Bs_WT_3mL_T#1.mzML"])
     if "masses_text_field" not in st.session_state:
         st.session_state.masses_text_field = "222.0972=GlcNAc\n294.1183=MurNAc"
     with st.sidebar:
@@ -69,6 +73,7 @@ The results will be displayed as a summary with all samples and EICs AUC values 
             if mass_file:
                 with open(mass_file, "r") as f:
                     st.session_state.masses_text_field = f.read()
+                st.experimental_rerun()
 
         masses_input = col1.text_area("masses", st.session_state.masses_text_field,
                     help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.",
@@ -145,9 +150,13 @@ The results will be displayed as a summary with all samples and EICs AUC values 
             df.to_feather(os.path.join(results_dir, os.path.basename(file)[:-5]+".ftr"))
         st.session_state.viewing_extract = True
 
-    files = [f for f in os.listdir(results_dir) if f.endswith(".ftr") and "AUC" not in f]
+    files = [f for f in os.listdir(results_dir) if f.endswith(".ftr") and "AUC" not in f and "summary" not in f]
     if files:
-        chroms = pd.read_feather(os.path.join(results_dir, files[0])).drop(columns=["time"]).columns.tolist()
+        chroms = pd.read_feather(os.path.join(results_dir, files[0])).drop(columns=["time"]).reset_index().columns.tolist()
+        if "index" in chroms:
+            chroms.remove("index")
+        if "level_0" in chroms:
+            chroms.remove("level_0")
     else:
         chroms = []
 
@@ -155,11 +164,9 @@ The results will be displayed as a summary with all samples and EICs AUC values 
         all_files = sorted(st.multiselect("samples", files, files, format_func=lambda x: os.path.basename(x)[:-4]), reverse=True)
         all_chroms = st.multiselect("chromatograms", chroms, chroms) 
 
-        col1, col2, _, col3, _, col4, col5 = st.columns([2,2,1,2,1,1,2])
-        col1.markdown("##")
-        use_auc = col1.checkbox("calculate AUC", True)
-        if use_auc:
-            baseline = col2.number_input("AUC baseline", 0, 1000000, 5000, 1000)
+
+        _, col2, _, col3, _, col4, col5 = st.columns([2,2,1,2,1,1,2])
+        baseline = col2.number_input("AUC baseline", 0, 1000000, 5000, 1000)
         num_cols = col3.number_input("show columns", 1, 5, 1)
         download_as = col4.radio("download as", [".xlsx", ".tsv"])
         col5.markdown("##")
@@ -173,16 +180,40 @@ The results will be displayed as a summary with all samples and EICs AUC values 
                         df.to_csv(path+".tsv", sep="\t", index=False)
                     if download_as == ".xlsx":
                         df.to_excel(path+".xlsx", index=False)
-                if use_auc:
-                    auc_files = [file[:-4]+"_AUC.ftr" for file in all_files]
-                    for file in auc_files:
-                        df = pd.read_feather(os.path.join(results_dir, file))
-                        path = os.path.join(new_folder, file[:-7]+"_"+str(tolerance)+unit)+"_"+str(baseline)+"AUC"
-                        if download_as == ".tsv":
-                            df.to_csv(path+".tsv", sep="\t", index=False)
-                        if download_as == ".xlsx":
-                            df.to_excel(path+".xlsx", index=False)
+
+                auc_files = [file[:-4]+"_AUC.ftr" for file in all_files]
+                for file in auc_files:
+                    df = pd.read_feather(os.path.join(results_dir, file))
+                    path = os.path.join(new_folder, file[:-7]+"_"+str(tolerance)+unit)+"_"+str(baseline)+"AUC"
+                    if download_as == ".tsv":
+                        df.to_csv(path+".tsv", sep="\t", index=False)
+                    if download_as == ".xlsx":
+                        df.to_excel(path+".xlsx", index=False)
                 col5.success("Download done!")
+
+
+        for file in all_files:
+            df = pd.read_feather(os.path.join(results_dir, file))
+            df["AUC baseline"] = [baseline] * len(df)
+            if "AUC baseline" not in all_chroms:
+                all_chroms.append("AUC baseline")
+
+            auc = pd.DataFrame()
+            for chrom in all_chroms:
+                if chrom != "AUC baseline" and chrom != "BPC":
+                    auc[chrom] = [int(np.trapz([x-baseline for x in df[chrom] if x > baseline]))]
+            auc.to_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
+            df.to_feather(os.path.join(results_dir, file))
+
+        st.markdown("***")
+        DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC.ftr") for file in all_files], os.path.join(results_dir, "summary.ftr"))
+        st.markdown("Summary")
+        df_summary = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
+        df_summary.index = df_summary["index"]
+        df_summary = df_summary.drop(columns=["index"])
+        fig = Plot().FeatureMatrix(df_summary)
+        st.plotly_chart(fig)
+        st.dataframe(df_summary)
 
         st.markdown("***")
         cols = st.columns(num_cols)
@@ -193,23 +224,10 @@ The results will be displayed as a summary with all samples and EICs AUC values 
                 except IndexError:
                     break
                 df = pd.read_feather(os.path.join(results_dir, file))
-
-                if use_auc:
-                    df["AUC baseline"] = [baseline] * len(df)
-                    if "AUC baseline" not in all_chroms:
-                        all_chroms.append("AUC baseline")
-
-                auc = pd.DataFrame()
-                if use_auc:
-                    for chrom in all_chroms:
-                        if chrom != "AUC baseline" and chrom != "BPC":
-                            auc[chrom] = [int(np.trapz([x-baseline for x in df[chrom] if x > baseline]))]
-                    if len(auc.columns) > 0:
-                        auc.index = ["AUC"]
-                        auc.reset_index().to_feather(os.path.join(results_dir, file[:-4]+"_AUC.ftr"))
-
+                auc = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
+                # auc.index = auc["index"]
+                # auc = auc.drop(columns=["index"])
                 fig_chrom, fig_auc = Plot().extracted_chroms(df, chroms=all_chroms, df_auc=auc, title=file[:-4], time_unit=time_unit)
                 col.plotly_chart(fig_chrom)
-                if use_auc:
-                    col.plotly_chart(fig_auc)
+                col.plotly_chart(fig_auc)
                 col.markdown("***")

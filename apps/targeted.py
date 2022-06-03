@@ -94,12 +94,12 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
 
         st.session_state.viewing_targeted = True
 
-    files = [f for f in os.listdir(results_dir) if f.endswith(".ftr") and "AUC" not in f]
+    files = [f for f in os.listdir(results_dir) if f.endswith(".ftr") and "AUC" not in f and "summary" not in f]
     if st.session_state.viewing_targeted:
         all_files = sorted(st.multiselect("samples", files, files, format_func=lambda x: os.path.basename(x)[:-4]), reverse=True)
 
-        DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC.ftr") for file in sorted(all_files, reverse=True)], os.path.join(results_dir, "summary.ftr"))
-        # DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC_combined.ftr") for file in sorted(all_files, reverse=True)], os.path.join(results_dir, "summary_combined.ftr"))
+        DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC.ftr") for file in all_files], os.path.join(results_dir, "summary.ftr"))
+        DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC_combined.ftr") for file in all_files], os.path.join(results_dir, "summary_combined.ftr"))
 
         col1, col2, _, col3, _, col4, col5 = st.columns([2,2,1,2,1,1,2])
         col1.markdown("##")
@@ -119,10 +119,22 @@ Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
                 col5.success("Download done!")
 
         st.markdown("***")
+        st.markdown("Summary with combined intensities")
+        df_summary_combined = pd.read_feather(os.path.join(results_dir, "summary_combined.ftr"))
+        df_summary_combined.index = df_summary_combined["index"]
+        df_summary_combined = df_summary_combined.drop(columns=["index"])
+        fig = Plot().FeatureMatrix(df_summary_combined)#, samples=[sample[:-4] for sample in all_files])
+        st.plotly_chart(fig)
+        st.dataframe(df_summary_combined)
+        st.markdown("***")
+        st.markdown("Summary with adduct intensities")
         df_summary = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
-        # df_summary_combined = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
+        df_summary.index = df_summary["index"]
+        df_summary = df_summary.drop(columns=["index"])
+        fig = Plot().FeatureMatrix(df_summary, samples=[sample[:-4] for sample in all_files])
+        st.plotly_chart(fig)
         st.dataframe(df_summary)
-        # st.dataframe(df_summary_combined)
+        st.markdown("***")
         cols = st.columns(num_cols)
         while all_files:
             for col in cols:

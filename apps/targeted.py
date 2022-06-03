@@ -17,7 +17,9 @@ def app():
         st.session_state.viewing_targeted = False
     if "mzML_files_targeted" not in st.session_state:
         st.session_state.mzML_files_targeted = set(["example_data/mzML/standards_1.mzML",
-                                        "example_data/mzML/standards_2.mzML"])
+                                        "example_data/mzML/standards_2.mzML",
+                                        "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML/Bs_WT_3mL_T#1.mzML",
+                                        "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML/Bs_WT_3mL_C#1.mzML"])
     if "library_options" not in st.session_state:
         st.session_state.library_options = [os.path.join("example_data", "FeatureFinderMetaboIdent", file) 
                                             for file in os.listdir(os.path.join("example_data", "FeatureFinderMetaboIdent"))]

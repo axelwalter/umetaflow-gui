@@ -36,7 +36,7 @@ You can enter the exact masses of your metabolites each in a new line. Optionall
 `222.0972=GlcNAc` or add RT limits with a further equal sign e.g. `222.0972=GlcNAc=2.4-2.6`. The specified time unit will be used for the RT limits. To store the list of metabolites for later use you can download them as a text file. Simply
 copy and paste the content of that file into the input field.
 
-The results will be displayed as one graph per sample. Choose the samples and chromatograms to display.
+The results will be displayed as a summary with all samples and EICs AUC values as well as the chromatograms as one graph per sample. Choose the samples and chromatograms to display.
 """)
 
     with st.expander("settings", expanded=True):

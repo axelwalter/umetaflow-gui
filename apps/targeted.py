@@ -24,7 +24,20 @@ def app():
     with st.sidebar:
         with st.expander("info", expanded=True):
             st.markdown("""
-Workflow for targeted metabolmics with FeatureFinderMetaboIdent.
+Here you can do targeted metabolomics with the FeatureFinderMetaboIdent.
+
+As input you can add `mzML` files and select which ones to use for the chromatogram extraction.
+Download the results of the summary or all selected samples and chromatograms as `tsv` or `xlsx` files.
+
+For targeted metabolomics we have to create a table in tsv file format as specified in the [documentation](https://abibuilder.informatik.uni-tuebingen.de/archive/openms/Documentation/experimental/feature/proteomic_lfq/html/a15547.html).
+In the case of this tool, the `CompoundName` can countain a `#` symbol to specifiy different adduct types of one metabolite, e.g. `GlcNAc` and `GlcNAc#+Na-H`. The intensities will be
+added up in the summary. Please always enter the neutral `SumFormula` and specify the `Charge` separately. The `RetentionTime` can contain multiple values split by a comma, to
+consider metabolites with double peaks as well.
+
+Important settings that should be adopted to your data are the `extract:mz_window` and `detect:peak_width` parameters.
+The `extract:n_isotopes` parameters specifies how many isotope mass traces should be included.
+
+The results will be displayed as a summary with all samples and intensity values as well as the chromatograms and detailed information per sample. Choose the samples and chromatograms to display.
 """)
 
     with st.expander("settings", expanded=True):

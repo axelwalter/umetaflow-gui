@@ -12,6 +12,8 @@ from utils.filehandler import get_files, get_dir
 def display_df(path, name):
     if os.path.isfile(path):
         df = pd.read_csv(path, sep="\t")
+        df.index = df["Unnamed: 0"]
+        df = df.drop(columns=["Unnamed: 0"])
     else:
         return
     st.download_button(
@@ -27,9 +29,8 @@ def display_df(path, name):
     for column in df.columns:
         if column.endswith(".mzML"):
             df = df.rename(columns={column: column[:-5]})
-    st.dataframe(df.drop(columns=["id"]))
-    df["index"] =df.index
-    hover = df.columns.drop("id")
+    st.dataframe(df)
+    hover = df.columns
     fig = px.scatter(df, x="RT", y="mz", color="quality", hover_data=hover)
     st.plotly_chart(fig)
     col1, col2, col3 = st.columns(3)

@@ -148,9 +148,11 @@ The results will be displayed as a summary with all samples and EICs AUC values 
 
     files = [f for f in os.listdir(results_dir) if f.endswith(".ftr") and "AUC" not in f and "summary" not in f]
     if files:
-        chroms = pd.read_feather(os.path.join(results_dir, files[0])).drop(columns=["time"]).reset_index().columns.tolist()
+        chroms = pd.read_feather(os.path.join(results_dir, files[0])).drop(columns=["time"]).columns.tolist()
         if "index" in chroms:
             chroms.remove("index")
+        if "AUC baseline" in chroms:
+            chroms.remove("AUC baseline")
     else:
         chroms = []
 

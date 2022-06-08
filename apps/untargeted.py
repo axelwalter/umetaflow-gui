@@ -16,6 +16,9 @@ def display_df(path, name):
         df = df.drop(columns=["Unnamed: 0"])
     else:
         return
+    for column in df.columns:
+        if column.endswith(".mzML"):
+            df = df.rename(columns={column: column[:-5]})
     st.download_button(
     name,
     df.to_csv(sep="\t").encode("utf-8"),
@@ -26,9 +29,6 @@ def display_df(path, name):
     total_missing = sum([df[col].value_counts()[0] for col in df.columns if col.endswith(".mzML")])
     mean_quality = df["quality"].mean()
     median_quality = df["quality"].median()
-    for column in df.columns:
-        if column.endswith(".mzML"):
-            df = df.rename(columns={column: column[:-5]})
     st.dataframe(df)
     hover = df.columns
     fig = px.scatter(df, x="RT", y="mz", color="quality", hover_data=hover)

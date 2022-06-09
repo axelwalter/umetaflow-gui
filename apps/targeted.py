@@ -142,7 +142,7 @@ The results will be displayed as a summary with all samples and intensity values
                 default_ext = ".xlsx"
             path = save_file("Download Summary", type=file_type, default_ext=default_ext)
             if path:
-                df = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
+                df = pd.read_feather(os.path.join(results_dir, "summary_combined.ftr"))
                 if download_as == ".tsv":
                     df.to_csv(path, sep="\t", index=False)
                 elif download_as == ".xlsx":

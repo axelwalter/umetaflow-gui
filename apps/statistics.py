@@ -85,9 +85,10 @@ You can use the suggested sample names. In order to enter replicates put them in
             if a and b:
                 pairs.append((b, a))
         df_mean, df_std, df_change = Statistics().get_mean_std_change_df(df, pairs)
+        df_summary = pd.concat([df_meta_values, df_norm, df_change], axis=1)
         if st.button("Summary"):
-            download_df(pd.concat([df_meta_values, df_norm, df_change], axis=1))
-        st.dataframe(pd.concat([df_meta_values, df_norm, df_change], axis=1))
+            download_df(df_summary)
+        st.dataframe(df_summary)
         fig = Plot().FeatureMatrix(df_norm)
         st.plotly_chart(fig)
         if not df_mean.empty:
@@ -95,10 +96,10 @@ You can use the suggested sample names. In order to enter replicates put them in
             if st.button("Mean intensities"):
                 download_df(df_mean)
             st.dataframe(df_mean)
-            st.plotly_chart(Plot().FeatureMatrix(df_mean, y_title="mean AUC"))
             if st.button("Standard deviations"):
                 download_df(df_std)
             st.dataframe(df_std)
+            st.plotly_chart(Plot().FeatureMatrix(df_mean, df_std, y_title="mean AUC"))
             st.markdown("***")
             if st.button("Log 2 fold changes"):
                 download_df(df_change)

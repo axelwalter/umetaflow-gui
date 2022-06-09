@@ -105,5 +105,3 @@ You can use the suggested sample names. In order to enter replicates put them in
             st.dataframe(df_change)
             st.plotly_chart(Plot().FeatureMatrix(df_change, y_title="log 2 fold change"))
             st.plotly_chart(Plot().FeatureMatrixHeatMap(df_change, title="log 2 fold change"))
-            
-

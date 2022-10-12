@@ -1,5 +1,5 @@
 # easy-MS
-WebApp built with streamlit and pyOpenMS for diverse use cases including targeted and untargeted metabolomics, chromatogram extraction and statistics.
+Simply interface for the analysis of mass spec data with pyOpenMS including chromatogram extraction, metabolomics and statistics.
 
 ## Installation
 

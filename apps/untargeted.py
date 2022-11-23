@@ -1,4 +1,4 @@
-from matplotlib import markers
+import shutil
 import streamlit as st
 import pandas as pd
 from pymetabo.core import *
@@ -25,19 +25,19 @@ def display_df(path, name):
     name+".tsv",
     "text/tsv",
     )
-    # calculate some metrics
-    total_missing = sum([df[col].value_counts()[0] for col in df.columns if col.endswith(".mzML")])
-    mean_quality = df["quality"].mean()
-    median_quality = df["quality"].median()
     st.dataframe(df)
-    hover = df.columns
-    fig = px.scatter(df, x="RT", y="mz", color="quality", hover_data=hover)
-    st.plotly_chart(fig)
+    # # calculate some metrics
+    total_missing = sum([(df[col] == 0).sum() for col in df.columns])
+    # mean_quality = df["quality"].mean()
+    # median_quality = df["quality"].median()
+    # st.dataframe(df)
+    # hover = df.columns
+    # fig = px.scatter(df, x="RT", y="mz", color="quality", hover_data=hover)
+    # st.plotly_chart(fig)
     col1, col2, col3 = st.columns(3)
-
     col1.metric("total missing values", total_missing)
-    col2.metric("mean quality", str(mean_quality)[:6])
-    col3.metric("median quality", str(median_quality)[:6])
+    # col2.metric("mean quality", str(mean_quality)[:6])
+    # col3.metric("median quality", str(median_quality)[:6])
 
 
 def display_FFM_info(path):
@@ -69,8 +69,8 @@ def app():
     # set untargeted specific states
     if "viewing_untargeted" not in st.session_state:
         st.session_state.viewing_untargeted = False
-    if "mzML_dir_untargeted" not in st.session_state:
-        st.session_state.mzML_dir_untargeted = "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML"
+    if "mzML_files_untargeted" not in st.session_state:
+        st.session_state.mzML_files_untargeted = set(['example_data/mzML/MarY_C.mzML', 'example_data/mzML/MraY_T.mzML'])
     if "results_dir_untargeted" not in st.session_state:
         st.session_state.results_dir_untargeted = "results_untargeted"
 
@@ -83,16 +83,25 @@ def app():
 
     with st.expander("settings", expanded=True):
         col1, col2 = st.columns([9,1])
-        col2.markdown("##")
-        mzML_button = col2.button("Select", help="Choose a folder with mzML files.")
+        with col1:
+            if st.session_state.mzML_files_untargeted:
+                mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files_untargeted, st.session_state.mzML_files_untargeted,
+                                            format_func=lambda x: os.path.basename(x)[:-5])
+            else:
+                mzML_files = col1.multiselect("mzML files", [], [])
+        with col2:
+            st.markdown("##")
+            mzML_button = st.button("Add", help="Add new mzML files.")
         if mzML_button:
-            st.session_state.mzML_dir_untargeted = get_dir("Open folder with mzML files")
-        mzML_dir = col1.text_input("mzML files folder", st.session_state.mzML_dir_untargeted)
+            files = get_files("Open mzML files", [("MS Data", ".mzML")])
+            for file in files:
+                st.session_state.mzML_files_untargeted.add(file)
+            st.experimental_rerun()
 
         col1, col2 = st.columns([9,1])
         col2.markdown("##")
-        mzML_button = col2.button("Select", help="Choose a folder for your results.")
-        if mzML_button:
+        result_dir_button = col2.button("Select", help="Choose a folder for your results.")
+        if result_dir_button:
             st.session_state.results_dir_untargeted = get_dir("Open folder for your results.")
         results_dir = col1.text_input("results folder (will be deleted each time the workflow is started!)", st.session_state.results_dir_untargeted)
 
@@ -120,7 +129,7 @@ def app():
         with col3:
             ma_rt_max = float(st.number_input("pairfinder:distance_RT:max_difference", 1, 1000, 100))
 
-        use_ffmid = st.checkbox("re-quantification", True, help="Use FeatureFinderMetaboIdent to re-quantify consensus features that have missing values.")
+        use_ffmid = st.checkbox("re-quantification", False, help="Use FeatureFinderMetaboIdent to re-quantify consensus features that have missing values.")
         if use_ffmid:
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -130,7 +139,7 @@ def app():
             with col3:
                 ffmid_n_isotopes = st.number_input("extract:n_isotopes", 2, 10, 2)
 
-        use_ad= st.checkbox("adduct detection", False)
+        use_ad= st.checkbox("adduct detection", True)
         if use_ad:
             col1, col2, col3, col4 = st.columns(4)
             with col1:
@@ -141,14 +150,14 @@ def app():
                     ad_ion_mode = "true"
                     ad_adducts = "H:-:1.0"
             with col2:
-                ad_adducts = st.text_area("potential_adducts", "H:+:0.4\nNa:+:0.1\nH-1O-1:+:0.3\nH-3O-2")
+                ad_adducts = st.text_area("potential_adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4\nH-4O-2:0:0.1")
             with col3:
                 ad_charge_min = st.number_input("charge_min", 1, 10, 1)
             with col4:
                 ad_charge_max = st.number_input("charge_max", 1, 10, 3)
                 
 
-        use_map_id = st.checkbox("map MS2 spectra to features", False)
+        use_map_id = st.checkbox("map MS2 spectra to features", True)
         
 
         st.markdown("feature linking")
@@ -169,6 +178,12 @@ def app():
         st.session_state.viewing_untargeted = True
         results = Helper().reset_directory(results_dir)
         interim = Helper().reset_directory(os.path.join(results, "interim"))
+
+        with st.spinner("Fetching mzML file data..."):
+            mzML_dir = os.path.join(interim, "mzML_original")
+            Helper().reset_directory(mzML_dir)
+            for file in mzML_files:
+                shutil.copy(file, mzML_dir)
 
         with st.spinner("Detecting features..."):
             FeatureFinderMetabo().run(mzML_dir, os.path.join(interim, "FFM"),
@@ -241,6 +256,7 @@ def app():
 
             if use_ad:
                 with st.spinner("Determining adducts..."):
+                    print([line.encode() for line in ad_adducts.split("\n")])
                     MetaboliteAdductDecharger().run(os.path.join(interim, "FeatureMaps_merged"), os.path.join(interim, "FeatureMaps_decharged"),
                                 {"potential_adducts": [line.encode() for line in ad_adducts.split("\n")],
                                 "charge_min": ad_charge_min,
@@ -271,7 +287,7 @@ def app():
     if view_button or st.session_state.viewing_untargeted:
         st.session_state.viewing_untargeted = True
         display_df(os.path.join(results_dir, "FeatureMatrix.tsv"), "Feature Matrix")
-        display_FFM_info(os.path.join(results_dir, "interim", "FFM"))
+        # display_FFM_info(os.path.join(results_dir, "interim", "FFM"))
         display_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"), "Feature Matrix requantified")
 
 

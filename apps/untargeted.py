@@ -70,7 +70,7 @@ def app():
     if "viewing_untargeted" not in st.session_state:
         st.session_state.viewing_untargeted = False
     if "mzML_files_untargeted" not in st.session_state:
-        st.session_state.mzML_files_untargeted = set(['example_data/mzML/MarY_C.mzML', 'example_data/mzML/MraY_T.mzML'])
+        st.session_state.mzML_files_untargeted = set()
     if "results_dir_untargeted" not in st.session_state:
         st.session_state.results_dir_untargeted = "results_untargeted"
 

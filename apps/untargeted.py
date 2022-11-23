@@ -176,8 +176,7 @@ def app():
     col1, col2, col3 = st.columns(3)
     if run_button:
         st.session_state.viewing_untargeted = True
-        results = Helper().reset_directory(results_dir)
-        interim = Helper().reset_directory(os.path.join(results, "interim"))
+        interim = Helper().reset_directory(os.path.join(results_dir, "interim"))
 
         with st.spinner("Fetching mzML file data..."):
             mzML_dir = os.path.join(interim, "mzML_original")

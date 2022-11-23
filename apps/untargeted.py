@@ -141,7 +141,7 @@ def app():
                     ad_ion_mode = "true"
                     ad_adducts = "H:-:1.0"
             with col2:
-                ad_adducts = st.text_area("potential_adducts", "H:+:0.5\nNa:+:0.3\nH-1O-1:+:0.2")
+                ad_adducts = st.text_area("potential_adducts", "H:+:0.4\nNa:+:0.1\nH-1O-1:+:0.3\nH-3O-2")
             with col3:
                 ad_charge_min = st.number_input("charge_min", 1, 10, 1)
             with col4:
@@ -247,8 +247,8 @@ def app():
                                 "charge_max": ad_charge_max,
                                 "max_neutrals": 2,
                                 "negative_mode": ad_ion_mode,
-                                "retention_max_diff": 3.0,
-                                "retention_max_diff_local": 3.0})
+                                "retention_max_diff": 4.0,
+                                "retention_max_diff_local": 4.0})
                 featureXML_dir = os.path.join(interim, "FeatureMaps_decharged")
             else:
                 featureXML_dir = os.path.join(interim, "FeatureMaps_merged")

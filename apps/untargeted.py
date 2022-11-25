@@ -161,7 +161,7 @@ def app():
             with col4:
                 ad_charge_max = st.number_input("charge_max", 1, 10, 3)
                 
-        use_sirius = st.checkbox("run SIRIUS for formula and structural predictions", False, help="SIRIUS is an external tool for which you need to provide a path to an executable file and need to be logged in.")
+        use_sirius_manual = st.checkbox("export Sirius files for manual annotation", True)
 
         use_map_id = st.checkbox("map MS2 spectra to features", True)
         
@@ -288,9 +288,10 @@ def app():
                 DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix_requant.consensusXML"), 
                                                     os.path.join(results_dir, "FeatureMatrix_requant.tsv"))
 
-        if not use_sirius: # export only sirius ms files to use in the GUI tool
+        if use_sirius_manual: # export only sirius ms files to use in the GUI tool
             with st.spinner("Exporting files for Sirius..."):
                 Sirius().run(mzML_dir, featureXML_dir, os.path.join(interim, "sirius"), "", True)
+    
         st.success("Complete!")
 
     if view_button or st.session_state.viewing_untargeted:

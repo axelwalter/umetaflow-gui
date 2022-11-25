@@ -4,6 +4,7 @@ import pandas as pd
 from pymetabo.core import *
 from pymetabo.helpers import *
 from pymetabo.dataframes import *
+from pymetabo.sirius import *
 import plotly.express as px
 import matplotlib.pyplot as plt
 from utils.filehandler import get_files, get_dir
@@ -70,7 +71,11 @@ def app():
     if "viewing_untargeted" not in st.session_state:
         st.session_state.viewing_untargeted = False
     if "mzML_files_untargeted" not in st.session_state:
-        st.session_state.mzML_files_untargeted = set()
+        st.session_state.mzML_files_untargeted = set([
+            "/home/axel/Documents/data/Lara-WTA-frag-pos-neg/Lara-1-pos.mzML",
+            "/home/axel/Documents/data/Lara-WTA-frag-pos-neg/Lara-2-pos.mzML",
+            "/home/axel/Documents/data/Lara-WTA-frag-pos-neg/Lara-3-pos.mzML"
+        ])
     if "results_dir_untargeted" not in st.session_state:
         st.session_state.results_dir_untargeted = "results_untargeted"
 
@@ -111,7 +116,7 @@ def app():
         with col1:
             ffm_mass_error = float(st.number_input("mass_error_ppm", 1, 1000, 10))
         with col2:
-            ffm_noise = float(st.number_input("noise_threshold_int", 10, 1000000000, 10000))
+            ffm_noise = float(st.number_input("noise_threshold_int", 10, 1000000000, 1000))
         with col3:
             st.markdown("##")
             ffm_single_traces = st.checkbox("remove_single_traces", True)
@@ -139,7 +144,7 @@ def app():
             with col3:
                 ffmid_n_isotopes = st.number_input("extract:n_isotopes", 2, 10, 2)
 
-        use_ad= st.checkbox("adduct detection", True)
+        use_ad = st.checkbox("adduct detection", True)
         if use_ad:
             col1, col2, col3, col4 = st.columns(4)
             with col1:
@@ -156,6 +161,7 @@ def app():
             with col4:
                 ad_charge_max = st.number_input("charge_max", 1, 10, 3)
                 
+        use_sirius = st.checkbox("run SIRIUS for formula and structural predictions", False, help="SIRIUS is an external tool for which you need to provide a path to an executable file and need to be logged in.")
 
         use_map_id = st.checkbox("map MS2 spectra to features", True)
         
@@ -267,7 +273,7 @@ def app():
                 featureXML_dir = os.path.join(interim, "FeatureMaps_decharged")
             else:
                 featureXML_dir = os.path.join(interim, "FeatureMaps_merged")
-            
+
             if use_map_id:
                 with st.spinner("Mapping MS2 data to features..."):
                     MapID().run(mzML_dir, featureXML_dir, os.path.join(interim, "FeatureMaps_ID_mapped"))
@@ -281,6 +287,10 @@ def app():
                                 "mz_unit": fl_mz_unit})
                 DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix_requant.consensusXML"), 
                                                     os.path.join(results_dir, "FeatureMatrix_requant.tsv"))
+
+        if not use_sirius: # export only sirius ms files to use in the GUI tool
+            with st.spinner("Exporting files for Sirius..."):
+                Sirius().run(mzML_dir, featureXML_dir, os.path.join(interim, "sirius"), "", True)
         st.success("Complete!")
 
     if view_button or st.session_state.viewing_untargeted:

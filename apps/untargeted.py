@@ -5,12 +5,10 @@ from pymetabo.core import *
 from pymetabo.helpers import *
 from pymetabo.dataframes import *
 from pymetabo.sirius import *
-import plotly.express as px
-import matplotlib.pyplot as plt
-from utils.filehandler import get_files, get_dir
+from utils.filehandler import get_files, get_dir, save_file
 
 # @st.cache(suppress_st_warning=True)
-def display_df(path, name):
+def open_df(path):
     if os.path.isfile(path):
         df = pd.read_csv(path, sep="\t")
         df.index = df["Unnamed: 0"]
@@ -20,49 +18,42 @@ def display_df(path, name):
     for column in df.columns:
         if column.endswith(".mzML"):
             df = df.rename(columns={column: column[:-5]})
-    st.download_button(
-    name,
-    df.to_csv(sep="\t").encode("utf-8"),
-    name+".tsv",
-    "text/tsv",
-    )
-    st.dataframe(df)
+    return df
     # # calculate some metrics
-    total_missing = sum([(df[col] == 0).sum() for col in df.columns])
+    # total_missing = sum([(df[col] == 0).sum() for col in df.columns])
     # mean_quality = df["quality"].mean()
     # median_quality = df["quality"].median()
     # st.dataframe(df)
     # hover = df.columns
     # fig = px.scatter(df, x="RT", y="mz", color="quality", hover_data=hover)
     # st.plotly_chart(fig)
-    col1, col2, col3 = st.columns(3)
-    col1.metric("total missing values", total_missing)
+    # col1, col2, col3 = st.columns(3)
+    # col1.metric("total missing values", total_missing)
     # col2.metric("mean quality", str(mean_quality)[:6])
     # col3.metric("median quality", str(median_quality)[:6])
 
-
-def display_FFM_info(path):
-    col1, col2 = st.columns(2)
-    names = []
-    num_features = []
-    fig, ax = plt.subplots()
-    for file in os.listdir(path):
-        names.append(file[:-11])
-        fm = FeatureMap()
-        FeatureXMLFile().load(os.path.join(path, file), fm)
-        num_features.append(fm.size())
-        df = fm.get_df()
-        ax.plot(df["intensity"], df["quality"], label=file[:-11], marker="X")
-        ax.ticklabel_format(axis='x',style='sci',scilimits=(0,0),useMathText=True)
-        ax.set_xlabel("intensity")
-        ax.set_ylabel("quality")
-    col1.markdown("**Intensity to quality for each Feature Map**")
-    col1.pyplot(fig)
-    fig, ax = plt.subplots()
-    ax.bar(names, num_features)
-    ax.set_xticklabels(names, rotation=45, ha='right')
-    col2.markdown("**Number of features per sample**")
-    col2.pyplot(fig)
+# def display_FFM_info(path):
+#     col1, col2 = st.columns(2)
+#     names = []
+#     num_features = []
+#     fig, ax = plt.subplots()
+#     for file in os.listdir(path):
+#         names.append(file[:-11])
+#         fm = FeatureMap()
+#         FeatureXMLFile().load(os.path.join(path, file), fm)
+#         num_features.append(fm.size())
+#         df = fm.get_df()
+#         ax.plot(df["intensity"], df["quality"], label=file[:-11], marker="X")
+#         ax.ticklabel_format(axis='x',style='sci',scilimits=(0,0),useMathText=True)
+#         ax.set_xlabel("intensity")
+#         ax.set_ylabel("quality")
+#     col1.markdown("**Intensity to quality for each Feature Map**")
+#     col1.pyplot(fig)
+#     fig, ax = plt.subplots()
+#     ax.bar(names, num_features)
+#     ax.set_xticklabels(names, rotation=45, ha='right')
+#     col2.markdown("**Number of features per sample**")
+#     col2.pyplot(fig)
 
 def app():
     # set all other viewing states to False
@@ -71,11 +62,7 @@ def app():
     if "viewing_untargeted" not in st.session_state:
         st.session_state.viewing_untargeted = False
     if "mzML_files_untargeted" not in st.session_state:
-        st.session_state.mzML_files_untargeted = set([
-            "/home/axel/Documents/data/Lara-WTA-frag-pos-neg/Lara-1-pos.mzML",
-            "/home/axel/Documents/data/Lara-WTA-frag-pos-neg/Lara-2-pos.mzML",
-            "/home/axel/Documents/data/Lara-WTA-frag-pos-neg/Lara-3-pos.mzML"
-        ])
+        st.session_state.mzML_files_untargeted = set()
     if "results_dir_untargeted" not in st.session_state:
         st.session_state.results_dir_untargeted = "results_untargeted"
 
@@ -205,13 +192,12 @@ def app():
                             "pairfinder:distance_MZ:unit": ma_mz_unit,
                             "pairfinder:distance_RT:max_difference": ma_rt_max})
 
-        if use_ffmid:
-            with st.spinner("Aligning mzML files..."):
-                MapAligner().run(mzML_dir, os.path.join(interim, "mzML_aligned"),
-                os.path.join(interim, "Trafo"))
-                mzML_dir = os.path.join(interim, "mzML_aligned")
+        with st.spinner("Aligning mzML files..."):
+            MapAligner().run(mzML_dir, os.path.join(interim, "mzML_aligned"),
+            os.path.join(interim, "Trafo"))
+            mzML_dir = os.path.join(interim, "mzML_aligned")
 
-        if use_ad and not use_ffmid:
+        if use_ad:
             with st.spinner("Determining adducts..."):
                 MetaboliteAdductDecharger().run(os.path.join(interim, "FFM_aligned"), os.path.join(interim, "FeatureMaps_decharged"),
                             {"potential_adducts": [line.encode() for line in ad_adducts.split("\n")],
@@ -225,7 +211,7 @@ def app():
         else:
             featureXML_dir = os.path.join(interim, "FFM_aligned")
         
-        if use_map_id and not use_ffmid:
+        if use_map_id:
                 with st.spinner("Mapping MS2 data to features..."):
                     MapID().run(mzML_dir, featureXML_dir, os.path.join(interim, "FeatureMaps_ID_mapped"))
                     featureXML_dir = os.path.join(interim, "FeatureMaps_ID_mapped")
@@ -236,8 +222,8 @@ def app():
                             {"link:mz_tol": fl_mz_tol,
                                 "link:rt_tol": fl_rt_tol,
                                 "mz_unit": fl_mz_unit})
-            DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix.consensusXML"), 
-                                                os.path.join(results_dir, "FeatureMatrix.tsv"))
+
+        sirius_featureXML_dir = featureXML_dir
 
         if use_ffmid:
             with st.spinner("Re-quantifying features with missing values..."):
@@ -246,7 +232,7 @@ def app():
                                                     os.path.join(interim,  "FFM_missing.consensusXML"))
 
                 FeatureMapHelper().consensus_to_feature_maps(os.path.join(interim,  "FFM_complete.consensusXML"),
-                                                            os.path.join(interim, "FFM_aligned"),
+                                                            featureXML_dir,
                                                             os.path.join(interim, "FFM_complete"))
 
                 FeatureFinderMetaboIdent().run(mzML_dir,
@@ -254,7 +240,9 @@ def app():
                                             os.path.join(interim,  "FFM_missing.consensusXML"),
                                             {"detect:peak_width": ffmid_peak_width,
                                             "extract:mz_window": ffmid_mz,
-                                            "extract:n_isotopes": ffmid_n_isotopes})
+                                            "extract:n_isotopes": ffmid_n_isotopes,
+                                            "extract:rt_window": ffmid_peak_width})
+
 
                 FeatureMapHelper().merge_feature_maps(os.path.join(interim, "FeatureMaps_merged"), os.path.join(
                     interim, "FFM_complete"), os.path.join(interim, "FFMID"))
@@ -281,23 +269,40 @@ def app():
 
             with st.spinner("Linking re-quantified features..."):
                 FeatureLinker().run(featureXML_dir,
-                                os.path.join(interim, "FeatureMatrix_requant.consensusXML"),
+                                os.path.join(interim, "FeatureMatrixRequantified.consensusXML"),
                                 {"link:mz_tol": fl_mz_tol,
                                 "link:rt_tol": fl_rt_tol,
                                 "mz_unit": fl_mz_unit})
-                DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix_requant.consensusXML"), 
-                                                    os.path.join(results_dir, "FeatureMatrix_requant.tsv"))
+            sirius_featureXML_dir = featureXML_dir
 
         if use_sirius_manual: # export only sirius ms files to use in the GUI tool
             with st.spinner("Exporting files for Sirius..."):
-                Sirius().run(mzML_dir, featureXML_dir, os.path.join(interim, "sirius"), "", True)
-    
+                Sirius().run(mzML_dir, sirius_featureXML_dir, os.path.join(interim, "sirius"), "", True,
+                            {"-preprocessing:feature_only": "true"})
+            sirius_ms_dir = os.path.join(interim, "sirius", "sirius_files")
+        else:
+            sirius_ms_dir = ""
+
+        if use_ffmid:
+            DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrixRequantified.consensusXML"),
+                                            os.path.join(results_dir, "FeatureMatrixRequantified.tsv"), sirius_ms_dir)
+            DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix.consensusXML"), 
+                                                os.path.join(results_dir, "FeatureMatrix.tsv"), "")
+        else:
+            DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix.consensusXML"), 
+                                                os.path.join(results_dir, "FeatureMatrix.tsv"), sirius_ms_dir)
         st.success("Complete!")
 
     if view_button or st.session_state.viewing_untargeted:
         st.session_state.viewing_untargeted = True
-        display_df(os.path.join(results_dir, "FeatureMatrix.tsv"), "Feature Matrix")
-        # display_FFM_info(os.path.join(results_dir, "interim", "FFM"))
-        display_df(os.path.join(results_dir, "FeatureMatrix_requant.tsv"), "Feature Matrix requantified")
 
+        df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
 
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("missing values", sum([(df[col] == 0).sum() for col in df.columns]))
+        if use_ffmid:
+            df_requant = open_df(os.path.join(results_dir, "FeatureMatrixRequantified.tsv"))
+            col2.metric("missing values after requantification", sum([(df_requant[col] == 0).sum() for col in df_requant.columns]))
+            st._arrow_table(df_requant) # [(df_requant["Lara-2-pos_SiriusID"] != "") | (df_requant["Lara-3-pos_SiriusID"] != "") | (df_requant["Lara-1-pos_SiriusID"] != "")]
+        else:
+            st._arrow_table(df) #[(df["Lara-2-pos_SiriusID"] != "") | (df["Lara-3-pos_SiriusID"] != "") | (df["Lara-1-pos_SiriusID"] != "")]

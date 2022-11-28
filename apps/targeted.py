@@ -59,7 +59,7 @@ The results will be displayed as a summary with all samples and intensity values
             st.markdown("##")
             load_library = st.button("Add", help="Load a library file.")
 
-        st.dataframe(pd.read_csv(library, sep="\t"))
+        st._arrow_table(pd.read_csv(library, sep="\t"))
 
         if mzML_button:
             files = get_files("Open mzML files", [("MS Data", ".mzML")])

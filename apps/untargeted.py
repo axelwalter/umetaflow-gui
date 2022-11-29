@@ -5,6 +5,7 @@ from pymetabo.core import *
 from pymetabo.helpers import *
 from pymetabo.dataframes import *
 from pymetabo.sirius import *
+from pymetabo.gnps import *
 from utils.filehandler import get_files, get_dir, save_file
 
 # @st.cache(suppress_st_warning=True)
@@ -148,10 +149,9 @@ def app():
             with col4:
                 ad_charge_max = st.number_input("charge_max", 1, 10, 3)
                 
-        use_sirius_manual = st.checkbox("export Sirius files for manual annotation", True)
+        use_sirius_manual = st.checkbox("export Sirius files for manual annotation", True, help="Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
 
-        use_map_id = st.checkbox("map MS2 spectra to features", True)
-        
+        use_gnps = st.checkbox("export files for GNPS FBMN and IIMN", True, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
 
         st.markdown("feature linking")
         col1, col2, col3 = st.columns(3)
@@ -211,10 +211,9 @@ def app():
         else:
             featureXML_dir = os.path.join(interim, "FFM_aligned")
         
-        if use_map_id:
-                with st.spinner("Mapping MS2 data to features..."):
-                    MapID().run(mzML_dir, featureXML_dir, os.path.join(interim, "FeatureMaps_ID_mapped"))
-                    featureXML_dir = os.path.join(interim, "FeatureMaps_ID_mapped")
+        with st.spinner("Mapping MS2 data to features..."):
+            MapID().run(mzML_dir, featureXML_dir, os.path.join(interim, "FeatureMaps_ID_mapped"))
+            featureXML_dir = os.path.join(interim, "FeatureMaps_ID_mapped")
 
         with st.spinner("Linking features..."):
             FeatureLinker().run(featureXML_dir,
@@ -262,10 +261,9 @@ def app():
             else:
                 featureXML_dir = os.path.join(interim, "FeatureMaps_merged")
 
-            if use_map_id:
-                with st.spinner("Mapping MS2 data to features..."):
-                    MapID().run(mzML_dir, featureXML_dir, os.path.join(interim, "FeatureMaps_ID_mapped"))
-                    featureXML_dir = os.path.join(interim, "FeatureMaps_ID_mapped")
+            with st.spinner("Mapping MS2 data to features..."):
+                MapID().run(mzML_dir, featureXML_dir, os.path.join(interim, "FeatureMaps_ID_mapped"))
+                featureXML_dir = os.path.join(interim, "FeatureMaps_ID_mapped")
 
             with st.spinner("Linking re-quantified features..."):
                 FeatureLinker().run(featureXML_dir,
@@ -277,20 +275,31 @@ def app():
 
         if use_sirius_manual: # export only sirius ms files to use in the GUI tool
             with st.spinner("Exporting files for Sirius..."):
-                Sirius().run(mzML_dir, sirius_featureXML_dir, os.path.join(interim, "sirius"), "", True,
+                Sirius().run(mzML_dir, sirius_featureXML_dir, os.path.join(results_dir, "SIRIUS"), "", True,
                             {"-preprocessing:feature_only": "true"})
-            sirius_ms_dir = os.path.join(interim, "sirius", "sirius_files")
+            sirius_ms_dir = os.path.join(results_dir, "SIRIUS", "sirius_files")
         else:
             sirius_ms_dir = ""
+        
+        if use_gnps:
+            with st.spinner("Exporting files for GNPS..."):
+                if use_ffmid:
+                    consensusXML_file = os.path.join(interim, "FeatureMatrixRequantified.consensusXML")
+                else:
+                    consensusXML_file = os.path.join(interim, "FeatureMatrix.consensusXML")
+                GNPSExport().run(consensusXML_file, mzML_dir, os.path.join(results_dir, "GNPS"))
 
         if use_ffmid:
             DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrixRequantified.consensusXML"),
                                             os.path.join(results_dir, "FeatureMatrixRequantified.tsv"), sirius_ms_dir)
             DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix.consensusXML"), 
                                                 os.path.join(results_dir, "FeatureMatrix.tsv"), "")
+            GNPSExport().export_metadata_table_only(os.path.join(interim, "FeatureMatrixRequantified.consensusXML"), os.path.join(results_dir, "MetaData.tsv"))
         else:
             DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix.consensusXML"), 
                                                 os.path.join(results_dir, "FeatureMatrix.tsv"), sirius_ms_dir)
+            GNPSExport().export_metadata_table_only(os.path.join(interim, "FeatureMatrix.consensusXML"), os.path.join(results_dir, "MetaData.tsv"))
+            
         st.success("Complete!")
 
     if view_button or st.session_state.viewing_untargeted:

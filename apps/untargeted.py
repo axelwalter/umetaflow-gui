@@ -12,8 +12,8 @@ from utils.filehandler import get_files, get_dir, save_file
 def open_df(path):
     if os.path.isfile(path):
         df = pd.read_csv(path, sep="\t")
-        df.index = df["Unnamed: 0"]
-        df = df.drop(columns=["Unnamed: 0"])
+        # df.index = df["Unnamed: 0"]
+        # df = df.drop(columns=["Unnamed: 0"])
     else:
         return
     for column in df.columns:

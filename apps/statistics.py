@@ -44,14 +44,12 @@ You can use the suggested sample names. In order to enter replicates put them in
                 df = pd.read_csv(matrix_file, sep="\t")
             elif matrix_file.endswith("xlsx"):
                 df = pd.read_excel(matrix_file)
-            meta_value_columns = ["charge", "RT", "mz", "quality", "name", "adduct"]
-            if "Unnamed: 0" in df.columns:
-                df.index = df["Unnamed: 0"]
-            if "index" in df.columns:
-                df.index = df["index"]
-            df.index.name = "features"
-            st.session_state.statistics_samples = df.drop(columns=[c for c in ["index", "Unnamed: 0"]+meta_value_columns if c in df.columns]).columns.to_list()
-            st.session_state.statistics_features = df.drop(columns=[c for c in ["index", "Unnamed: 0"]+meta_value_columns if c in df.columns]).index.to_list()
+            meta_value_columns = ["id", "metabolite", "charge", "RT", "mz", "quality", "name", "adduct"]
+            df.set_index("metabolite", inplace=True)
+            # st.session_state.statistics_samples = df.drop(columns=[c for c in ["index", "Unnamed: 0"]+meta_value_columns if c in df.columns]).columns.to_list()
+            # st.session_state.statistics_features = df.drop(columns=[c for c in ["index", "Unnamed: 0"]+meta_value_columns if c in df.columns])["metabolite"].to_list()
+            st.session_state.statistics_samples = [col for col in df.columns if col.endswith("mzML")]
+            st.session_state.statistics_features = df.index.to_list()
             samples = st.multiselect("samples", st.session_state.statistics_samples, st.session_state.statistics_samples)
             features = st.multiselect("features", st.session_state.statistics_features, st.session_state.statistics_features)
             

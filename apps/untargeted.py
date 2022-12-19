@@ -151,8 +151,10 @@ def app():
                 
         use_sirius_manual = st.checkbox("export Sirius files for manual annotation", True, help="Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
 
-        use_gnps = st.checkbox("export files for GNPS FBMN and IIMN", True, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
-
+        # disable gnps for now, seq fault error with some files
+        # use_gnps = st.checkbox("export files for GNPS FBMN and IIMN", False, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
+        use_gnps = False
+    
         st.markdown("feature linking")
         col1, col2, col3 = st.columns(3)
         with col1:

@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from pymetabo.helpers import Helper
 from pymetabo.plotting import Plot
+from pymetabo.gnps import *
 from pymetabo.dataframes import DataFrames
 from utils.filehandler import get_files, get_dir, get_file, save_file
 
@@ -164,7 +165,6 @@ The results will be displayed as a summary with all samples and EICs AUC values 
         col1, col2, col3, col4, col5 = st.columns(5)
         baseline = col1.number_input("AUC baseline", 0, 1000000, 5000, 1000)
         num_cols = col2.number_input("show columns", 1, 5, 1)
-        download_as = col3.radio("download as", [".xlsx", ".tsv"])
         col4.markdown("##")
         if col4.button("Download Chromatograms", help="Select a folder where data from selceted samples and chromatograms gets stored."):
             new_folder = get_dir()
@@ -172,27 +172,10 @@ The results will be displayed as a summary with all samples and EICs AUC values 
                 for file in all_files:
                     df = pd.read_feather(os.path.join(results_dir, file))[["time"]+all_chroms]
                     path = os.path.join(new_folder, file[:-4]+"_"+str(tolerance)+unit)
-                    if download_as == ".tsv":
-                        df.to_csv(path+".tsv", sep="\t", index=False)
-                    if download_as == ".xlsx":
-                        df.to_excel(path+".xlsx", index=False)
+                    df.to_csv(path+".tsv", sep="\t", index=False)
                 col4.success("Download done!")
-        col5.markdown("##")
-        if col5.button("Download Summary", help="Download only the summary file with combined intensities."):
-            if download_as == ".tsv":
-                file_type = [("Tab separated table", "*.tsv")]
-                default_ext = ".tsv"
-            elif download_as == ".xlsx":
-                file_type = [("Excel table", "*.xlsx")]
-                default_ext = ".xlsx"
-            path = save_file("Download Summary", type=file_type, default_ext=default_ext)
-            if path:
-                df = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
-                if download_as == ".tsv":
-                    df.to_csv(path, sep="\t", index=False)
-                elif download_as == ".xlsx":
-                    df.to_excel(path, index=False)
-                col5.success("Download done!")
+
+
 
         for file in all_files:
             df = pd.read_feather(os.path.join(results_dir, file))
@@ -209,10 +192,15 @@ The results will be displayed as a summary with all samples and EICs AUC values 
 
         st.markdown("***")
         DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC.ftr") for file in all_files], os.path.join(results_dir, "summary.ftr"))
-        st.markdown("Summary")
         df_summary = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
         df_summary.index = df_summary["index"]
         df_summary = df_summary.drop(columns=["index"])
+
+        col5.markdown("##")
+        col5.download_button("Download Quantification Data", df_summary.rename(columns={col: col+".mzML" for col in df_summary.columns if col != "metabolite"}).to_csv(sep="\t", index=False), "Quantification-EIC.tsv")
+        col5.download_button("Download Meta Data", pd.DataFrame({"filename": [file.replace("ftr", "mzML") for file in all_files], "ATTRIBUTE_Sample_Type": ["Sample"]*len(all_files)}).to_csv(sep="\t", index=False), "Meta-Data-EIC.tsv")
+
+        st.markdown("Summary")
         fig = Plot().FeatureMatrix(df_summary)
         st.plotly_chart(fig)
         st.dataframe(df_summary)

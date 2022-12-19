@@ -11,8 +11,6 @@ from utils.filehandler import get_files, get_dir, save_file
 
 def app():
     results_dir = "results_targeted"
-    if not os.path.exists(results_dir):
-        os.mkdir(results_dir)
     if "viewing_targeted" not in st.session_state:
         st.session_state.viewing_targeted = False
     if "mzML_files_targeted" not in st.session_state:
@@ -51,7 +49,7 @@ The results will be displayed as a summary with all samples and intensity values
         with col2:
             st.markdown("##")
             mzML_button = st.button("Add", help="Add new mzML files.")
-        
+
         col1, col2 = st.columns([9,1])
         with col1:
             library = st.selectbox("select library", st.session_state.library_options)
@@ -119,7 +117,6 @@ The results will be displayed as a summary with all samples and intensity values
 
         col1, _, col2, col3, col4 = st.columns(5)
         num_cols = col1.number_input("show columns", 1, 5, 1)
-        download_as = col2.radio("download as", [".xlsx", ".tsv"])
         col3.markdown("##")
         if col3.button("Download Selection", help="Select a folder where data from selceted samples and chromatograms gets stored."):
             new_folder = get_dir()
@@ -127,33 +124,19 @@ The results will be displayed as a summary with all samples and intensity values
                 for file in all_files+["summary.ftr", "summary_combined.ftr"]:
                     df = pd.read_feather(os.path.join(results_dir, file))
                     path = os.path.join(new_folder, file[:-4])
-                    if download_as == ".tsv":
-                        df.to_csv(path+".tsv", sep="\t", index=False)
-                    elif download_as == ".xlsx":
-                        df.to_excel(path+".xlsx", index=False)
+                    df.to_csv(path+".tsv", sep="\t", index=False)
                 col3.success("Download done!")
-        col4.markdown("##")
-        if col4.button("Download Summary", help="Download only the summary file with combined intensities."):
-            if download_as == ".tsv":
-                file_type = [("Tab separated table", "*.tsv")]
-                default_ext = ".tsv"
-            elif download_as == ".xlsx":
-                file_type = [("Excel table", "*.xlsx")]
-                default_ext = ".xlsx"
-            path = save_file("Download Summary", type=file_type, default_ext=default_ext)
-            if path:
-                df = pd.read_feather(os.path.join(results_dir, "summary_combined.ftr"))
-                if download_as == ".tsv":
-                    df.to_csv(path, sep="\t", index=False)
-                elif download_as == ".xlsx":
-                    df.to_excel(path, index=False)
-                col4.success("Download done!")
 
-        st.markdown("***")
-        st.markdown("Summary with combined intensities")
         df_summary_combined = pd.read_feather(os.path.join(results_dir, "summary_combined.ftr"))
         df_summary_combined.index = df_summary_combined["index"]
         df_summary_combined = df_summary_combined.drop(columns=["index"])
+        col4.markdown("##")
+        col4.download_button("Download Quantification Data", df_summary_combined.rename(columns={col: col+".mzML" for col in df_summary_combined.columns if col != "metabolite"}).to_csv(sep="\t", index=False), "Feature-Quantification-Targeted-Metabolomics.tsv")
+        col4.download_button("Download Meta Data", pd.DataFrame({"filename": [file.replace("ftr", "mzML") for file in all_files], "ATTRIBUTE_Sample_Type": ["Sample"]*len(all_files)}).to_csv(sep="\t", index=False), "Meta-Data-Targeted-Metabolomics.tsv")
+
+
+        st.markdown("***")
+        st.markdown("Summary with combined intensities")
         fig = Plot().FeatureMatrix(df_summary_combined)
         st.plotly_chart(fig)
         st.dataframe(df_summary_combined)

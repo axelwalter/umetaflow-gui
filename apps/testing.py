@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from pymetabo.helpers import Helper
 from utils.filehandler import get_files, get_dir, get_file
+from pymetabo.dataframes import DataFrames
 
 def app():
     st.write("for testing...")

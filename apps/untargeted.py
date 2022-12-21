@@ -6,62 +6,22 @@ from pymetabo.helpers import *
 from pymetabo.dataframes import *
 from pymetabo.sirius import *
 from pymetabo.gnps import *
-from utils.filehandler import get_files, get_dir, save_file
+from utils.filehandler import get_file, get_files, get_dir, save_file
 
 # @st.cache(suppress_st_warning=True)
 def open_df(path):
     if os.path.isfile(path):
         df = pd.read_csv(path, sep="\t")
-        # df.index = df["Unnamed: 0"]
-        # df = df.drop(columns=["Unnamed: 0"])
     else:
         return
     for column in df.columns:
         if column.endswith(".mzML"):
             df = df.rename(columns={column: column[:-5]})
     return df
-    # # calculate some metrics
-    # total_missing = sum([(df[col] == 0).sum() for col in df.columns])
-    # mean_quality = df["quality"].mean()
-    # median_quality = df["quality"].median()
-    # st.dataframe(df)
-    # hover = df.columns
-    # fig = px.scatter(df, x="RT", y="mz", color="quality", hover_data=hover)
-    # st.plotly_chart(fig)
-    # col1, col2, col3 = st.columns(3)
-    # col1.metric("total missing values", total_missing)
-    # col2.metric("mean quality", str(mean_quality)[:6])
-    # col3.metric("median quality", str(median_quality)[:6])
-
-# def display_FFM_info(path):
-#     col1, col2 = st.columns(2)
-#     names = []
-#     num_features = []
-#     fig, ax = plt.subplots()
-#     for file in os.listdir(path):
-#         names.append(file[:-11])
-#         fm = FeatureMap()
-#         FeatureXMLFile().load(os.path.join(path, file), fm)
-#         num_features.append(fm.size())
-#         df = fm.get_df()
-#         ax.plot(df["intensity"], df["quality"], label=file[:-11], marker="X")
-#         ax.ticklabel_format(axis='x',style='sci',scilimits=(0,0),useMathText=True)
-#         ax.set_xlabel("intensity")
-#         ax.set_ylabel("quality")
-#     col1.markdown("**Intensity to quality for each Feature Map**")
-#     col1.pyplot(fig)
-#     fig, ax = plt.subplots()
-#     ax.bar(names, num_features)
-#     ax.set_xticklabels(names, rotation=45, ha='right')
-#     col2.markdown("**Number of features per sample**")
-#     col2.pyplot(fig)
 
 def app():
     # set all other viewing states to False
     st.session_state.viewing_extract = False
-    # set untargeted specific states
-    if "viewing_untargeted" not in st.session_state:
-        st.session_state.viewing_untargeted = False
     if "mzML_files_untargeted" not in st.session_state:
         st.session_state.mzML_files_untargeted = set()
     if "results_dir_untargeted" not in st.session_state:
@@ -74,46 +34,48 @@ def app():
         Generate a table with consesensus features and their quantities with optional re-quantification step.
         """)
 
-    with st.expander("settings", expanded=True):
-        col1, col2 = st.columns([9,1])
-        with col1:
-            if st.session_state.mzML_files_untargeted:
-                mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files_untargeted, st.session_state.mzML_files_untargeted,
-                                            format_func=lambda x: os.path.basename(x)[:-5])
-            else:
-                mzML_files = col1.multiselect("mzML files", [], [])
-        with col2:
-            st.markdown("##")
-            mzML_button = st.button("Add", help="Add new mzML files.")
-        if mzML_button:
-            files = get_files("Open mzML files", [("MS Data", ".mzML")])
-            for file in files:
-                st.session_state.mzML_files_untargeted.add(file)
-            st.experimental_rerun()
+    st.markdown("### Untargeted Metabolomics")
+    st.markdown("##### File Selection")
+    col1, col2 = st.columns([9,1])
+    with col1:
+        if st.session_state.mzML_files_untargeted:
+            mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files_untargeted, st.session_state.mzML_files_untargeted,
+                                        format_func=lambda x: os.path.basename(x)[:-5])
+        else:
+            mzML_files = col1.multiselect("mzML files", [], [])
+    with col2:
+        st.markdown("##")
+        mzML_button = st.button("Add", help="Add new mzML files.")
+    if mzML_button:
+        files = get_files("Open mzML files", [("MS Data", ".mzML")])
+        for file in files:
+            st.session_state.mzML_files_untargeted.add(file)
+        st.experimental_rerun()
 
-        col1, col2 = st.columns([9,1])
-        col2.markdown("##")
-        result_dir_button = col2.button("Select", help="Choose a folder for your results.")
-        if result_dir_button:
-            st.session_state.results_dir_untargeted = get_dir("Open folder for your results.")
-        results_dir = col1.text_input("results folder (will be deleted each time the workflow is started!)", st.session_state.results_dir_untargeted)
+    col1, col2 = st.columns([9,1])
+    col2.markdown("##")
+    result_dir_button = col2.button("Select", help="Choose a folder for your results.")
+    if result_dir_button:
+        st.session_state.results_dir_untargeted = get_dir("Open folder for your results.")
+    results_dir = col1.text_input("results folder (will be deleted each time the workflow is started!)", st.session_state.results_dir_untargeted)
 
 
-        st.markdown("feature detection")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            ffm_mass_error = float(st.number_input("mass_error_ppm", 1, 1000, 10))
-        with col2:
-            ffm_noise = float(st.number_input("noise_threshold_int", 10, 1000000000, 1000))
-        with col3:
-            st.markdown("##")
-            ffm_single_traces = st.checkbox("remove_single_traces", True)
-            if ffm_single_traces:
-                ffm_single_traces = "true"
-            else:
-                ffm_single_traces = "false"
+    st.markdown("##### Feature Detection")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        ffm_mass_error = float(st.number_input("mass_error_ppm", 1, 1000, 10))
+    with col2:
+        ffm_noise = float(st.number_input("noise_threshold_int", 10, 1000000000, 1000))
+    with col3:
+        st.markdown("##")
+        ffm_single_traces = st.checkbox("remove_single_traces", True)
+        if ffm_single_traces:
+            ffm_single_traces = "true"
+        else:
+            ffm_single_traces = "false"
 
-        st.markdown("map alignment")
+    st.markdown("##### Map Alignment")
+    if st.checkbox("show options", key="map alignment options"):
         col1, col2, col3 = st.columns(3)
         with col1:
             ma_mz_max = float(st.number_input("pairfinder:distance_MZ:max_difference", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
@@ -121,19 +83,24 @@ def app():
             ma_mz_unit = st.radio("pairfinder:distance_MZ:unit", ["ppm", "Da"])
         with col3:
             ma_rt_max = float(st.number_input("pairfinder:distance_RT:max_difference", 1, 1000, 100))
+    else:
+        ma_mz_max, ma_mz_unit, ma_rt_max = 10.0, "ppm", 100.0
 
-        use_ffmid = st.checkbox("re-quantification", False, help="Use FeatureFinderMetaboIdent to re-quantify consensus features that have missing values.")
-        if use_ffmid:
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                ffmid_mz = float(st.number_input("extract:mz_window", 0, 1000, 10))
-            with col2:
-                ffmid_peak_width = float(st.number_input("detect:peak_width", 1, 1000, 60))
-            with col3:
-                ffmid_n_isotopes = st.number_input("extract:n_isotopes", 2, 10, 2)
+    st.markdown("##### Re-Quantification")
+    use_ffmid = st.checkbox("enable", False, help="Use FeatureFinderMetaboIdent to re-quantify consensus features that have missing values.")
+    if use_ffmid:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            ffmid_mz = float(st.number_input("extract:mz_window", 0, 1000, 10))
+        with col2:
+            ffmid_peak_width = float(st.number_input("detect:peak_width", 1, 1000, 60))
+        with col3:
+            ffmid_n_isotopes = st.number_input("extract:n_isotopes", 2, 10, 2)
 
-        use_ad = st.checkbox("adduct detection", True)
-        if use_ad:
+    st.markdown("##### Adduct Detection")
+    use_ad = st.checkbox("enable", True)
+    if use_ad:
+        if st.checkbox("show options", key="adduct detection options"):
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 ad_ion_mode = st.radio("ionization mode", ["positive", "negative"])
@@ -148,28 +115,45 @@ def app():
                 ad_charge_min = st.number_input("charge_min", 1, 10, 1)
             with col4:
                 ad_charge_max = st.number_input("charge_max", 1, 10, 3)
-                
-        use_sirius_manual = st.checkbox("export Sirius files for manual annotation", True, help="Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
+        else:
+            ad_ion_mode, ad_adducts, ad_charge_min, ad_charge_max = "false", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4\nH-4O-2:0:0.1", 1, 3
 
-        # disable gnps for now, seq fault error with some files
-        # use_gnps = st.checkbox("export files for GNPS FBMN and IIMN", False, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
-        use_gnps = False
-    
-        st.markdown("feature linking")
+    st.markdown("##### SIRIUS")
+    use_sirius_manual = st.checkbox("enable", True, help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
+
+    # disable gnps for now, seq fault error with some files
+    # use_gnps = st.checkbox("export files for GNPS FBMN and IIMN", False, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
+    use_gnps = False
+
+    st.markdown("##### Feature Linking")
+    if st.checkbox("show options", key="feature linking options"):
         col1, col2, col3 = st.columns(3)
         with col1:
             fl_mz_tol = float(st.number_input("link:mz_tol", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
         with col2:
             fl_mz_unit = st.radio("mz_unit", ["ppm", "Da"])
-            view_button = st.button("View Other Results!", help="Show results that are in the currently specified results folder.")
         with col3:
             fl_rt_tol = float(st.number_input("link:rt_tol", 1, 200, 30))
-            run_button = st.button("Run Workflow!")
+    else:
+        fl_mz_tol, fl_mz_unit, fl_rt_tol = 10.0, "ppm", 30.0
 
-        
+    st.markdown("##### MS1 annotation by m/z and RT")
+    annotate_ms1 = st.checkbox("enable", value=True, help="annotate features on MS1 level with known m/z and retention times values")
+    if annotate_ms1:
+        c1, c2, c3 = st.columns(3)
+        annotation_mz_window_ppm = c1.number_input("mz window for annotation in ppm", 1, 100, 10, 1)
+        annoation_rt_window_sec = c2.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
+        # c3.markdown("##")
+        # condense = c3.checkbox("group metabolite adducts", True, help="Specify different masses for one metabolite in the library with the # symbol. E.g. glucose and glucose#sodium intensities will be summed up.")
+        c1, c2 = st.columns([9,1])
+        c2.markdown("##")
+        ms1_annotation_file = "example_data/matchMzRt/standards_pos.tsv"
+        if c2.button("Select", help="Choose a file for MS1 identification."):
+            ms1_annotation_file = get_file("Select file for MS1 annotations.")
+        ms1_annotation_file = c1.text_input("select a file for MS1 annotations", ms1_annotation_file)
 
-    col1, col2, col3 = st.columns(3)
-    if run_button:
+    _, c2, _ = st.columns(3)
+    if c2.button("Run Workflow!"):
         st.session_state.viewing_untargeted = True
         interim = Helper().reset_directory(os.path.join(results_dir, "interim"))
 
@@ -263,7 +247,7 @@ def app():
             else:
                 featureXML_dir = os.path.join(interim, "FeatureMaps_merged")
 
-            with st.spinner("Mapping MS2 data to features..."):
+            with st.spinner("Mapping MS2 data to re-quantified features..."):
                 MapID().run(mzML_dir, featureXML_dir, os.path.join(interim, "FeatureMaps_ID_mapped"))
                 featureXML_dir = os.path.join(interim, "FeatureMaps_ID_mapped")
 
@@ -301,19 +285,24 @@ def app():
             DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix.consensusXML"), 
                                                 os.path.join(results_dir, "FeatureMatrix.tsv"), sirius_ms_dir)
             GNPSExport().export_metadata_table_only(os.path.join(interim, "FeatureMatrix.consensusXML"), os.path.join(results_dir, "MetaData.tsv"))
-            
+        
+        if annotate_ms1 and use_ffmid:
+            with st.spinner("Annotating feautures on MS1 level by m/z and RT"):
+                DataFrames().annotate_ms1(os.path.join(results_dir, "FeatureMatrixRequantified.tsv"), ms1_annotation_file, annotation_mz_window_ppm, annoation_rt_window_sec)
+                DataFrames().save_MS1_ids(os.path.join(results_dir, "FeatureMatrixRequantified.tsv"), os.path.join(results_dir, "MS1-annotations"))
+        elif annotate_ms1:
+            with st.spinner("Annotating feautures on MS1 level by m/z and RT"):
+                DataFrames().annotate_ms1(os.path.join(results_dir, "FeatureMatrix.tsv"), ms1_annotation_file, annotation_mz_window_ppm, annoation_rt_window_sec)
+                DataFrames().save_MS1_ids(os.path.join(results_dir, "FeatureMatrix.tsv"), os.path.join(results_dir, "MS1-annotations"))
+
         st.success("Complete!")
 
-    if view_button or st.session_state.viewing_untargeted:
-        st.session_state.viewing_untargeted = True
-
         df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
-
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("missing values", sum([(df[col] == 0).sum() for col in df.columns]))
         if use_ffmid:
             df_requant = open_df(os.path.join(results_dir, "FeatureMatrixRequantified.tsv"))
             col2.metric("missing values after requantification", sum([(df_requant[col] == 0).sum() for col in df_requant.columns]))
-            st._arrow_table(df_requant) # [(df_requant["Lara-2-pos_SiriusID"] != "") | (df_requant["Lara-3-pos_SiriusID"] != "") | (df_requant["Lara-1-pos_SiriusID"] != "")]
+            st._arrow_table(df_requant)
         else:
-            st._arrow_table(df) #[(df["Lara-2-pos_SiriusID"] != "") | (df["Lara-3-pos_SiriusID"] != "") | (df["Lara-1-pos_SiriusID"] != "")]
+            st._arrow_table(df) 

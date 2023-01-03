@@ -121,10 +121,10 @@ if use_ad:
     else:
         ad_ion_mode, ad_adducts, ad_charge_min, ad_charge_max = "false", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4\nH-4O-2:0:0.1", 1, 3
 
-st.markdown("##### Export files required for SIRIUS")
+st.markdown("##### Export files for SIRIUS")
 use_sirius_manual = st.checkbox("enable", True, help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
 
-st.markdown("##### Export files required for GNPS")
+st.markdown("##### Export files for GNPS")
 use_gnps = st.checkbox("enable", True, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
 
 
@@ -141,19 +141,28 @@ else:
     fl_mz_tol, fl_mz_unit, fl_rt_tol = 10.0, "ppm", 30.0
 
 st.markdown("##### MS1 annotation by m/z and RT")
-annotate_ms1 = st.checkbox("enable", value=True, help="annotate features on MS1 level with known m/z and retention times values")
+annotate_ms1 = st.checkbox("enable", value=True, help="Annotate features on MS1 level with known m/z and retention times values.")
 if annotate_ms1:
     c1, c2, c3 = st.columns(3)
     annotation_mz_window_ppm = c1.number_input("mz window for annotation in ppm", 1, 100, 10, 1)
     annoation_rt_window_sec = c2.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
-    # c3.markdown("##")
-    # condense = c3.checkbox("group metabolite adducts", True, help="Specify different masses for one metabolite in the library with the # symbol. E.g. glucose and glucose#sodium intensities will be summed up.")
     c1, c2 = st.columns([9,1])
     c2.markdown("##")
     ms1_annotation_file = "example_data/matchMzRt/standards_pos.tsv"
-    if c2.button("Select", help="Choose a file for MS1 identification."):
-        ms1_annotation_file = get_file("Select file for MS1 annotations.")
-    ms1_annotation_file = c1.text_input("select a file for MS1 annotations", ms1_annotation_file)
+    if c2.button("Select", help="Choose a library for MS1 identification."):
+        ms1_annotation_file = get_file("Select library for MS1 annotations.")
+    ms1_annotation_file = c1.text_input("select a library for MS1 annotations", ms1_annotation_file)
+
+st.markdown("##### MS2 annotation via fragmentation patterns")
+annotate_ms2 = st.checkbox("enable", value=True, help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.")
+if annotate_ms2:
+    use_gnps = True
+    c1, c2 = st.columns([9,1])
+    c2.markdown("##")
+    ms2_annotation_file = "example_data/ms2-libraries/GNPS-LIBRARY.mgf"
+    if c2.button("Select", help="Choose a library for MS2 identification."):
+        ms2_annotation_file = get_file("Select library for MS2 annotations.")
+    ms2_annotation_file = c1.text_input("select a library for MS2 annotations", ms2_annotation_file)
 
 _, c2, _ = st.columns(3)
 if c2.button("Run Workflow!"):

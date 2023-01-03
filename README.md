@@ -1,4 +1,4 @@
-# easy-MS
+# easy-MS for metabolomics
 Simply interface for the analysis of mass spec data with pyOpenMS including chromatogram extraction, metabolomics and statistics.
 
 ## Installation
@@ -9,5 +9,3 @@ Download the [windows executable](https://github.com/axelwalter/easy-MS/releases
 ## Acknowledgement
 
 MS data anylsis is performed using pyOpenMS, check out the documentation [here](https://pyopenms.readthedocs.io/en/latest/index.html).
-
-This multi-page app is using the [streamlit-multiapps](https://github.com/upraneelnihar/streamlit-multiapps) framework developed by [Praneel Nihar](https://medium.com/@u.praneel.nihar).

@@ -8,5 +8,6 @@ from pymetabo.helpers import Helper
 from utils.filehandler import get_files, get_dir, get_file
 from pymetabo.dataframes import DataFrames
 from pymetabo.gnps import GNPSExport
+from pymetabo.spectralmatcher import SpectralMatcher
 
 st.write("for testing...")

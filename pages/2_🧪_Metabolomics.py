@@ -6,9 +6,9 @@ from pymetabo.helpers import *
 from pymetabo.dataframes import *
 from pymetabo.sirius import *
 from pymetabo.gnps import *
-from utils.filehandler import get_file, get_files, get_dir, save_file
+from pymetabo.spectralmatcher import *
+from utils.filehandler import get_file, get_files, get_dir
 
-# @st.cache(suppress_st_warning=True)
 def open_df(path):
     if os.path.isfile(path):
         df = pd.read_csv(path, sep="\t")
@@ -25,13 +25,6 @@ if "mzML_files_untargeted" not in st.session_state:
     st.session_state.mzML_files_untargeted = set()
 if "results_dir_untargeted" not in st.session_state:
     st.session_state.results_dir_untargeted = "results_untargeted"
-
-
-with st.sidebar:
-    with st.expander("info", True):
-        st.markdown("""
-    Generate a table with consesensus features and their quantities with optional re-quantification step.
-    """)
 
 st.title("Metabolomics")
 st.markdown("##### File Selection")
@@ -51,17 +44,12 @@ if mzML_button:
         st.session_state.mzML_files_untargeted.add(file)
     st.experimental_rerun()
 
-import pathlib
-mzML_files = [path.as_posix() for path in pathlib.Path("/home/a/data/20221215_cellwallmetbaolomics_FOS_CRISPRi").iterdir()]
-st.write(mzML_files)
-
 col1, col2 = st.columns([9,1])
 col2.markdown("##")
 result_dir_button = col2.button("Select", help="Choose a folder for your results.")
 if result_dir_button:
     st.session_state.results_dir_untargeted = get_dir("Open folder for your results.")
 results_dir = col1.text_input("results folder (will be deleted each time the workflow is started!)", st.session_state.results_dir_untargeted)
-
 
 st.markdown("##### Feature Detection")
 col1, col2, col3 = st.columns(3)
@@ -126,7 +114,8 @@ use_sirius_manual = st.checkbox("enable", True, help="Export files for formula a
 
 st.markdown("##### Export files for GNPS")
 use_gnps = st.checkbox("enable", True, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
-
+if use_gnps:
+    annotate_gnps_library = st.checkbox("annotate features with GNPS library", True)
 
 st.markdown("##### Feature Linking")
 if st.checkbox("show options", key="feature linking options"):
@@ -148,7 +137,7 @@ if annotate_ms1:
     annoation_rt_window_sec = c2.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
     c1, c2 = st.columns([9,1])
     c2.markdown("##")
-    ms1_annotation_file = "example_data/matchMzRt/standards_pos.tsv"
+    ms1_annotation_file = "example_data/ms1-libraries/standards_pos.tsv"
     if c2.button("Select", help="Choose a library for MS1 identification."):
         ms1_annotation_file = get_file("Select library for MS1 annotations.")
     ms1_annotation_file = c1.text_input("select a library for MS1 annotations", ms1_annotation_file)
@@ -279,14 +268,6 @@ if c2.button("Run Workflow!"):
     else:
         sirius_ms_dir = ""
     
-    if use_gnps:
-        with st.spinner("Exporting files for GNPS..."):
-            if use_ffmid:
-                consensusXML_file = os.path.join(interim, "FeatureMatrixRequantified.consensusXML")
-            else:
-                consensusXML_file = os.path.join(interim, "FeatureMatrix.consensusXML")
-            GNPSExport().run(consensusXML_file, mzML_dir, os.path.join(results_dir, "GNPS"))
-
     if use_ffmid:
         DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrixRequantified.consensusXML"),
                                         os.path.join(results_dir, "FeatureMatrixRequantified.tsv"), sirius_ms_dir)
@@ -298,14 +279,37 @@ if c2.button("Run Workflow!"):
                                             os.path.join(results_dir, "FeatureMatrix.tsv"), sirius_ms_dir)
         GNPSExport().export_metadata_table_only(os.path.join(interim, "FeatureMatrix.consensusXML"), os.path.join(results_dir, "MetaData.tsv"))
     
-    if annotate_ms1 and use_ffmid:
+    if use_ffmid:
+        feature_matrix_df_file = os.path.join(results_dir, "FeatureMatrixRequantified.tsv")
+    else:
+        feature_matrix_df_file = os.path.join(results_dir, "FeatureMatrix.tsv")
+
+    if use_gnps:
+        with st.spinner("Exporting files for GNPS..."):
+            # create interim directory for MS2 ids later (they are based on the GNPS mgf file)
+            Helper().reset_directory(os.path.join(interim, "mztab_ms2"))
+            if use_ffmid:
+                consensusXML_file = os.path.join(interim, "FeatureMatrixRequantified.consensusXML")
+            else:
+                consensusXML_file = os.path.join(interim, "FeatureMatrix.consensusXML")
+            GNPSExport().run(consensusXML_file, mzML_dir, os.path.join(results_dir, "GNPS"))
+            output_mztab = os.path.join(interim, "mztab_ms2", "GNPS.mzTab")
+            mgf_file = os.path.join(results_dir, "GNPS", "MS2.mgf")
+            database = "example_data/ms2-libraries/GNPS-LIBRARY.mgf"
+            SpectralMatcher().run(database, mgf_file, output_mztab)
+            DataFrames().annotate_ms2(mgf_file, output_mztab,feature_matrix_df_file, "GNPS library match")
+
+    if annotate_ms1:
         with st.spinner("Annotating feautures on MS1 level by m/z and RT"):
-            DataFrames().annotate_ms1(os.path.join(results_dir, "FeatureMatrixRequantified.tsv"), ms1_annotation_file, annotation_mz_window_ppm, annoation_rt_window_sec)
-            DataFrames().save_MS1_ids(os.path.join(results_dir, "FeatureMatrixRequantified.tsv"), os.path.join(results_dir, "MS1-annotations"))
-    elif annotate_ms1:
-        with st.spinner("Annotating feautures on MS1 level by m/z and RT"):
-            DataFrames().annotate_ms1(os.path.join(results_dir, "FeatureMatrix.tsv"), ms1_annotation_file, annotation_mz_window_ppm, annoation_rt_window_sec)
-            DataFrames().save_MS1_ids(os.path.join(results_dir, "FeatureMatrix.tsv"), os.path.join(results_dir, "MS1-annotations"))
+            DataFrames().annotate_ms1(feature_matrix_df_file, ms1_annotation_file, annotation_mz_window_ppm, annoation_rt_window_sec)
+            DataFrames().save_MS_ids(feature_matrix_df_file, os.path.join(results_dir, "MS1-annotations"), "MS1 annotation")
+
+    if annotate_ms2:
+        with st.spinner("Annotating features on MS2 level by fragmentation patterns..."):
+            output_mztab = os.path.join(interim, "mztab_ms2", "MS2.mzTab")
+            SpectralMatcher().run(ms2_annotation_file, mgf_file, output_mztab)
+            DataFrames().annotate_ms2(mgf_file, output_mztab, feature_matrix_df_file, "MS2 annotation", overwrite_name=True)
+            DataFrames().save_MS_ids(feature_matrix_df_file, os.path.join(results_dir, "MS2-annotations"), "MS2 annotation")
 
     st.success("Complete!")
 
@@ -315,6 +319,6 @@ if c2.button("Run Workflow!"):
     if use_ffmid:
         df_requant = open_df(os.path.join(results_dir, "FeatureMatrixRequantified.tsv"))
         col2.metric("missing values after requantification", sum([(df_requant[col] == 0).sum() for col in df_requant.columns]))
-        st._arrow_table(df_requant)
+        st.dataframe(df_requant)
     else:
-        st._arrow_table(df) 
+        st.dataframe(df)

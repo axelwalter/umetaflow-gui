@@ -82,7 +82,7 @@ col2.download_button("Download",
                     "text/txt",
                     key='download-txt',
                     help="Download mass list as a text file.")
-run_button = col3.button("Extract Chromatograms!")
+run_button = col3.button("**Extract Chromatograms!**")
 
 
 if run_button:

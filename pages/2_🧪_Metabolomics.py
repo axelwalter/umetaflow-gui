@@ -27,6 +27,12 @@ if "results_dir_untargeted" not in st.session_state:
     st.session_state.results_dir_untargeted = "results_untargeted"
 
 st.title("Metabolomics")
+with st.expander("Quickstart"):
+    st.markdown("""
+    1. select mzML files
+    2. select an existing folder to store your results
+    3. Set the noise treshold and mass error for feature detection according to your instrument
+    """)
 st.markdown("**File Selection**")
 col1, col2 = st.columns([9,1])
 with col1:
@@ -49,7 +55,7 @@ col2.markdown("##")
 result_dir_button = col2.button("Select", help="Choose a folder for your results.")
 if result_dir_button:
     st.session_state.results_dir_untargeted = get_dir("Open folder for your results.")
-results_dir = col1.text_input("results folder (will be deleted each time the workflow is started!)", st.session_state.results_dir_untargeted)
+results_dir = col1.text_input("results folder", st.session_state.results_dir_untargeted)
 
 st.markdown("##")
 st.markdown("**Feature Detection**")
@@ -144,7 +150,7 @@ if annotate_ms2:
     c2.markdown("##")
     ms2_annotation_file = "example_data/ms2-libraries/GNPS-LIBRARY.mgf"
     if c2.button("Select", help="Choose a library for MS2 identification."):
-        ms2_annotation_file = get_file("Select library for MS2 annotations.", type=[("Mascot Generic File", "*.mgf")])
+        ms2_annotation_file = get_file("Select library for MS2 annotations.", type=[("Mascot Generic File", "*.mgfy")])
     ms2_annotation_file = c1.text_input("select a library for MS2 annotations", ms2_annotation_file)
 
 st.markdown("##")

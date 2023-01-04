@@ -27,7 +27,7 @@ if "results_dir_untargeted" not in st.session_state:
     st.session_state.results_dir_untargeted = "results_untargeted"
 
 st.title("Metabolomics")
-st.markdown("##### File Selection")
+st.markdown("**File Selection**")
 col1, col2 = st.columns([9,1])
 with col1:
     if st.session_state.mzML_files_untargeted:
@@ -51,12 +51,13 @@ if result_dir_button:
     st.session_state.results_dir_untargeted = get_dir("Open folder for your results.")
 results_dir = col1.text_input("results folder (will be deleted each time the workflow is started!)", st.session_state.results_dir_untargeted)
 
-st.markdown("##### Feature Detection")
+st.markdown("##")
+st.markdown("**Feature Detection**")
 col1, col2, col3 = st.columns(3)
 with col1:
-    ffm_mass_error = float(st.number_input("mass_error_ppm", 1, 1000, 10))
+    ffm_mass_error = float(st.number_input("**mass_error_ppm**", 1, 1000, 10))
 with col2:
-    ffm_noise = float(st.number_input("noise_threshold_int", 10, 1000000000, 1000))
+    ffm_noise = float(st.number_input("**noise_threshold_int**", 10, 1000000000, 1000))
 with col3:
     st.markdown("##")
     ffm_single_traces = st.checkbox("remove_single_traces", True)
@@ -65,20 +66,18 @@ with col3:
     else:
         ffm_single_traces = "false"
 
-st.markdown("##### Map Alignment")
-if st.checkbox("show options", key="map alignment options"):
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        ma_mz_max = float(st.number_input("pairfinder:distance_MZ:max_difference", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
-    with col2:
-        ma_mz_unit = st.radio("pairfinder:distance_MZ:unit", ["ppm", "Da"])
-    with col3:
-        ma_rt_max = float(st.number_input("pairfinder:distance_RT:max_difference", 1, 1000, 100))
-else:
-    ma_mz_max, ma_mz_unit, ma_rt_max = 10.0, "ppm", 100.0
+st.markdown("##")
+st.markdown("**Map Alignment**")
+col1, col2, col3 = st.columns(3)
+with col1:
+    ma_mz_max = float(st.number_input("pairfinder:distance_MZ:max_difference", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
+with col2:
+    ma_mz_unit = st.radio("pairfinder:distance_MZ:unit", ["ppm", "Da"])
+with col3:
+    ma_rt_max = float(st.number_input("pairfinder:distance_RT:max_difference", 1, 1000, 100))
 
-st.markdown("##### Re-Quantification")
-use_ffmid = st.checkbox("enable", False, help="Use FeatureFinderMetaboIdent to re-quantify consensus features that have missing values.")
+st.markdown("##")
+use_ffmid = st.checkbox("**Re-Quantification**", False, help="Use FeatureFinderMetaboIdent to re-quantify consensus features that have missing values.")
 if use_ffmid:
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -88,49 +87,44 @@ if use_ffmid:
     with col3:
         ffmid_n_isotopes = st.number_input("extract:n_isotopes", 2, 10, 2)
 
-st.markdown("##### Adduct Detection")
-use_ad = st.checkbox("enable", True)
+st.markdown("##")
+use_ad = st.checkbox("**Adduct Detection**", True)
 if use_ad:
-    if st.checkbox("show options", key="adduct detection options"):
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            ad_ion_mode = st.radio("ionization mode", ["positive", "negative"])
-            if ad_ion_mode == "positive":
-                ad_ion_mode = "false"
-            elif ad_ion_mode == "negative":
-                ad_ion_mode = "true"
-                ad_adducts = "H:-:1.0"
-        with col2:
-            ad_adducts = st.text_area("potential_adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4\nH-4O-2:0:0.1")
-        with col3:
-            ad_charge_min = st.number_input("charge_min", 1, 10, 1)
-        with col4:
-            ad_charge_max = st.number_input("charge_max", 1, 10, 3)
-    else:
-        ad_ion_mode, ad_adducts, ad_charge_min, ad_charge_max = "false", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4\nH-4O-2:0:0.1", 1, 3
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        ad_ion_mode = st.radio("ionization mode", ["positive", "negative"])
+        if ad_ion_mode == "positive":
+            ad_ion_mode = "false"
+        elif ad_ion_mode == "negative":
+            ad_ion_mode = "true"
+            ad_adducts = "H:-:1.0"
+    with col2:
+        ad_adducts = st.text_area("potential_adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4\nH-4O-2:0:0.1")
+    with col3:
+        ad_charge_min = st.number_input("charge_min", 1, 10, 1)
+    with col4:
+        ad_charge_max = st.number_input("charge_max", 1, 10, 3)
 
-st.markdown("##### Export files for SIRIUS")
-use_sirius_manual = st.checkbox("enable", True, help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
+st.markdown("##")
+use_sirius_manual = st.checkbox("**Export files for SIRIUS**", True, help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
 
-st.markdown("##### Export files for GNPS")
-use_gnps = st.checkbox("enable", True, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
+st.markdown("##")
+use_gnps = st.checkbox("**Export files for GNPS**", True, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
 if use_gnps:
     annotate_gnps_library = st.checkbox("annotate features with GNPS library", True)
 
-st.markdown("##### Feature Linking")
-if st.checkbox("show options", key="feature linking options"):
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        fl_mz_tol = float(st.number_input("link:mz_tol", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
-    with col2:
-        fl_mz_unit = st.radio("mz_unit", ["ppm", "Da"])
-    with col3:
-        fl_rt_tol = float(st.number_input("link:rt_tol", 1, 200, 30))
-else:
-    fl_mz_tol, fl_mz_unit, fl_rt_tol = 10.0, "ppm", 30.0
+st.markdown("##")
+st.markdown("**Feature Linking**")
+col1, col2, col3 = st.columns(3)
+with col1:
+    fl_mz_tol = float(st.number_input("link:mz_tol", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
+with col2:
+    fl_mz_unit = st.radio("mz_unit", ["ppm", "Da"])
+with col3:
+    fl_rt_tol = float(st.number_input("link:rt_tol", 1, 200, 30))
 
-st.markdown("##### MS1 annotation by m/z and RT")
-annotate_ms1 = st.checkbox("enable", value=True, help="Annotate features on MS1 level with known m/z and retention times values.")
+st.markdown("##")
+annotate_ms1 = st.checkbox("**MS1 annotation by m/z and RT**", value=True, help="Annotate features on MS1 level with known m/z and retention times values.")
 if annotate_ms1:
     c1, c2, c3 = st.columns(3)
     annotation_mz_window_ppm = c1.number_input("mz window for annotation in ppm", 1, 100, 10, 1)
@@ -142,8 +136,8 @@ if annotate_ms1:
         ms1_annotation_file = get_file("Select library for MS1 annotations.")
     ms1_annotation_file = c1.text_input("select a library for MS1 annotations", ms1_annotation_file)
 
-st.markdown("##### MS2 annotation via fragmentation patterns")
-annotate_ms2 = st.checkbox("enable", value=True, help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.")
+st.markdown("##")
+annotate_ms2 = st.checkbox("**MS2 annotation via fragmentation patterns**", value=True, help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.")
 if annotate_ms2:
     use_gnps = True
     c1, c2 = st.columns([9,1])
@@ -153,8 +147,9 @@ if annotate_ms2:
         ms2_annotation_file = get_file("Select library for MS2 annotations.")
     ms2_annotation_file = c1.text_input("select a library for MS2 annotations", ms2_annotation_file)
 
+st.markdown("##")
 _, c2, _ = st.columns(3)
-if c2.button("Run Workflow!"):
+if c2.button("**Run Workflow!**"):
     st.session_state.viewing_untargeted = True
     interim = Helper().reset_directory(os.path.join(results_dir, "interim"))
 

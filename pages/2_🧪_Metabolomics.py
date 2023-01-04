@@ -133,7 +133,7 @@ if annotate_ms1:
     c2.markdown("##")
     ms1_annotation_file = "example_data/ms1-libraries/standards_pos.tsv"
     if c2.button("Select", help="Choose a library for MS1 identification."):
-        ms1_annotation_file = get_file("Select library for MS1 annotations.")
+        ms1_annotation_file = get_file("Select library for MS1 annotations.", type=[("Table file", "*.tsv")])
     ms1_annotation_file = c1.text_input("select a library for MS1 annotations", ms1_annotation_file)
 
 st.markdown("##")
@@ -144,7 +144,7 @@ if annotate_ms2:
     c2.markdown("##")
     ms2_annotation_file = "example_data/ms2-libraries/GNPS-LIBRARY.mgf"
     if c2.button("Select", help="Choose a library for MS2 identification."):
-        ms2_annotation_file = get_file("Select library for MS2 annotations.")
+        ms2_annotation_file = get_file("Select library for MS2 annotations.", type=[("Mascot Generic File", "*.mgf")])
     ms2_annotation_file = c1.text_input("select a library for MS2 annotations", ms2_annotation_file)
 
 st.markdown("##")

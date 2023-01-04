@@ -42,7 +42,7 @@ with col2:
     st.markdown("##")
     select_button = st.button("Select", help="Choose a feature matrix for statistical analysis.")
 if select_button:
-    st.session_state.statistics_matrix_file = get_file("Open a feature matrix file.", type=[("Excel file", "*.xlsx"), ("Table file", "*.tsv")])
+    st.session_state.statistics_matrix_file = get_file("Open a feature matrix file.", type=[("Table file", "*.tsv"), ("Excel file", "*.xlsx")])
 with col1:
     matrix_file = st.text_input("feature matrix file", st.session_state.statistics_matrix_file)
 

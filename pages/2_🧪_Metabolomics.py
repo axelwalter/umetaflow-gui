@@ -137,7 +137,7 @@ if annotate_ms1:
     annoation_rt_window_sec = c2.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
     c1, c2 = st.columns([9,1])
     c2.markdown("##")
-    ms1_annotation_file = "example_data/ms1-libraries/standards_pos.tsv"
+    ms1_annotation_file = "example_data/ms1-libraries/peptidoglycan-soluble-precursors-positive.tsv"
     if c2.button("Select", help="Choose a library for MS1 identification."):
         ms1_annotation_file = get_file("Select library for MS1 annotations.", type=[("Table file", "*.tsv")])
     ms1_annotation_file = c1.text_input("select a library for MS1 annotations", ms1_annotation_file)
@@ -148,9 +148,9 @@ if annotate_ms2:
     use_gnps = True
     c1, c2 = st.columns([9,1])
     c2.markdown("##")
-    ms2_annotation_file = "example_data/ms2-libraries/GNPS-LIBRARY.mgf"
+    ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
     if c2.button("Select", help="Choose a library for MS2 identification."):
-        ms2_annotation_file = get_file("Select library for MS2 annotations.", type=[("Mascot Generic File", "*.mgfy")])
+        ms2_annotation_file = get_file("Select library for MS2 annotations.", type=[("Mascot Generic File", "*.mgf")])
     ms2_annotation_file = c1.text_input("select a library for MS2 annotations", ms2_annotation_file)
 
 st.markdown("##")

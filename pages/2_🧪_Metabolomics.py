@@ -105,7 +105,7 @@ if use_ad:
             ad_ion_mode = "true"
             ad_adducts = "H:-:1.0"
     with col2:
-        ad_adducts = st.text_area("potential_adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4\nH-4O-2:0:0.1")
+        ad_adducts = st.text_area("potential_adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4")
     with col3:
         ad_charge_min = st.number_input("charge_min", 1, 10, 1)
     with col4:
@@ -169,7 +169,8 @@ if c2.button("**Run Workflow!**"):
         FeatureFinderMetabo().run(mzML_dir, os.path.join(interim, "FFM"),
                                 {"noise_threshold_int": ffm_noise,
                                 "mass_error_ppm": ffm_mass_error,
-                                "remove_single_traces": ffm_single_traces})
+                                "remove_single_traces": ffm_single_traces,
+                                "report_convex_hulls": "true"})
 
     with st.spinner("Aligning feature maps..."):
         MapAligner().run(os.path.join(interim, "FFM"), os.path.join(interim, "FFM_aligned"),

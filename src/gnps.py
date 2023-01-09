@@ -20,7 +20,7 @@ class GNPSExport:
         ConsensusXMLFile().store(consensusXML_file, filtered_map)
 
         # for FFBM
-        GNPSMGFFile().store(String(consensusXML_file), [file.encode() for file in mzML_files], String(os.path.join(gnps_dir, "MS2.mgf")))
+        # GNPSMGFFile().store(String(consensusXML_file), [file.encode() for file in mzML_files], String(os.path.join(gnps_dir, "MS2.mgf")))
         GNPSQuantificationFile().store(consensus_map, os.path.join(gnps_dir, "FeatureQantificationTable.txt"))
         GNPSMetaValueFile().store(consensus_map, os.path.join(gnps_dir, "MetaValueTable.tsv"))
 

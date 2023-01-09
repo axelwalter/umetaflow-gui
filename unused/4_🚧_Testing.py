@@ -9,5 +9,15 @@ from utils.filehandler import get_files, get_dir, get_file
 from pymetabo.dataframes import DataFrames
 from pymetabo.gnps import GNPSExport
 from pymetabo.spectralmatcher import SpectralMatcher
+import pathlib
+from os.path import isfile, join
+from os import listdir
 
 st.write("for testing...")
+
+uploaded = st.file_uploader("upload files", accept_multiple_files=True)
+
+if st.button("run"):
+    for file in uploaded:
+        with open(os.path.join("tempDir",file.name),"wb") as f:
+                f.write(file.getbuffer())

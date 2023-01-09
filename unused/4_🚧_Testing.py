@@ -4,11 +4,11 @@ from pyopenms import *
 import os
 import pandas as pd
 import numpy as np
-from pymetabo.helpers import Helper
+from src.helpers import Helper
 from utils.filehandler import get_files, get_dir, get_file
-from pymetabo.dataframes import DataFrames
-from pymetabo.gnps import GNPSExport
-from pymetabo.spectralmatcher import SpectralMatcher
+from src.dataframes import DataFrames
+from src.gnps import GNPSExport
+from src.spectralmatcher import SpectralMatcher
 import pathlib
 from os.path import isfile, join
 from os import listdir

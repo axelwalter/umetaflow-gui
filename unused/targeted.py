@@ -1,10 +1,10 @@
 import streamlit as st
 import plotly.express as px
 from pyopenms import *
-from pymetabo.helpers import Helper
-from pymetabo.core import FeatureFinderMetaboIdent
-from pymetabo.dataframes import DataFrames
-from pymetabo.plotting import Plot
+from src.helpers import Helper
+from src.core import FeatureFinderMetaboIdent
+from src.dataframes import DataFrames
+from src.plotting import Plot
 import os
 import pandas as pd
 from utils.filehandler import get_files, get_dir, save_file

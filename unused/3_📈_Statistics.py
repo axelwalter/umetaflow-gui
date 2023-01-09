@@ -1,6 +1,6 @@
 import streamlit as st
-from pymetabo.plotting import *
-from pymetabo.statistics import *
+from src.plotting import *
+from src.statistics import *
 import pandas as pd
 from utils.filehandler import get_file, save_file
 import os

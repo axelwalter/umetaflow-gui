@@ -1,12 +1,12 @@
 import shutil
 import streamlit as st
 import pandas as pd
-from pymetabo.core import *
-from pymetabo.helpers import *
-from pymetabo.dataframes import *
-from pymetabo.sirius import *
-from pymetabo.gnps import *
-from pymetabo.spectralmatcher import *
+from src.core import *
+from src.helpers import *
+from src.dataframes import *
+from src.sirius import *
+from src.gnps import *
+from src.spectralmatcher import *
 from utils.filehandler import get_file, get_files, get_dir
 
 def open_df(path):

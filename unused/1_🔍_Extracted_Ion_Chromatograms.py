@@ -4,10 +4,10 @@ from pyopenms import *
 import os
 import pandas as pd
 import numpy as np
-from pymetabo.helpers import Helper
-from pymetabo.plotting import Plot
-from pymetabo.gnps import *
-from pymetabo.dataframes import DataFrames
+from src.helpers import Helper
+from src.plotting import Plot
+from src.gnps import *
+from src.dataframes import DataFrames
 from utils.filehandler import get_files, get_dir, get_file, save_file
 
 

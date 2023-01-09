@@ -109,6 +109,7 @@ if annotate_ms1:
 #     use_gnps = True
 #     ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
 #     ms2_annotation_file_upload = st.file_uploader("Select library for MS2 annotations", type=["mgf"])
+annotate_ms2 = False
 
 st.markdown("##")
 _, c2, _ = st.columns(3)

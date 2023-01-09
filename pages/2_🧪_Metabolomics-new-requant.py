@@ -84,6 +84,7 @@ st.markdown("##")
 use_gnps = st.checkbox("**Export files for GNPS**", True, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
 if use_gnps:
     annotate_gnps_library = st.checkbox("annotate features with GNPS library", True)
+use_gnps = False
 
 st.markdown("##")
 st.markdown("**Feature Linking**")

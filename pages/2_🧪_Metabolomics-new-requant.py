@@ -126,19 +126,20 @@ if  run_button and uploaded_mzML:
     # upload annotation libraries or use default
     library_dir = os.path.join(interim, "annotation_libraries")
     Helper().reset_directory(library_dir)
-    if ms1_annotation_file_upload:
-        ms1_annotation_file = os.path.join(library_dir, ms1_annotation_file_upload.name)
-        with open(ms1_annotation_file, "wb") as f:
-            f.write(ms1_annotation_file_upload.getbuffer())
-    else:
-        ms1_annotation_file = "example_data/ms1-libraries/peptidoglycan-soluble-precursors-positive.tsv"
-
-    if ms2_annotation_file_upload:
-        ms2_annotation_file = os.path.join(library_dir, ms2_annotation_file_upload.name)
-        with open(ms2_annotation_file, "wb") as f:
-            f.write(ms2_annotation_file_upload.getbuffer())
-    else:
-        ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
+    if annotate_ms1:
+        if ms1_annotation_file_upload:
+            ms1_annotation_file = os.path.join(library_dir, ms1_annotation_file_upload.name)
+            with open(ms1_annotation_file, "wb") as f:
+                f.write(ms1_annotation_file_upload.getbuffer())
+        else:
+            ms1_annotation_file = "example_data/ms1-libraries/peptidoglycan-soluble-precursors-positive.tsv"
+    if annotate_ms2:
+        if ms2_annotation_file_upload:
+            ms2_annotation_file = os.path.join(library_dir, ms2_annotation_file_upload.name)
+            with open(ms2_annotation_file, "wb") as f:
+                f.write(ms2_annotation_file_upload.getbuffer())
+        else:
+            ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
 
     with st.spinner("Detecting features..."):
         FeatureFinderMetabo().run(mzML_dir, os.path.join(interim, "FFM"),

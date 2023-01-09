@@ -1,4 +1,3 @@
-import shutil
 import streamlit as st
 import pandas as pd
 from pymetabo.core import *
@@ -7,7 +6,6 @@ from pymetabo.dataframes import *
 from pymetabo.sirius import *
 from pymetabo.gnps import *
 from pymetabo.spectralmatcher import *
-from utils.filehandler import get_file, get_files, get_dir
 
 def open_df(path):
     if os.path.isfile(path):
@@ -21,41 +19,15 @@ def open_df(path):
 
 # set all other viewing states to False
 st.session_state.viewing_extract = False
-if "mzML_files_untargeted" not in st.session_state:
-    st.session_state.mzML_files_untargeted = set()
-if "results_dir_untargeted" not in st.session_state:
-    st.session_state.results_dir_untargeted = "results_untargeted"
 
 st.title("Metabolomics")
-with st.expander("Quickstart"):
-    st.markdown("""
-    1. select mzML files
-    2. select an existing folder to store your results
-    3. Set the noise treshold and mass error for feature detection according to your instrument
-    """)
+
 st.markdown("**File Selection**")
 col1, col2 = st.columns([9,1])
-with col1:
-    if st.session_state.mzML_files_untargeted:
-        mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files_untargeted, st.session_state.mzML_files_untargeted,
-                                    format_func=lambda x: os.path.basename(x)[:-5])
-    else:
-        mzML_files = col1.multiselect("mzML files", [], [])
-with col2:
-    st.markdown("##")
-    mzML_button = st.button("Add", help="Add new mzML files.")
-if mzML_button:
-    files = get_files("Open mzML files", [("MS Data", ".mzML")])
-    for file in files:
-        st.session_state.mzML_files_untargeted.add(file)
-    st.experimental_rerun()
+uploaded_mzML = st.file_uploader("mzML files", accept_multiple_files=True)
 
-col1, col2 = st.columns([9,1])
-col2.markdown("##")
-result_dir_button = col2.button("Select", help="Choose a folder for your results.")
-if result_dir_button:
-    st.session_state.results_dir_untargeted = get_dir("Open folder for your results.")
-results_dir = col1.text_input("results folder", st.session_state.results_dir_untargeted)
+# setting results directory
+results_dir = "results_metabolomics"
 
 st.markdown("##")
 st.markdown("**Feature Detection**")
@@ -124,38 +96,49 @@ with col3:
 st.markdown("##")
 annotate_ms1 = st.checkbox("**MS1 annotation by m/z and RT**", value=True, help="Annotate features on MS1 level with known m/z and retention times values.")
 if annotate_ms1:
-    c1, c2, c3 = st.columns(3)
-    annotation_mz_window_ppm = c1.number_input("mz window for annotation in ppm", 1, 100, 10, 1)
-    annoation_rt_window_sec = c2.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
-    c1, c2 = st.columns([9,1])
-    c2.markdown("##")
-    ms1_annotation_file = "example_data/ms1-libraries/peptidoglycan-soluble-precursors-positive.tsv"
-    if c2.button("Select", help="Choose a library for MS1 identification."):
-        ms1_annotation_file = get_file("Select library for MS1 annotations.", type=[("Table file", "*.tsv")])
-    ms1_annotation_file = c1.text_input("select a library for MS1 annotations", ms1_annotation_file)
+    ms1_annotation_file_upload = st.file_uploader("Select library for MS1 annotations.", type=["tsv"])
+    c1, c2 = st.columns(2)
+    annoation_rt_window_sec = c1.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
+    annotation_mz_window_ppm = c2.number_input("mz window for annotation in ppm", 1, 100, 10, 1)
 
 st.markdown("##")
 annotate_ms2 = st.checkbox("**MS2 annotation via fragmentation patterns**", value=True, help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.")
 if annotate_ms2:
     use_gnps = True
-    c1, c2 = st.columns([9,1])
-    c2.markdown("##")
     ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
-    if c2.button("Select", help="Choose a library for MS2 identification."):
-        ms2_annotation_file = get_file("Select library for MS2 annotations.", type=[("Mascot Generic File", "*.mgf")])
-    ms2_annotation_file = c1.text_input("select a library for MS2 annotations", ms2_annotation_file)
+    ms2_annotation_file_upload = st.file_uploader("Select library for MS2 annotations", type=["mgf"])
 
 st.markdown("##")
 _, c2, _ = st.columns(3)
-if c2.button("**Run Workflow!**"):
+run_button = c2.button("**Run Workflow!**")
+if  run_button and uploaded_mzML:
     st.session_state.viewing_untargeted = True
     interim = Helper().reset_directory(os.path.join(results_dir, "interim"))
 
-    with st.spinner("Fetching mzML file data..."):
+    with st.spinner("Fetching uploaded data..."):
+        # upload mzML files
         mzML_dir = os.path.join(interim, "mzML_original")
         Helper().reset_directory(mzML_dir)
-        for file in mzML_files:
-            shutil.copy(file, mzML_dir)
+        for file in uploaded_mzML:
+            with open(os.path.join(mzML_dir, file.name),"wb") as f:
+                    f.write(file.getbuffer())
+        
+    # upload annotation libraries or use default
+    library_dir = os.path.join(interim, "annotation_libraries")
+    Helper().reset_directory(library_dir)
+    if ms1_annotation_file_upload:
+        ms1_annotation_file = os.path.join(library_dir, ms1_annotation_file_upload.name)
+        with open(ms1_annotation_file, "wb") as f:
+            f.write(ms1_annotation_file_upload.getbuffer())
+    else:
+        ms1_annotation_file = "example_data/ms1-libraries/peptidoglycan-soluble-precursors-positive.tsv"
+
+    if ms2_annotation_file_upload:
+        ms2_annotation_file = os.path.join(library_dir, ms2_annotation_file_upload.name)
+        with open(ms2_annotation_file, "wb") as f:
+            f.write(ms2_annotation_file_upload.getbuffer())
+    else:
+        ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
 
     with st.spinner("Detecting features..."):
         FeatureFinderMetabo().run(mzML_dir, os.path.join(interim, "FFM"),
@@ -253,3 +236,5 @@ if c2.button("**Run Workflow!**"):
     col1.metric("missing values", missing_values_before)
     col2.metric("missing values after re-quantification", missing_values_after)
     st.dataframe(df)
+elif run_button:
+    st.warning("Please upload some mzML files.")

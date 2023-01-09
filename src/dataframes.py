@@ -165,6 +165,8 @@ class DataFrames:
     def save_MS_ids(self, df_file, ms_dir, column_name):
         Helper().reset_directory(ms_dir)
         df = pd.read_csv(df_file, sep="\t")
+        if column_name not in df.columns:
+            return
         df = df[df[column_name].notna()]
         filename = column_name.replace(" ", "-") + ".tsv"
         df.to_csv(os.path.join(ms_dir, filename), sep="\t", index=False)
@@ -172,6 +174,8 @@ class DataFrames:
     def annotate_ms2(self, mgf_file, output_mztab, feature_matrix_df_file, match_column_name, overwrite_name=False):
         # clean up the mzTab to a dataframe:
         matches = pyteomics.mztab.MzTab(output_mztab, encoding="UTF8", table_format="df").small_molecule_table
+        if matches.empty:
+            return
         matches = matches.query("opt_ppm_error <= 10 and opt_ppm_error >= -10 and opt_match_score >= 60")
         matches["opt_spec_native_id"] = matches["opt_spec_native_id"].str.replace(r"index=", "")
 

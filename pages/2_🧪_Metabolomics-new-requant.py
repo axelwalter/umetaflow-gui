@@ -242,6 +242,9 @@ if  run_button and uploaded_mzML:
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("missing values", missing_values_before)
     col2.metric("missing values after re-quantification", missing_values_after)
+    col3.download_button("Download Feature Matrix", df.to_csv(sep="\t", index=False), "FeatureMatrix.tsv")
+    df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
+    col4.download_button("Download Meta Data", df_md.to_csv(sep="\t", index=False), "MetaData.tsv")
     st.dataframe(df)
 elif run_button:
     st.warning("Please upload some mzML files.")

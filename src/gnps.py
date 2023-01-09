@@ -7,8 +7,15 @@ import os
 class GNPSExport:
     def run(self, consensusXML_file, aligned_mzML_dir, gnps_dir):
         Helper().reset_directory(gnps_dir)
-        mzML_files = [str(f) for f in Path(aligned_mzML_dir).iterdir() if f.is_file() and str(f).endswith("mzML")]
-        
+        all_mzML_files = [str(f) for f in Path(aligned_mzML_dir).iterdir() if f.is_file() and str(f).endswith("mzML")]
+        mzML_files = []
+        for mzML in all_mzML_files:
+            exp = MSExperiment()
+            MzMLFile().load(mzML, exp)
+            for spec in exp:
+                if spec.getMSLevel() == 2:
+                    mzML_files.append(mzML)
+
         consensus_map = ConsensusMap()
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         filtered_map = ConsensusMap(consensus_map)

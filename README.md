@@ -12,18 +12,12 @@ Simply interface for the analysis of mass spec data with pyOpenMS including chro
 
 `cd umetaflow-gui`
 
-3. Init and update the pymetabo submodule
-
-`git submodule init`
-
-`git submodule update --remote`
-
-4. Install the [latest pyopenms version](https://pyopenms.readthedocs.io/en/latest/installation.html#nightly-ci-wheels)
-5. Install all other Python modules specified in the requirements file with pip
+3. Install the [latest pyopenms version](https://pyopenms.readthedocs.io/en/latest/installation.html#nightly-ci-wheels)
+4. Install all other Python modules specified in the requirements file with pip
 
 `pip install -r requirements.txt`
 
-6. Launch the streamlit app locally in your browser
+5. Launch the streamlit app locally in your browser
 
 `streamlit run UmetaFlow.py`
 

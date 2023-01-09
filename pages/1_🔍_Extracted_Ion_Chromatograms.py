@@ -8,8 +8,7 @@ from src.helpers import Helper
 from src.plotting import Plot
 from src.gnps import *
 from src.dataframes import DataFrames
-from utils.filehandler import get_files, get_dir, get_file, save_file
-
+from pathlib import Path
 
 results_dir = "results_extractchroms"
 if not os.path.exists(results_dir):
@@ -41,51 +40,32 @@ The results will be displayed as a summary with all samples and EICs AUC values 
 """)
 
 st.title("Extracted Ion Chromatograms (EIC/XIC)")
-col1, col2 = st.columns([9,1])
-col2.markdown("##")
-mzML_button = col2.button("Add", "Add new mzML files.")
-if mzML_button:
-    files = get_files("Add mzML files", [("MS Data", ".mzML")])
-    if files:
-        for file in files:
-            st.session_state.mzML_files_extract.add(file)
-if st.session_state.mzML_files_extract:
-    mzML_files = col1.multiselect("mzML files", st.session_state.mzML_files_extract, st.session_state.mzML_files_extract,
-                                format_func=lambda x: os.path.basename(x)[:-5])
-else:
-    mzML_files = col1.multiselect("mzML files", [], [])
+uploaded_mzML = st.file_uploader("mzML files", accept_multiple_files=True)
 
-col1, col2, col3, _ = st.columns([4, 1, 1.5, 0.5])
-unit = col3.radio("mass tolerance unit", ["ppm", "Da"])
-if unit == "ppm":
-    tolerance = col3.number_input("mass tolerance", 1, 100, 10)
-elif unit == "Da":
-    tolerance = col3.number_input("mass tolerance", 0.01, 10.0, 0.02)
-time_unit = col3.radio("time unit", ["seconds", "minutes"])
-
-col2.markdown("##")
-upload_mass_button = col2.button("Upload", help="Upload a mass list file.")
-if upload_mass_button:
-    mass_file = get_file("Open mass file for chromatogram extraction", [("Mass File", ".txt")])
-    if mass_file:
-        with open(mass_file, "r") as f:
-            st.session_state.masses_text_field = f.read()
-        st.experimental_rerun()
-
+col1, col2 = st.columns(2)
 masses_input = col1.text_area("masses", st.session_state.masses_text_field,
             help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.",
             height=250)
+unit = col2.radio("mass tolerance unit", ["ppm", "Da"])
+if unit == "ppm":
+    tolerance = col2.number_input("mass tolerance", 1, 100, 10)
+elif unit == "Da":
+    tolerance = col2.number_input("mass tolerance", 0.01, 10.0, 0.02)
+time_unit = col2.radio("time unit", ["seconds", "minutes"])
 
-col2.download_button("Download",
-                    masses_input,
-                    "masses.txt",
-                    "text/txt",
-                    key='download-txt',
-                    help="Download mass list as a text file.")
-run_button = col3.button("**Extract Chromatograms!**")
-
+col1, col2, col3= st.columns(3)
+col2.markdown("##")
+run_button = col2.button("**Extract Chromatograms!**")
 
 if run_button:
+    with st.spinner("Fetching uploaded data..."):
+        # upload mzML files
+        mzML_dir = "mzML_files"
+        Helper().reset_directory(mzML_dir)
+        for file in uploaded_mzML:
+            with open(os.path.join(mzML_dir, file.name),"wb") as f:
+                    f.write(file.getbuffer())
+
     Helper().reset_directory(results_dir)
     masses = []
     names = []
@@ -109,10 +89,10 @@ if run_button:
             times.append([float(time.split("-")[0].strip())*time_factor, float(time.split("-")[1].strip())*time_factor])
         else:
             times.append([0,0])
-    for file in mzML_files:
-        with st.spinner("Extracting from: " + file):
+    for file in Path(mzML_dir).glob("*.mzML"):
+        with st.spinner("Extracting from: " + str(file)):
             exp = MSExperiment()
-            MzMLFile().load(file, exp)
+            MzMLFile().load(str(file), exp)
             df = pd.DataFrame()
             # get BPC always
             time = []
@@ -167,15 +147,14 @@ if st.session_state.viewing_extract:
     num_cols = col2.number_input("show columns", 1, 5, 1)
     col4.markdown("##")
     if col4.button("Download Chromatograms", help="Select a folder where data from selceted samples and chromatograms gets stored."):
-        new_folder = get_dir()
-        if new_folder:
-            for file in all_files:
-                df = pd.read_feather(os.path.join(results_dir, file))[["time"]+all_chroms]
-                path = os.path.join(new_folder, file[:-4]+"_"+str(tolerance)+unit)
-                df.to_csv(path+".tsv", sep="\t", index=False)
-            col4.success("Download done!")
-
-
+        st.warning("Download not yet implemented")
+        # new_folder = get_dir()
+        # if new_folder:
+        #     for file in all_files:
+        #         df = pd.read_feather(os.path.join(results_dir, file))[["time"]+all_chroms]
+        #         path = os.path.join(new_folder, file[:-4]+"_"+str(tolerance)+unit)
+        #         df.to_csv(path+".tsv", sep="\t", index=False)
+        #     col4.success("Download done!")
 
     for file in all_files:
         df = pd.read_feather(os.path.join(results_dir, file))
@@ -215,8 +194,6 @@ if st.session_state.viewing_extract:
                 break
             df = pd.read_feather(os.path.join(results_dir, file))
             auc = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
-            # auc.index = auc["index"]
-            # auc = auc.drop(columns=["index"])
             fig_chrom, fig_auc = Plot().extracted_chroms(df, chroms=all_chroms, df_auc=auc, title=file[:-4], time_unit=time_unit)
             col.plotly_chart(fig_chrom)
             col.plotly_chart(fig_auc)

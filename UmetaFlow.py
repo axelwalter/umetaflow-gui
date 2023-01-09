@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(layout="wide")
-
+st.session_state.uploaded_mzML = []
 
 st.markdown("""
 # UmetaFlow

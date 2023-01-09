@@ -25,7 +25,6 @@ st.session_state.viewing_extract = False
 st.title("Metabolomics")
 
 st.markdown("**File Selection**")
-col1, col2 = st.columns([9,1])
 uploaded_mzML = st.file_uploader("mzML files", accept_multiple_files=True)
 
 # setting results directory
@@ -96,19 +95,24 @@ with col3:
     fl_rt_tol = float(st.number_input("link:rt_tol", 1, 200, 30))
 
 st.markdown("##")
-annotate_ms1 = st.checkbox("**MS1 annotation by m/z and RT**", value=True, help="Annotate features on MS1 level with known m/z and retention times values.")
+annotate_ms1 = st.checkbox("**MS1 annotation by m/z and RT**", value=False, help="Annotate features on MS1 level with known m/z and retention times values.")
 if annotate_ms1:
     ms1_annotation_file_upload = st.file_uploader("Select library for MS1 annotations.", type=["tsv"])
+    if not ms1_annotation_file_upload:
+        st.warning("No MS1 library selected. Using an example library instead.")
     c1, c2 = st.columns(2)
     annoation_rt_window_sec = c1.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
     annotation_mz_window_ppm = c2.number_input("mz window for annotation in ppm", 1, 100, 10, 1)
 
 st.markdown("##")
-annotate_ms2 = st.checkbox("**MS2 annotation via fragmentation patterns**", value=True, help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.")
+annotate_ms2 = st.checkbox("**MS2 annotation via fragmentation patterns**", value=False, help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.")
 if annotate_ms2:
     use_gnps = True
     ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
     ms2_annotation_file_upload = st.file_uploader("Select library for MS2 annotations", type=["mgf"])
+    if not ms2_annotation_file_upload:
+        st.warning("No MS2 library selected. Using an example library instead.")
+
 
 st.markdown("##")
 _, c2, _ = st.columns(3)

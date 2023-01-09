@@ -7,6 +7,8 @@ from src.sirius import *
 from src.gnps import *
 from src.spectralmatcher import *
 
+st.set_page_config(layout="wide")
+
 def open_df(path):
     if os.path.isfile(path):
         df = pd.read_csv(path, sep="\t")
@@ -101,12 +103,12 @@ if annotate_ms1:
     annoation_rt_window_sec = c1.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
     annotation_mz_window_ppm = c2.number_input("mz window for annotation in ppm", 1, 100, 10, 1)
 
-st.markdown("##")
-annotate_ms2 = st.checkbox("**MS2 annotation via fragmentation patterns**", value=True, help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.")
-if annotate_ms2:
-    use_gnps = True
-    ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
-    ms2_annotation_file_upload = st.file_uploader("Select library for MS2 annotations", type=["mgf"])
+# st.markdown("##")
+# annotate_ms2 = st.checkbox("**MS2 annotation via fragmentation patterns**", value=True, help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.")
+# if annotate_ms2:
+#     use_gnps = True
+#     ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
+#     ms2_annotation_file_upload = st.file_uploader("Select library for MS2 annotations", type=["mgf"])
 
 st.markdown("##")
 _, c2, _ = st.columns(3)

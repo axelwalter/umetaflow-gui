@@ -26,7 +26,6 @@ class DataFrames:
             df.insert(0, "metabolite", [f"{round(mz, 4)}@{round(rt, 2)}" for mz, rt in zip(df["mz"].tolist(), df["RT"].tolist())])
         not_sample = [c for c in df.columns if c not in ["mz", "RT", "charge", "adduct", "name", "quality"]]
         df[not_sample] = df[not_sample].applymap(lambda x: int(round(x, 0)) if isinstance(x, (int, float)) else x)
-
         # annotate original feature Ids which are in the Sirius .ms files
         if sirius_ms_dir:
             ms_files = [Path(sirius_ms_dir, file) for file in os.listdir(sirius_ms_dir)]
@@ -53,7 +52,6 @@ class DataFrames:
             df.to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
             df.reset_index().to_feather(table_file)
-        print(df.columns)
         return df
     
     def FFMID_chroms_to_df(self, featureXML_file, table_file, time_unit = "seconds"):

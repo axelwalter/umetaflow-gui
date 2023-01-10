@@ -15,9 +15,6 @@ def open_df(path):
         df = pd.read_csv(path, sep="\t")
     else:
         return
-    for column in df.columns:
-        if column.endswith(".mzML"):
-            df = df.rename(columns={column: column[:-5]})
     return df
 
 st.title("Metabolomics")
@@ -25,7 +22,6 @@ st.title("Metabolomics")
 # setting results directory
 results_dir = "results_metabolomics"
 
-st.markdown("##")
 st.markdown("**Feature Detection**")
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -188,7 +184,7 @@ if  run_button and any(Path(mzML_dir).iterdir()):
         sirius_ms_dir = os.path.join(results_dir, "SIRIUS", "sirius_files")
     else:
         sirius_ms_dir = ""
-    
+
     DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix.consensusXML"), os.path.join(results_dir, "FeatureMatrix.tsv"), sirius_ms_dir)
     GNPSExport().export_metadata_table_only(os.path.join(interim, "FeatureMatrix.consensusXML"), os.path.join(results_dir, "MetaData.tsv"))
 
@@ -218,22 +214,53 @@ if  run_button and any(Path(mzML_dir).iterdir()):
     # re-quantification
     # get missing values before re-quant
     df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
-    missing_values_before = sum([(df[col] == 0).sum() for col in df.columns])
+    st.session_state.missing_values_before = sum([(df[col] == 0).sum() for col in df.columns])
     if use_requant:
         with st.spinner("Re-Quantification..."):
             Requantifier().run(os.path.join(interim, "FeatureMatrix.consensusXML"), os.path.join(results_dir, "FeatureMatrix.tsv"), mzML_dir, featureXML_dir, ffm_mass_error)
-    df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
-    missing_values_after = sum([(df[col] == 0).sum() for col in df.columns])
+        df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
+        st.session_state.missing_values_after = sum([(df[col] == 0).sum() for col in df.columns])
+    else:
+        st.session_state.missing_values_after = None
+
+    shutil.make_archive(os.path.join(interim, "ExportSirius"), 'zip', sirius_ms_dir)
+    shutil.make_archive(os.path.join(interim, "ExportGNPS"), 'zip', os.path.join(results_dir, "GNPS"))
 
     st.success("Complete!")
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("missing values", missing_values_before)
-    col2.metric("missing values after re-quantification", missing_values_after)
-    col3.download_button("Download Feature Matrix", df.to_csv(sep="\t", index=False), "FeatureMatrix.tsv")
-    df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
-    col4.download_button("Download Meta Data", df_md.to_csv(sep="\t", index=False), "MetaData.tsv")
-    st.dataframe(df)
 
 elif run_button:
     st.warning("Please upload some mzML files.")
+
+if any(Path(results_dir).iterdir()):
+    st.markdown("***")
+    df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
+    st.markdown("#### Feature Matrix")
+    st.markdown(f"**{df.shape[0]} rows, {df.shape[1]} columns**")
+    st.dataframe(df)
+    st.markdown("##")
+    st.markdown("#### Metrics")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("missing values", st.session_state.missing_values_before)
+    col2.metric("missing values after re-quantification", st.session_state.missing_values_after)
+    col3.metric("number of features", df.shape[0])
+    col4.metric("number of samples", len([col for col in df.columns if "mzML" in col]))
+    st.markdown("#### Downloads")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.download_button("Feature Matrix", df.to_csv(sep="\t", index=False), "FeatureMatrix.tsv")
+    df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
+    col2.download_button("Meta Data", df_md.to_csv(sep="\t", index=False), "MetaData.tsv")
+    with open(os.path.join(results_dir, "interim", "ExportSirius.zip"), "rb") as fp:
+        btn = col3.download_button(
+            label="Files for Sirius",
+            data=fp,
+            file_name="ExportSirius.zip",
+            mime="application/zip"
+        )
+    with open(os.path.join(results_dir, "interim", "ExportGNPS.zip"), "rb") as fp:
+        btn = col4.download_button(
+            label="Files for GNPS",
+            data=fp,
+            file_name="ExportGNPS.zip",
+            mime="application/zip"
+        )

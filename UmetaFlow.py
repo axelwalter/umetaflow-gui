@@ -3,6 +3,9 @@ import os
 
 st.set_page_config(layout="wide")
 
+st.session_state.missing_values_before = None
+st.session_state.missing_values_after = None
+
 if not os.path.isdir("mzML_files"):
     os.mkdir("mzML_files")
 

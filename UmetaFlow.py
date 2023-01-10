@@ -1,7 +1,10 @@
 import streamlit as st
+import os
 
 st.set_page_config(layout="wide")
-st.session_state.uploaded_mzML = []
+
+if not os.path.isdir("mzML_files"):
+    os.mkdir("mzML_files")
 
 st.markdown("""
 # UmetaFlow

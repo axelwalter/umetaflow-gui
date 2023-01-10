@@ -43,8 +43,6 @@ The results will be displayed as a summary with all samples and EICs AUC values 
 """)
 
 st.title("Extracted Ion Chromatograms (EIC/XIC)")
-uploaded_mzML = st.file_uploader("mzML files", accept_multiple_files=True)
-
 col1, col2 = st.columns(2)
 masses_input = col1.text_area("masses", st.session_state.masses_text_field,
             help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.",
@@ -60,16 +58,16 @@ col1, col2, col3= st.columns(3)
 col2.markdown("##")
 run_button = col2.button("**Extract Chromatograms!**")
 
-if run_button and uploaded_mzML:
-    with st.spinner("Fetching uploaded data..."):
-        # upload mzML files
-        mzML_dir = "mzML_files"
-        Helper().reset_directory(mzML_dir)
-        for file in uploaded_mzML:
-            with open(os.path.join(mzML_dir, file.name),"wb") as f:
-                    f.write(file.getbuffer())
+st.markdown("***")
+mzML_dir = "mzML_files"
+if run_button and any(Path(mzML_dir).iterdir()):
 
     Helper().reset_directory(results_dir)
+
+    # make a zip file with tables in tsv format
+    tsv_dir = os.path.join(results_dir, "tsv-tables")
+    Helper().reset_directory(tsv_dir)
+
     masses = []
     names = []
     times = []
@@ -128,12 +126,9 @@ if run_button and uploaded_mzML:
                         intensity.append(0)
                 df[str(mass)+"_"+name] = intensity
         df.to_feather(os.path.join(results_dir, os.path.basename(file)[:-5]+".ftr"))
-        # make a zip file with tables in tsv format
-        tsv_dir = os.path.join(results_dir, "tsv-tables")
-        Helper().reset_directory(tsv_dir)
         df.to_csv(os.path.join(tsv_dir, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
-        shutil.make_archive(os.path.join(results_dir, "chromatograms"), 'zip', tsv_dir)
-        shutil.rmtree(tsv_dir)
+    shutil.make_archive(os.path.join(results_dir, "chromatograms"), 'zip', tsv_dir)
+    shutil.rmtree(tsv_dir)
     st.session_state.viewing_extract = True
 
 files = [f for f in os.listdir(results_dir) if f.endswith(".ftr") and "AUC" not in f and "summary" not in f]

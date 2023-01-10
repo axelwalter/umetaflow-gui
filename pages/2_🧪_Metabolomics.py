@@ -6,6 +6,7 @@ from src.dataframes import *
 from src.sirius import *
 from src.gnps import *
 from src.spectralmatcher import *
+from pathlib import Path
 
 st.set_page_config(layout="wide")
 
@@ -19,13 +20,7 @@ def open_df(path):
             df = df.rename(columns={column: column[:-5]})
     return df
 
-# set all other viewing states to False
-st.session_state.viewing_extract = False
-
 st.title("Metabolomics")
-
-st.markdown("**File Selection**")
-uploaded_mzML = st.file_uploader("mzML files", accept_multiple_files=True)
 
 # setting results directory
 results_dir = "results_metabolomics"
@@ -114,21 +109,14 @@ if annotate_ms2:
         st.warning("No MS2 library selected. Using an example library instead.")
 
 
+mzML_dir = "mzML_files"
 st.markdown("##")
 _, c2, _ = st.columns(3)
 run_button = c2.button("**Run Workflow!**")
-if  run_button and uploaded_mzML:
+if  run_button and any(Path(mzML_dir).iterdir()):
     st.session_state.viewing_untargeted = True
     interim = Helper().reset_directory(os.path.join(results_dir, "interim"))
 
-    with st.spinner("Fetching uploaded data..."):
-        # upload mzML files
-        mzML_dir = os.path.join(interim, "mzML_original")
-        Helper().reset_directory(mzML_dir)
-        for file in uploaded_mzML:
-            with open(os.path.join(mzML_dir, file.name),"wb") as f:
-                    f.write(file.getbuffer())
-        
     # upload annotation libraries or use default
     library_dir = os.path.join(interim, "annotation_libraries")
     Helper().reset_directory(library_dir)
@@ -246,5 +234,6 @@ if  run_button and uploaded_mzML:
     df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
     col4.download_button("Download Meta Data", df_md.to_csv(sep="\t", index=False), "MetaData.tsv")
     st.dataframe(df)
+
 elif run_button:
     st.warning("Please upload some mzML files.")

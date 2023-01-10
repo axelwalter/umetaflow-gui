@@ -26,7 +26,7 @@ mzML_dir = "mzML_files"
 if submitted:
     if uploaded_mzML:
         for file in uploaded_mzML:
-            if file.name not in Path(mzML_dir).iterdir():
+            if file.name not in Path(mzML_dir).iterdir() and file.name.endswith("mzML"):
                 with open(Path(mzML_dir, file.name),"wb") as f:
                         f.write(file.getbuffer())
         st.success("Successfully added uploaded files!")
@@ -39,7 +39,7 @@ c1, c2 = st.columns([0.4, 0.8])
 c2.markdown("#")
 clear_all = c2.button("Remove All Files")
 c1.markdown("**mzML files for data anaylsis**")
-c1.dataframe(pd.DataFrame({"files": [str(file.stem) for file in Path(mzML_dir).iterdir()]}))
+c1.dataframe(pd.DataFrame({"files": [file.name for file in Path(mzML_dir).iterdir()]}))
 
 if clear_all:
     Helper().reset_directory("mzML_files")

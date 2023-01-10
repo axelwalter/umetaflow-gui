@@ -36,7 +36,6 @@ with col3:
     else:
         ffm_single_traces = "false"
 
-st.markdown("##")
 st.markdown("**Map Alignment**")
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -49,7 +48,6 @@ with col3:
 st.markdown("##")
 use_requant = st.checkbox("**Re-Quantification**", True, help="Go back into the raw data to re-quantify consensus features that have missing values.")
 
-st.markdown("##")
 use_ad = st.checkbox("**Adduct Detection**", True)
 if use_ad:
     col1, col2, col3, col4 = st.columns(4)
@@ -67,15 +65,12 @@ if use_ad:
     with col4:
         ad_charge_max = st.number_input("charge_max", 1, 10, 3)
 
-st.markdown("##")
 use_sirius_manual = st.checkbox("**Export files for SIRIUS**", True, help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
 
-st.markdown("##")
 use_gnps = st.checkbox("**Export files for GNPS**", True, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
 if use_gnps:
     annotate_gnps_library = st.checkbox("annotate features with GNPS library", True)
 
-st.markdown("##")
 st.markdown("**Feature Linking**")
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -85,7 +80,6 @@ with col2:
 with col3:
     fl_rt_tol = float(st.number_input("link:rt_tol", 1, 200, 30))
 
-st.markdown("##")
 annotate_ms1 = st.checkbox("**MS1 annotation by m/z and RT**", value=False, help="Annotate features on MS1 level with known m/z and retention times values.")
 if annotate_ms1:
     ms1_annotation_file_upload = st.file_uploader("Select library for MS1 annotations.", type=["tsv"])
@@ -95,7 +89,6 @@ if annotate_ms1:
     annoation_rt_window_sec = c1.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
     annotation_mz_window_ppm = c2.number_input("mz window for annotation in ppm", 1, 100, 10, 1)
 
-st.markdown("##")
 annotate_ms2 = st.checkbox("**MS2 annotation via fragmentation patterns**", value=False, help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.")
 if annotate_ms2:
     use_gnps = True
@@ -106,9 +99,8 @@ if annotate_ms2:
 
 
 mzML_dir = "mzML_files"
-st.markdown("##")
-_, c2, _ = st.columns(3)
-run_button = c2.button("**Run Workflow!**")
+_, _, c3 = st.columns(3)
+run_button = c3.button("**Run Workflow!**")
 if  run_button and any(Path(mzML_dir).iterdir()):
     st.session_state.viewing_untargeted = True
     interim = Helper().reset_directory(os.path.join(results_dir, "interim"))

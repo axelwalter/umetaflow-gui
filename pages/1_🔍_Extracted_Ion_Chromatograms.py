@@ -33,7 +33,7 @@ will be automatically generated as well. Select the mass tolerance according to 
 absolute values `Da` or relative to the metabolite mass in parts per million `ppm`.
 
 As input you can add `mzML` files and select which ones to use for the chromatogram extraction.
-Download the results of selected samples and chromatograms as `tsv` or `xlsx` files.
+Download the results of selected samples and chromatograms as `tsv` files.
 
 You can enter the exact masses of your metabolites each in a new line. Optionally you can label them separated by an equal sign e.g.
 `222.0972=GlcNAc` or add RT limits with a further equal sign e.g. `222.0972=GlcNAc=2.4-2.6`. The specified time unit will be used for the RT limits. To store the list of metabolites for later use you can download them as a text file. Simply
@@ -43,24 +43,34 @@ The results will be displayed as a summary with all samples and EICs AUC values 
 """)
 
 st.title("Extracted Ion Chromatograms (EIC/XIC)")
-col1, col2 = st.columns(2)
-masses_input = col1.text_area("masses", st.session_state.masses_text_field,
+
+# parameters
+c1, c2 = st.columns(2)
+# text area to define masses in with name, mass and optionl RT boundaries
+masses_input = c1.text_area("masses", st.session_state.masses_text_field,
             help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.",
-            height=250)
-unit = col2.radio("mass tolerance unit", ["ppm", "Da"])
+            height=350)
+# define mass tolerances and their units
+unit = c2.radio("mass tolerance unit", ["ppm", "Da"])
 if unit == "ppm":
-    tolerance = col2.number_input("mass tolerance", 1, 100, 10)
+    tolerance = c2.number_input("mass tolerance", 1, 100, 10)
 elif unit == "Da":
-    tolerance = col2.number_input("mass tolerance", 0.01, 10.0, 0.02)
-time_unit = col2.radio("time unit", ["seconds", "minutes"])
+    tolerance = c2.number_input("mass tolerance", 0.01, 10.0, 0.02)
+# time unit either seconds or minutes
+time_unit = c2.radio("time unit", ["seconds", "minutes"])
+# we need an AUC intensity cutoff value
+baseline = c2.number_input("AUC baseline", 0, 1000000, 5000, 1000)
 
-col1, col2, col3= st.columns(3)
-col2.markdown("##")
-run_button = col2.button("**Extract Chromatograms!**")
+# run the workflow...
+_, _, c3 = st.columns(3)
+run_button = c3.button("**Extract Chromatograms!**")
 
-st.markdown("***")
+# set the mzML file directory
 mzML_dir = "mzML_files"
+
+# run only if there are files in the mzML dir
 if run_button and any(Path(mzML_dir).iterdir()):
+    st.markdown("***")
 
     Helper().reset_directory(results_dir)
 
@@ -68,6 +78,7 @@ if run_button and any(Path(mzML_dir).iterdir()):
     tsv_dir = os.path.join(results_dir, "tsv-tables")
     Helper().reset_directory(tsv_dir)
 
+    # extract compound massses, names and time points for chromatogram extraction
     masses = []
     names = []
     times = []
@@ -90,12 +101,21 @@ if run_button and any(Path(mzML_dir).iterdir()):
             times.append([float(time.split("-")[0].strip())*time_factor, float(time.split("-")[1].strip())*time_factor])
         else:
             times.append([0,0])
+    
+    # create an empty df for AUCs with filenames as columns and mass names as indexes
+    df_auc = pd.DataFrame(columns = [file.name for file in Path(mzML_dir).glob("*.mzML")], index=names)
+
+    # iterate over the files and extract chromatograms in a single dataframe per file
     for file in Path(mzML_dir).glob("*.mzML"):
         with st.spinner("Extracting from: " + str(file)):
+            # load mzML file into exp
             exp = MSExperiment()
             MzMLFile().load(str(file), exp)
+
+            # create an empty dataframe to collect chromatogram data in
             df = pd.DataFrame()
-            # get BPC always
+
+            # get BPC and time always for each file
             time = []
             intensity = []
             for spec in exp:
@@ -108,6 +128,7 @@ if run_button and any(Path(mzML_dir).iterdir()):
                 intensity.append(i)
             df["time"] = time
             df["BPC"] = intensity
+
             # get EICs
             for mass, name, time in zip(masses, names, times):
                 intensity = []
@@ -118,17 +139,71 @@ if run_button and any(Path(mzML_dir).iterdir()):
                             index_highest_peak_within_window = spec.findHighestInWindow(mass, tolerance, tolerance)
                         else:
                             index_highest_peak_within_window = spec.findHighestInWindow(mass,float((tolerance/1000000)*mass),float((tolerance/1000000)*mass))
+                        # get peak intensity at highest peak index
+                        peak_intensity = 0
                         if index_highest_peak_within_window > -1:
-                            intensity.append(int(spec[index_highest_peak_within_window].getIntensity()))
+                            peak_intensity = int(spec[index_highest_peak_within_window].getIntensity())
+                        # check if highet then baseline
+                        if peak_intensity > baseline:
+                            intensity.append(peak_intensity)
                         else:
                             intensity.append(0)
                     else:
                         intensity.append(0)
+                # add intensity values to df
                 df[str(mass)+"_"+name] = intensity
-        df.to_feather(os.path.join(results_dir, os.path.basename(file)[:-5]+".ftr"))
-        df.to_csv(os.path.join(tsv_dir, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
+                # also insert the AUC in the auc dataframe
+                df_auc.loc[name, file.name] = sum(intensity)
+
+            # save to feather dataframe for quick access
+            df.to_feather(os.path.join(results_dir, os.path.basename(file)[:-5]+".ftr"))
+            # save as tsv for download option
+            df.to_csv(os.path.join(tsv_dir, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
+
+    # once all files are processed, zip the tsv files and delete their directory
     shutil.make_archive(os.path.join(results_dir, "chromatograms"), 'zip', tsv_dir)
     shutil.rmtree(tsv_dir)
+    # save summary of AUC values to tsv file
+    df_auc.index.name = "metabolite"
+    df_auc.to_csv(Path(results_dir, "summary.tsv"), sep="\t")
+
+elif run_button:
+    st.warning("Upload some mzML files first!")
 
 if any(Path(results_dir).iterdir()):
-    st.markdown("there are some results")
+    # add separator for results
+    st.markdown("***")
+    df_auc = pd.read_csv(Path(results_dir, "summary.tsv"), sep="\t").set_index("metabolite")
+    # download everything required
+    st.markdown("#### Downloads")
+    c1, c2, c3 = st.columns(3)
+    c1.download_button("FeatureMatrix", df_auc.to_csv(sep="\t"), "FeatureMatrix-EIC.tsv")
+    c2.download_button("MetaData", pd.DataFrame({"filename": df_auc.columns, "ATTRIBUTE_Sample_Type": ["Sample"]*df_auc.shape[1]}).to_csv(sep="\t", index=False), "MetaData-EIC.tsv")
+    with open(os.path.join(results_dir, "chromatograms.zip"), "rb") as fp:
+        btn = c3.download_button(
+            label="Chromatograms",
+            data=fp,
+            file_name="chromatograms.zip",
+            mime="application/zip"
+        )
+    # display the feature matrix and it's bar plot
+    st.markdown("#### Feature Matrix")
+    st.markdown(f"**{df_auc.shape[0]} rows, {df_auc.shape[1]} columns**")
+    st.dataframe(df_auc)
+    st.plotly_chart(px.bar(df_auc.T, barmode="group"))
+
+    # compare two files side by side
+    st.markdown("#### File Comparison")
+    show_bpc = st.checkbox("show base peak chromatogram", False)
+    c1, c2 = st.columns(2)
+    for i, c in enumerate([c1, c2]):
+        file = c.selectbox(f"select file {i+1}", df_auc.columns)
+        df = pd.read_feather(Path(results_dir, file[:-4]+"ftr"))
+        if not show_bpc:
+            df.drop(columns=["BPC"], inplace=True)
+        fig = px.line(df, x="time", y=df.columns)
+        fig.update_layout(
+            title=file[:-5],
+            xaxis_title=f"time ({time_unit})",
+            yaxis_title="intensity (counts per second)")
+        c.plotly_chart(fig)

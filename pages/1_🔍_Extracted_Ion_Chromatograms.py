@@ -176,7 +176,7 @@ if st.session_state.viewing_extract:
     df_summary = df_summary.drop(columns=["index"])
 
     col5.markdown("##")
-    col5.download_button("Download Quantification Data", df_summary.rename(columns={col: col+".mzML" for col in df_summary.columns if col != "metabolite"}).to_csv(sep="\t", index=False), "Quantification-EIC.tsv")
+    col5.download_button("Download Feature Matrix", df_summary.rename(columns={col: col+".mzML" for col in df_summary.columns if col != "metabolite"}).to_csv(sep="\t", index=False), "Quantification-EIC.tsv")
     col5.download_button("Download Meta Data", pd.DataFrame({"filename": [file.replace("ftr", "mzML") for file in all_files], "ATTRIBUTE_Sample_Type": ["Sample"]*len(all_files)}).to_csv(sep="\t", index=False), "Meta-Data-EIC.tsv")
 
     st.markdown("Summary")

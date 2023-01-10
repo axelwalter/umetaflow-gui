@@ -223,8 +223,10 @@ if  run_button and any(Path(mzML_dir).iterdir()):
     else:
         st.session_state.missing_values_after = None
 
-    shutil.make_archive(os.path.join(interim, "ExportSirius"), 'zip', sirius_ms_dir)
-    shutil.make_archive(os.path.join(interim, "ExportGNPS"), 'zip', os.path.join(results_dir, "GNPS"))
+    if use_sirius_manual:
+        shutil.make_archive(os.path.join(interim, "ExportSirius"), 'zip', sirius_ms_dir)
+    if use_gnps:
+        shutil.make_archive(os.path.join(interim, "ExportGNPS"), 'zip', os.path.join(results_dir, "GNPS"))
 
     st.success("Complete!")
 
@@ -250,17 +252,19 @@ if any(Path(results_dir).iterdir()):
     col1.download_button("Feature Matrix", df.to_csv(sep="\t", index=False), "FeatureMatrix.tsv")
     df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
     col2.download_button("Meta Data", df_md.to_csv(sep="\t", index=False), "MetaData.tsv")
-    with open(os.path.join(results_dir, "interim", "ExportSirius.zip"), "rb") as fp:
-        btn = col3.download_button(
-            label="Files for Sirius",
-            data=fp,
-            file_name="ExportSirius.zip",
-            mime="application/zip"
-        )
-    with open(os.path.join(results_dir, "interim", "ExportGNPS.zip"), "rb") as fp:
-        btn = col4.download_button(
-            label="Files for GNPS",
-            data=fp,
-            file_name="ExportGNPS.zip",
-            mime="application/zip"
-        )
+    if Path(results_dir, "interim", "ExportSirius.zip").is_file():
+        with open(os.path.join(results_dir, "interim", "ExportSirius.zip"), "rb") as fp:
+            btn = col3.download_button(
+                label="Files for Sirius",
+                data=fp,
+                file_name="ExportSirius.zip",
+                mime="application/zip"
+            )
+    if Path(results_dir, "interim", "ExportGNPS.zip").is_file():
+        with open(os.path.join(results_dir, "interim", "ExportGNPS.zip"), "rb") as fp:
+            btn = col4.download_button(
+                label="Files for GNPS",
+                data=fp,
+                file_name="ExportGNPS.zip",
+                mime="application/zip"
+            )

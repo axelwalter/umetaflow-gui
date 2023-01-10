@@ -20,11 +20,3 @@ with st.sidebar:
         st.session_state.statistics_samples = []
     if "statistics_features" not in st.session_state:
         st.session_state.statistics_features = []
-
-    with st.expander("info", expanded=True):
-        st.markdown("""
-Here you can load a feature matrix from extracted chromatograms, targeted and untargeted metabolomics and do some post-processing.
-To calculate fold changes, mean, values and standard deviations enter sample pairs in the text fields `Sample A` and `Sample B`.
-You can use the suggested sample names. In order to enter replicates put them in the sample name separated with a `#`. E.g. from `sample#1.mzML` and
-`sample#2.mzML` the mean and standard deviations will be calculated.
-""")

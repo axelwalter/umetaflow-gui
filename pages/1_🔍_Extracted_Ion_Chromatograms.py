@@ -4,6 +4,7 @@ from pyopenms import *
 import os
 import pandas as pd
 import numpy as np
+import shutil
 from src.helpers import Helper
 from src.plotting import Plot
 from src.gnps import *
@@ -125,6 +126,12 @@ if run_button:
                         intensity.append(0)
                 df[str(mass)+"_"+name] = intensity
         df.to_feather(os.path.join(results_dir, os.path.basename(file)[:-5]+".ftr"))
+        # make a zip file with tables in tsv format
+        tsv_dir = os.path.join(results_dir, "tsv-tables")
+        Helper().reset_directory(tsv_dir)
+        df.to_csv(os.path.join(tsv_dir, os.path.basename(file)[:-5]+".tsv"), sep="\t", index=False)
+        shutil.make_archive(os.path.join(results_dir, "chromatograms"), 'zip', tsv_dir)
+        shutil.rmtree(tsv_dir)
     st.session_state.viewing_extract = True
 
 files = [f for f in os.listdir(results_dir) if f.endswith(".ftr") and "AUC" not in f and "summary" not in f]
@@ -141,20 +148,17 @@ if st.session_state.viewing_extract:
     all_files = sorted(st.multiselect("samples", files, files, format_func=lambda x: os.path.basename(x)[:-4]), reverse=True)
     all_chroms = st.multiselect("chromatograms", chroms, chroms) 
 
-
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4 = st.columns(4)
     baseline = col1.number_input("AUC baseline", 0, 1000000, 5000, 1000)
     num_cols = col2.number_input("show columns", 1, 5, 1)
-    col4.markdown("##")
-    if col4.button("Download Chromatograms", help="Select a folder where data from selceted samples and chromatograms gets stored."):
-        st.warning("Download not yet implemented")
-        # new_folder = get_dir()
-        # if new_folder:
-        #     for file in all_files:
-        #         df = pd.read_feather(os.path.join(results_dir, file))[["time"]+all_chroms]
-        #         path = os.path.join(new_folder, file[:-4]+"_"+str(tolerance)+unit)
-        #         df.to_csv(path+".tsv", sep="\t", index=False)
-        #     col4.success("Download done!")
+    col3.markdown("##")
+    with open(os.path.join(results_dir, "chromatograms.zip"), "rb") as fp:
+        btn = col3.download_button(
+            label="Download all Chromatograms",
+            data=fp,
+            file_name="chromatograms.zip",
+            mime="application/zip"
+        )
 
     for file in all_files:
         df = pd.read_feather(os.path.join(results_dir, file))
@@ -175,9 +179,9 @@ if st.session_state.viewing_extract:
     df_summary.index = df_summary["index"]
     df_summary = df_summary.drop(columns=["index"])
 
-    col5.markdown("##")
-    col5.download_button("Download Feature Matrix", df_summary.rename(columns={col: col+".mzML" for col in df_summary.columns if col != "metabolite"}).to_csv(sep="\t", index=False), "Quantification-EIC.tsv")
-    col5.download_button("Download Meta Data", pd.DataFrame({"filename": [file.replace("ftr", "mzML") for file in all_files], "ATTRIBUTE_Sample_Type": ["Sample"]*len(all_files)}).to_csv(sep="\t", index=False), "Meta-Data-EIC.tsv")
+    col4.markdown("##")
+    col4.download_button("Download Feature Matrix", df_summary.rename(columns={col: col+".mzML" for col in df_summary.columns if col != "metabolite"}).to_csv(sep="\t", index=False), "Quantification-EIC.tsv")
+    col4.download_button("Download Meta Data", pd.DataFrame({"filename": [file.replace("ftr", "mzML") for file in all_files], "ATTRIBUTE_Sample_Type": ["Sample"]*len(all_files)}).to_csv(sep="\t", index=False), "Meta-Data-EIC.tsv")
 
     st.markdown("Summary")
     fig = Plot().FeatureMatrix(df_summary)

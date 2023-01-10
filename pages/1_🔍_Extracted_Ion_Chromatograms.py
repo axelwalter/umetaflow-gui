@@ -11,6 +11,8 @@ from src.gnps import *
 from src.dataframes import DataFrames
 from pathlib import Path
 
+st.set_page_config(layout="wide")
+
 results_dir = "results_extractchroms"
 if not os.path.exists(results_dir):
     os.mkdir(results_dir)
@@ -58,7 +60,7 @@ col1, col2, col3= st.columns(3)
 col2.markdown("##")
 run_button = col2.button("**Extract Chromatograms!**")
 
-if run_button:
+if run_button and uploaded_mzML:
     with st.spinner("Fetching uploaded data..."):
         # upload mzML files
         mzML_dir = "mzML_files"
@@ -146,59 +148,57 @@ else:
 
 if st.session_state.viewing_extract:
     all_files = sorted(st.multiselect("samples", files, files, format_func=lambda x: os.path.basename(x)[:-4]), reverse=True)
-    all_chroms = st.multiselect("chromatograms", chroms, chroms) 
+    all_chroms = st.multiselect("chromatograms", chroms, chroms)
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
+    num_cols = col1.number_input("show columns", 1, 5, 1)
     baseline = col1.number_input("AUC baseline", 0, 1000000, 5000, 1000)
-    num_cols = col2.number_input("show columns", 1, 5, 1)
     col3.markdown("##")
     with open(os.path.join(results_dir, "chromatograms.zip"), "rb") as fp:
         btn = col3.download_button(
-            label="Download all Chromatograms",
+            label="Chromatograms",
             data=fp,
             file_name="chromatograms.zip",
             mime="application/zip"
         )
 
-    for file in all_files:
-        df = pd.read_feather(os.path.join(results_dir, file))
-        df["AUC baseline"] = [baseline] * len(df)
-        if "AUC baseline" not in all_chroms:
+    if all_files and all_chroms:
+        for file in all_files:
+            df = pd.read_feather(os.path.join(results_dir, file))
+            df["AUC baseline"] = [baseline] * len(df)
             all_chroms.append("AUC baseline")
 
-        auc = pd.DataFrame()
-        for chrom in all_chroms:
-            if chrom != "AUC baseline" and chrom != "BPC":
-                auc[chrom] = [int(np.trapz([x-baseline for x in df[chrom] if x > baseline]))]
-        auc.to_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
-        df.to_feather(os.path.join(results_dir, file))
+            auc = pd.DataFrame()
+            for chrom in all_chroms:
+                if chrom != "AUC baseline" and chrom != "BPC":
+                    auc[chrom] = [int(np.trapz([x-baseline for x in df[chrom] if x > baseline]))]
+            auc.to_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
+            df.to_feather(os.path.join(results_dir, file))
 
-    st.markdown("***")
-    DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC.ftr") for file in all_files], os.path.join(results_dir, "summary.ftr"))
-    df_summary = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
-    df_summary.index = df_summary["index"]
-    df_summary = df_summary.drop(columns=["index"])
+            st.markdown("***")
+            DataFrames().get_auc_summary([os.path.join(results_dir, file[:-4]+"AUC.ftr") for file in all_files], os.path.join(results_dir, "summary.ftr"))
+            df_summary = pd.read_feather(os.path.join(results_dir, "summary.ftr"))
+            df_summary.index = df_summary["index"]
+            df_summary = df_summary.drop(columns=["index"])
+            col3.download_button("Feature Matrix", df_summary.rename(columns={col: col+".mzML" for col in df_summary.columns if col != "metabolite"}).to_csv(sep="\t", index=False), "Quantification-EIC.tsv")
+            col3.download_button("Meta Data", pd.DataFrame({"filename": [file.replace("ftr", "mzML") for file in all_files], "ATTRIBUTE_Sample_Type": ["Sample"]*len(all_files)}).to_csv(sep="\t", index=False), "Meta-Data-EIC.tsv")
 
-    col4.markdown("##")
-    col4.download_button("Download Feature Matrix", df_summary.rename(columns={col: col+".mzML" for col in df_summary.columns if col != "metabolite"}).to_csv(sep="\t", index=False), "Quantification-EIC.tsv")
-    col4.download_button("Download Meta Data", pd.DataFrame({"filename": [file.replace("ftr", "mzML") for file in all_files], "ATTRIBUTE_Sample_Type": ["Sample"]*len(all_files)}).to_csv(sep="\t", index=False), "Meta-Data-EIC.tsv")
+            st.markdown("Summary")
+            fig = Plot().FeatureMatrix(df_summary)
+            st.plotly_chart(fig)
+            st.dataframe(df_summary)
 
-    st.markdown("Summary")
-    fig = Plot().FeatureMatrix(df_summary)
-    st.plotly_chart(fig)
-    st.dataframe(df_summary)
-
-    st.markdown("***")
-    cols = st.columns(num_cols)
-    while all_files:
-        for col in cols:
-            try:
-                file = all_files.pop()
-            except IndexError:
-                break
-            df = pd.read_feather(os.path.join(results_dir, file))
-            auc = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
-            fig_chrom, fig_auc = Plot().extracted_chroms(df, chroms=all_chroms, df_auc=auc, title=file[:-4], time_unit=time_unit)
-            col.plotly_chart(fig_chrom)
-            col.plotly_chart(fig_auc)
-            col.markdown("***")
+            st.markdown("***")
+            cols = st.columns(num_cols)
+            while all_files:
+                for col in cols:
+                    try:
+                        file = all_files.pop()
+                    except IndexError:
+                        break
+                    df = pd.read_feather(os.path.join(results_dir, file))
+                    auc = pd.read_feather(os.path.join(results_dir, file[:-4]+"AUC.ftr"))
+                    fig_chrom, fig_auc = Plot().extracted_chroms(df, chroms=all_chroms, df_auc=auc, title=file[:-4], time_unit=time_unit)
+                    col.plotly_chart(fig_chrom)
+                    col.plotly_chart(fig_auc)
+                    col.markdown("***")

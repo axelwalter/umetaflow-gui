@@ -194,11 +194,14 @@ if any(Path(results_dir).iterdir()):
 
     # compare two files side by side
     st.markdown("#### File Comparison")
-    show_bpc = st.checkbox("show base peak chromatogram", False)
     c1, c2 = st.columns(2)
+    show_bpc = c1.checkbox("show base peak chromatogram", False)
+    show_baseline = c2.checkbox("show baseline for AUC calculation", False)
     for i, c in enumerate([c1, c2]):
         file = c.selectbox(f"select file {i+1}", df_auc.columns)
         df = pd.read_feather(Path(results_dir, file[:-4]+"ftr"))
+        if show_baseline:
+            df["AUC baseline"] = [baseline] * df.shape[0]
         if not show_bpc:
             df.drop(columns=["BPC"], inplace=True)
         fig = px.line(df, x="time", y=df.columns)

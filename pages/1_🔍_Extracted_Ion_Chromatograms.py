@@ -206,5 +206,6 @@ if any(Path(results_dir).iterdir()):
         fig.update_layout(
             title=file[:-5],
             xaxis_title=f"time ({time_unit})",
-            yaxis_title="intensity (counts per second)")
+            yaxis_title="intensity (counts per second)",
+            legend_title="metabolite")
         c.plotly_chart(fig)

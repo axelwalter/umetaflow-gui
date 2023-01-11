@@ -1,7 +1,13 @@
 import streamlit as st
 import os
+import sys
 
 st.set_page_config(layout="wide")
+
+st.session_state.location = "online"
+
+if "local" in sys.argv:
+    st.session_state.location = "local"
 
 try:
     st.session_state.missing_values_before = None

@@ -58,7 +58,7 @@ try:
     # time unit either seconds or minutes
     time_unit = c2.radio("time unit", ["seconds", "minutes"])
     # we need an AUC intensity cutoff value
-    baseline = c2.number_input("AUC baseline", 0, 1000000, 5000, 1000)
+    baseline = c2.number_input("AUC baseline", 0, 1000000, 1000, 1000)
     # combine variants of the same metabolite
     combine = c2.checkbox("combine variants of same metabolite", help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)")
 

@@ -7,6 +7,7 @@ from src.sirius import *
 from src.gnps import *
 from src.spectralmatcher import *
 from pathlib import Path
+from datetime import datetime
 
 st.set_page_config(layout="wide")
 
@@ -241,15 +242,15 @@ if any(Path(results_dir).iterdir()):
     col4.metric("number of samples", len([col for col in df.columns if "mzML" in col]))
     st.markdown("#### Downloads")
     col1, col2, col3, col4 = st.columns(4)
-    col1.download_button("Feature Matrix", df.to_csv(sep="\t", index=False), "FeatureMatrix.tsv")
+    col1.download_button("Feature Matrix", df.to_csv(sep="\t", index=False), f"FeatureMatrix-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv")
     df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
-    col2.download_button("Meta Data", df_md.to_csv(sep="\t", index=False), "MetaData.tsv")
+    col2.download_button("Meta Data", df_md.to_csv(sep="\t", index=False), f"MetaData-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv")
     if Path(results_dir, "interim", "ExportSirius.zip").is_file():
         with open(os.path.join(results_dir, "interim", "ExportSirius.zip"), "rb") as fp:
             btn = col3.download_button(
                 label="Files for Sirius",
                 data=fp,
-                file_name="ExportSirius.zip",
+                file_name=f"ExportSirius-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
                 mime="application/zip"
             )
     if Path(results_dir, "interim", "ExportGNPS.zip").is_file():
@@ -257,6 +258,6 @@ if any(Path(results_dir).iterdir()):
             btn = col4.download_button(
                 label="Files for GNPS",
                 data=fp,
-                file_name="ExportGNPS.zip",
+                file_name=f"ExportGNPS-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
                 mime="application/zip"
             )

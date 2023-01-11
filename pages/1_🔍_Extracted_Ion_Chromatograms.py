@@ -3,13 +3,11 @@ import plotly.express as px
 from pyopenms import *
 import os
 import pandas as pd
-import numpy as np
 import shutil
 from src.helpers import Helper
-from src.plotting import Plot
 from src.gnps import *
-from src.dataframes import DataFrames
 from pathlib import Path
+from datetime import datetime
 
 st.set_page_config(layout="wide")
 
@@ -177,13 +175,13 @@ if any(Path(results_dir).iterdir()):
     # download everything required
     st.markdown("#### Downloads")
     c1, c2, c3 = st.columns(3)
-    c1.download_button("FeatureMatrix", df_auc.to_csv(sep="\t"), "FeatureMatrix-EIC.tsv")
-    c2.download_button("MetaData", pd.DataFrame({"filename": df_auc.columns, "ATTRIBUTE_Sample_Type": ["Sample"]*df_auc.shape[1]}).to_csv(sep="\t", index=False), "MetaData-EIC.tsv")
+    c1.download_button("FeatureMatrix", df_auc.to_csv(sep="\t"), f"FeatureMatrix-EIC-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv")
+    c2.download_button("MetaData", pd.DataFrame({"filename": df_auc.columns, "ATTRIBUTE_Sample_Type": ["Sample"]*df_auc.shape[1]}).to_csv(sep="\t", index=False), f"MetaData-EIC-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv")
     with open(os.path.join(results_dir, "chromatograms.zip"), "rb") as fp:
         btn = c3.download_button(
             label="Chromatograms",
             data=fp,
-            file_name="chromatograms.zip",
+            file_name=f"chromatograms-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
             mime="application/zip"
         )
     # display the feature matrix and it's bar plot

@@ -2,8 +2,12 @@ import streamlit as st
 from src.helpers import Helper
 from pathlib import Path
 import pandas as pd
+import os
 
 st.set_page_config(layout="wide")
+
+if not os.path.isdir("mzML_files"):
+    os.mkdir("mzML_files")
 
 st.title("File Selection")
 

@@ -23,6 +23,8 @@ st.title("Metabolomics")
 
 # setting results directory
 results_dir = "results_metabolomics"
+if not os.path.exists(results_dir):
+    os.mkdir(results_dir)
 
 st.markdown("**Feature Detection**")
 col1, col2, col3 = st.columns(3)
@@ -86,7 +88,7 @@ annotate_ms1 = st.checkbox("**MS1 annotation by m/z and RT**", value=False, help
 if annotate_ms1:
     ms1_annotation_file_upload = st.file_uploader("Select library for MS1 annotations.", type=["tsv"])
     if not ms1_annotation_file_upload:
-        st.warning("No MS1 library selected. Using an example library instead.")
+        st.warning("No MS1 library selected.")
     c1, c2 = st.columns(2)
     annoation_rt_window_sec = c1.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
     annotation_mz_window_ppm = c2.number_input("mz window for annotation in ppm", 1, 100, 10, 1)
@@ -97,7 +99,7 @@ if annotate_ms2:
     ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
     ms2_annotation_file_upload = st.file_uploader("Select library for MS2 annotations", type=["mgf"])
     if not ms2_annotation_file_upload:
-        st.warning("No MS2 library selected. Using an example library instead.")
+        st.warning("No MS2 library selected.")
 
 
 mzML_dir = "mzML_files"
@@ -116,14 +118,14 @@ if  run_button and any(Path(mzML_dir).iterdir()):
             with open(ms1_annotation_file, "wb") as f:
                 f.write(ms1_annotation_file_upload.getbuffer())
         else:
-            ms1_annotation_file = "example_data/ms1-libraries/peptidoglycan-soluble-precursors-positive.tsv"
+            ms1_annotation_file = ""#"example_data/ms1-libraries/peptidoglycan-soluble-precursors-positive.tsv"
     if annotate_ms2:
         if ms2_annotation_file_upload:
             ms2_annotation_file = os.path.join(library_dir, ms2_annotation_file_upload.name)
             with open(ms2_annotation_file, "wb") as f:
                 f.write(ms2_annotation_file_upload.getbuffer())
         else:
-            ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
+            ms2_annotation_file = ""#"example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
 
     with st.spinner("Detecting features..."):
         FeatureFinderMetabo().run(mzML_dir, os.path.join(interim, "FFM"),
@@ -195,15 +197,17 @@ if  run_button and any(Path(mzML_dir).iterdir()):
 
     if annotate_ms1:
         with st.spinner("Annotating feautures on MS1 level by m/z and RT"):
-            DataFrames().annotate_ms1(os.path.join(results_dir, "FeatureMatrix.tsv"), ms1_annotation_file, annotation_mz_window_ppm, annoation_rt_window_sec)
-            DataFrames().save_MS_ids(os.path.join(results_dir, "FeatureMatrix.tsv"), os.path.join(results_dir, "MS1-annotations"), "MS1 annotation")
+            if ms1_annotation_file:
+                DataFrames().annotate_ms1(os.path.join(results_dir, "FeatureMatrix.tsv"), ms1_annotation_file, annotation_mz_window_ppm, annoation_rt_window_sec)
+                DataFrames().save_MS_ids(os.path.join(results_dir, "FeatureMatrix.tsv"), os.path.join(results_dir, "MS1-annotations"), "MS1 annotation")
 
     if annotate_ms2:
         with st.spinner("Annotating features on MS2 level by fragmentation patterns..."):
-            output_mztab = os.path.join(interim, "mztab_ms2", "MS2.mzTab")
-            SpectralMatcher().run(ms2_annotation_file, mgf_file, output_mztab)
-            DataFrames().annotate_ms2(mgf_file, output_mztab, os.path.join(results_dir, "FeatureMatrix.tsv"), "MS2 annotation", overwrite_name=True)
-            DataFrames().save_MS_ids(os.path.join(results_dir, "FeatureMatrix.tsv"), os.path.join(results_dir, "MS2-annotations"), "MS2 annotation")
+            if ms2_annotation_file:
+                output_mztab = os.path.join(interim, "mztab_ms2", "MS2.mzTab")
+                SpectralMatcher().run(ms2_annotation_file, mgf_file, output_mztab)
+                DataFrames().annotate_ms2(mgf_file, output_mztab, os.path.join(results_dir, "FeatureMatrix.tsv"), "MS2 annotation", overwrite_name=True)
+                DataFrames().save_MS_ids(os.path.join(results_dir, "FeatureMatrix.tsv"), os.path.join(results_dir, "MS2-annotations"), "MS2 annotation")
 
     # re-quantification
     # get missing values before re-quant

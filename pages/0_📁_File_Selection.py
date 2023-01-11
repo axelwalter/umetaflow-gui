@@ -43,19 +43,21 @@ if st.session_state.location == "local":
     upload_dir = r'{}'.format(upload_dir)
     c2.markdown("##")
     if c2.button("Upload"):
-        for file in Path(upload_dir).iterdir():
-            if file.name not in Path(mzML_dir).iterdir() and file.name.endswith("mzML"):
-                shutil.copy(file, mzML_dir)
-        st.success("Successfully added uploaded files!")
+        with st.spinner("Uploading files..."):
+            for file in Path(upload_dir).iterdir():
+                if file.name not in Path(mzML_dir).iterdir() and file.name.endswith("mzML"):
+                    shutil.copy(file, mzML_dir)
+            st.success("Successfully added uploaded files!")
 
 # upload mzML files
 if submitted:
     if uploaded_mzML:
-        for file in uploaded_mzML:
-            if file.name not in Path(mzML_dir).iterdir() and file.name.endswith("mzML"):
-                with open(Path(mzML_dir, file.name),"wb") as f:
-                        f.write(file.getbuffer())
-        st.success("Successfully added uploaded files!")
+        with st.spinner("Uploading files..."):
+            for file in uploaded_mzML:
+                if file.name not in Path(mzML_dir).iterdir() and file.name.endswith("mzML"):
+                    with open(Path(mzML_dir, file.name),"wb") as f:
+                            f.write(file.getbuffer())
+            st.success("Successfully added uploaded files!")
     else:
         st.warning("Upload some files before adding them.")
 

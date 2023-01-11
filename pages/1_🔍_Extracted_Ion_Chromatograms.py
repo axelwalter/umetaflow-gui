@@ -47,7 +47,7 @@ c1, c2 = st.columns(2)
 # text area to define masses in with name, mass and optionl RT boundaries
 masses_input = c1.text_area("masses", st.session_state.masses_text_field,
             help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.",
-            height=350)
+            height=380)
 # define mass tolerances and their units
 unit = c2.radio("mass tolerance unit", ["ppm", "Da"])
 if unit == "ppm":
@@ -58,6 +58,8 @@ elif unit == "Da":
 time_unit = c2.radio("time unit", ["seconds", "minutes"])
 # we need an AUC intensity cutoff value
 baseline = c2.number_input("AUC baseline", 0, 1000000, 5000, 1000)
+# combine variants of the same metabolite
+combine = c2.checkbox("combine variants of same metabolite", help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)")
 
 # run the workflow...
 _, _, c3 = st.columns(3)
@@ -68,8 +70,6 @@ mzML_dir = "mzML_files"
 
 # run only if there are files in the mzML dir
 if run_button and any(Path(mzML_dir).iterdir()):
-    st.markdown("***")
-
     Helper().reset_directory(results_dir)
 
     # make a zip file with tables in tsv format
@@ -162,6 +162,20 @@ if run_button and any(Path(mzML_dir).iterdir()):
     shutil.make_archive(os.path.join(results_dir, "chromatograms"), 'zip', tsv_dir)
     shutil.rmtree(tsv_dir)
     # save summary of AUC values to tsv file
+    if combine:
+        # sum intensities of variants of the same metabolite
+        combined = {}
+        metabolite_names = list(set([c.split("#")[0] for c in df_auc.index]))
+        for filename in df_auc.columns:
+            aucs = []
+            for a in metabolite_names:
+                auc = 0
+                for b in [b for b in df_auc.index if ((a+"#" in b and b.startswith(a)) or a == b)]:
+                    auc += df_auc.loc[b, filename]
+                aucs.append(auc)
+            combined[filename] = aucs
+        df_auc = pd.DataFrame(combined)
+        df_auc.set_index(pd.Index(metabolite_names), inplace=True)
     df_auc.index.name = "metabolite"
     df_auc.to_csv(Path(results_dir, "summary.tsv"), sep="\t")
 

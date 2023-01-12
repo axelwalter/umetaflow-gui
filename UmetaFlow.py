@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import sys
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
 st.session_state.location = "online"
 

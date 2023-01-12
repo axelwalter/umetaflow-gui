@@ -1,1 +1,0 @@
-# This folder contains all results from the metabolomics workflow

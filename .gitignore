@@ -1,11 +1,4 @@
 __pycache__/
 apps/__pycache__/
-results_extractchroms/*
-results_metabolomics/FeatureMatrix.tsv
-results_metabolomics/MetaData.tsv
-results_metabolomics/interim
-results_metabolomics/SIRIUS
-results_metabolomics/GNPS
-results_metabolomics/MS1-annotations
-results_metabolomics/MS2-annotations
-mzML_files
+results_extractchroms
+results_metabolomics

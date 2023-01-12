@@ -11,7 +11,7 @@ if "local" in sys.argv:
 
 # if we run the packaged windows version, we start within the Python directory -> need to change working directory to ..\umetaflow-gui-main
 if "windows" in sys.argv:
-    os.chdir("../umetaflow-gui")
+    os.chdir("../umetaflow-gui-main")
 
 try:
     st.session_state.missing_values_before = None

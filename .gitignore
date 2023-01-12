@@ -2,3 +2,4 @@ __pycache__/
 apps/__pycache__/
 results_extractchroms
 results_metabolomics
+mzML_files

@@ -155,9 +155,16 @@ class DataFrames:
                     else:
                         df.loc[df["id"] == row["id"], "MS1 annotation"] += std["name"]
 
-
         # replace generic metabolite name with actual MS1 annotation
-        df["metabolite"] = [y if y else x for x, y in zip(df["metabolite"], df["MS1 annotation"])]
+        metabolites = []
+        for x, y in zip(df["metabolite"], df["MS1 annotation"]):
+            if y and y not in metabolites:
+                metabolites.append(y)
+            elif y and y in metabolites:
+                metabolites.append(y+f"_{metabolites.count(y)}")
+            else:
+                metabolites.append(x)
+        df["metabolite"] = metabolites
         df.to_csv(df_file, sep="\t", index=False)
 
     def save_MS_ids(self, df_file, ms_dir, column_name):
@@ -201,5 +208,13 @@ class DataFrames:
 
         if overwrite_name:
             # replace generic or MS1 annotated metabolite name with actual MS2 annotation
-            features["metabolite"] = [y if y else x for x, y in zip(features["metabolite"], features[match_column_name])]
+            metabolites = []
+            for x, y in zip(features["metabolite"], features[match_column_name]):
+                if y and y not in metabolites:
+                    metabolites.append(y)
+                elif y and y in metabolites:
+                    metabolites.append(y+f"_{metabolites.count(y)}")
+                else:
+                    metabolites.append(x)
+            features["metabolite"] = metabolites
         features.to_csv(feature_matrix_df_file, sep="\t", index=False)

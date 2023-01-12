@@ -7,6 +7,8 @@ import shutil
 
 st.set_page_config(layout="wide")
 
+if "selected" not in st.session_state:
+    st.session_state.selected = []
 
 # try:
 if not os.path.isdir("mzML_files"):
@@ -14,14 +16,15 @@ if not os.path.isdir("mzML_files"):
 
 st.title("File Selection")
 
-st.info("""
-**How to upload files**
+with st.sidebar:
+    st.info("""
+    **How to upload files**
 
-1. Browse files on your computer
-2. Click the **Add mzML files** button to use them in the workflows
+    1. Browse files on your computer
+    2. Click the **Add mzML files** button to use them in the workflows
 
-The currently uploaded files will be used for data analysis in both workflows.
-""")
+    The currently uploaded files will be used for data analysis in both workflows.
+    """)
 
 accept_multiple = True
 if st.session_state.location == "online":

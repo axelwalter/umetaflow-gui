@@ -6,6 +6,9 @@ st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layou
 
 st.session_state.location = "online"
 
+if "selected" not in st.session_state:
+    st.session_state.selected = []
+
 if "local" in sys.argv:
     st.session_state.location = "local"
 

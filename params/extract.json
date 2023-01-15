@@ -1,9 +1,0 @@
-{
-    "masses_text": "222.0972=GlcNAc\n294.1183=MurNAc",
-    "mz_unit": "ppm",
-    "tolerance_ppm": 10,
-    "tolerance_da": 0.2,
-    "time_unit": "seconds",
-    "baseline": 1000,
-    "combine": "false"
-}

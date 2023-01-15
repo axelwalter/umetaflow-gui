@@ -3,3 +3,5 @@ apps/__pycache__/
 results_extractchroms
 results_metabolomics
 mzML_files
+params/extract.json
+params/metabolomics.json

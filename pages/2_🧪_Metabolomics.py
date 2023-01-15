@@ -8,6 +8,7 @@ from src.gnps import *
 from src.spectralmatcher import *
 from pathlib import Path
 from datetime import datetime
+import json
 
 st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
@@ -21,23 +22,31 @@ def open_df(path):
 try:
     with st.sidebar:
         # show currently available mzML files
-        st.markdown("**choose mzML files:**")
+        st.markdown("**choose mzML files for analysis:**")
         for f in sorted(Path("mzML_files").iterdir()):
             if f.name in st.session_state:
                 checked = st.session_state[f.name]
             else:
                 checked = True
-            st.checkbox(f.name, checked, key=f.name)
+            st.checkbox(f.name[:-5], checked, key=f.name)
         st.markdown("***")
         if st.button("Remove **Un**selected Files"):
             for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
                 file.unlink()
             st.experimental_rerun()
-        if st.button("⚠️ Remove All"):
+        if st.button("⚠️ Remove **All**"):
             Helper().reset_directory("mzML_files")
             st.experimental_rerun()
 
     st.title("Metabolomics")
+
+    if Path("params/metabolomics.json").is_file():
+        with open("params/metabolomics.json") as f:
+            params = json.loads(f.read())
+    else:
+        with open("params/metabolomics_defaults.json") as f:
+            params = json.loads(f.read())
+
 
     # setting results directory
     results_dir = "results_metabolomics"
@@ -47,13 +56,13 @@ try:
     st.markdown("**Feature Detection**")
     col1, col2, col3 = st.columns(3)
     with col1:
-        ffm_mass_error = float(st.number_input("**mass_error_ppm**", 1, 1000, 10))
+        params["ffm_mass_error"] = st.number_input("**mass_error_ppm**", 1.0, 1000.0, params["ffm_mass_error"])
     with col2:
-        ffm_noise = float(st.number_input("**noise_threshold_int**", 10, 1000000000, 1000))
+        params["ffm_noise"] = float(st.number_input("**noise_threshold_int**", 10, 1000000000, int(params["ffm_noise"])))
     with col3:
         st.markdown("##")
-        ffm_single_traces = st.checkbox("remove_single_traces", True)
-        if ffm_single_traces:
+        params["ffm_single_traces"] = st.checkbox("remove_single_traces", params["ffm_single_traces"])
+        if params["ffm_single_traces"]:
             ffm_single_traces = "true"
         else:
             ffm_single_traces = "false"
@@ -61,94 +70,104 @@ try:
     st.markdown("**Map Alignment**")
     col1, col2, col3 = st.columns(3)
     with col1:
-        ma_mz_max = float(st.number_input("pairfinder:distance_MZ:max_difference", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
+        params["ma_mz_max"] = st.number_input("pairfinder:distance_MZ:max_difference", 0.01, 1000.0, params["ma_mz_max"], step=1.,format="%.2f")
     with col2:
-        ma_mz_unit = st.radio("pairfinder:distance_MZ:unit", ["ppm", "Da"])
+        params["ma_mz_unit"] = st.radio("pairfinder:distance_MZ:unit", ["ppm", "Da"], ["ppm", "Da"].index(params["ma_mz_unit"]))
     with col3:
-        ma_rt_max = float(st.number_input("pairfinder:distance_RT:max_difference", 1, 1000, 100))
+        params["ma_rt_max"] = float(st.number_input("pairfinder:distance_RT:max_difference", 1, 1000, int(params["ma_rt_max"]), 10))
 
-    st.markdown("##")
-    use_requant = st.checkbox("**Re-Quantification**", True, help="Go back into the raw data to re-quantify consensus features that have missing values.")
+    params["use_requant"] = st.checkbox("**Re-Quantification**", params["use_requant"], help="Go back into the raw data to re-quantify consensus features that have missing values.")
 
-    use_ad = st.checkbox("**Adduct Detection**", True)
-    if use_ad:
+    if params["use_ad"]:
+        use_ad = True
+    else:
+        use_ad = False
+    params["use_ad"] = st.checkbox("**Adduct Detection**", use_ad)
+    if params["use_ad"]:
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            ad_ion_mode = st.radio("ionization mode", ["positive", "negative"])
-            if ad_ion_mode == "positive":
+            params["ad_ion_mode"] = st.radio("ionization mode", ["positive", "negative"])
+            if params["ad_ion_mode"] == "positive":
                 ad_ion_mode = "false"
-            elif ad_ion_mode == "negative":
+            else:
                 ad_ion_mode = "true"
-                ad_adducts = "H:-:1.0"
+                params["ad_adducts"] = "H:-:1.0"
         with col2:
-            ad_adducts = st.text_area("potential_adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4")
+            params["ad_adducts"] = st.text_area("potential_adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4")
         with col3:
-            ad_charge_min = st.number_input("charge_min", 1, 10, 1)
+            params["ad_charge_min"] = st.number_input("charge_min", 1, 10, 1)
         with col4:
-            ad_charge_max = st.number_input("charge_max", 1, 10, 3)
+            params["ad_charge_max"] = st.number_input("charge_max", 1, 10, 3)
 
-    use_sirius_manual = st.checkbox("**Export files for SIRIUS**", True, help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
-
-    use_gnps = st.checkbox("**Export files for GNPS**", True, help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
-    if use_gnps:
-        annotate_gnps_library = st.checkbox("annotate features with GNPS library", True)
+    params["use_sirius_manual"] = st.checkbox("**Export files for SIRIUS**", params["use_sirius_manual"], help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
+    params["use_gnps"] = st.checkbox("**Export files for GNPS**", params["use_gnps"], help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
+    if params["use_gnps"]:
+        params["annotate_gnps_library"] = st.checkbox("annotate features with GNPS library", True)
 
     st.markdown("**Feature Linking**")
     col1, col2, col3 = st.columns(3)
     with col1:
-        fl_mz_tol = float(st.number_input("link:mz_tol", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
+        params["fl_mz_tol"] = float(st.number_input("link:mz_tol", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
     with col2:
-        fl_mz_unit = st.radio("mz_unit", ["ppm", "Da"])
+        params["fl_mz_unit"] = st.radio("mz_unit", ["ppm", "Da"])
     with col3:
-        fl_rt_tol = float(st.number_input("link:rt_tol", 1, 200, 30))
+        params["fl_rt_tol"] = float(st.number_input("link:rt_tol", 1, 200, 30))
 
-    annotate_ms1 = st.checkbox("**MS1 annotation by m/z and RT**", value=False, help="Annotate features on MS1 level with known m/z and retention times values.")
-    if annotate_ms1:
+    params["annotate_ms1"] = st.checkbox("**MS1 annotation by m/z and RT**", value=params["annotate_ms1"], help="Annotate features on MS1 level with known m/z and retention times values.")
+    if params["annotate_ms1"]:
         ms1_annotation_file_upload = st.file_uploader("Select library for MS1 annotations.", type=["tsv"])
-        if not ms1_annotation_file_upload:
+        if ms1_annotation_file_upload:
+            params["ms1_annotation_file"] = os.path.join("example_data/ms1-libraries", ms1_annotation_file_upload.name)
+            with open(params["ms1_annotation_file"], "wb") as f:
+                    f.write(ms1_annotation_file_upload.getbuffer())
+        elif params["ms1_annotation_file"]:
+            st.write("Currently selected MS1 library: " + Path(params["ms1_annotation_file"]).name)
+        else:
             st.warning("No MS1 library selected.")
+            params["ms1_annotation_file"] = ""
         c1, c2 = st.columns(2)
-        annoation_rt_window_sec = c1.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
-        annotation_mz_window_ppm = c2.number_input("mz window for annotation in ppm", 1, 100, 10, 1)
+        params["annoation_rt_window_sec"] = c1.number_input("retention time window for annotation in seconds", 1, 240, 60, 10, help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.")
+        params["annotation_mz_window_ppm"] = c2.number_input("mz window for annotation in ppm", 1, 100, 10, 1)
 
-    annotate_ms2 = st.checkbox("**MS2 annotation via fragmentation patterns**", value=False, help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.")
-    if annotate_ms2:
-        use_gnps = True
-        ms2_annotation_file = "example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
+    params["annotate_ms2"] = st.checkbox("**MS2 annotation via fragmentation patterns**", value=params["annotate_ms2"], help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.")
+    if params["annotate_ms2"]:
+        params["use_gnps"] = True
         ms2_annotation_file_upload = st.file_uploader("Select library for MS2 annotations", type=["mgf"])
-        if not ms2_annotation_file_upload:
+        if ms2_annotation_file_upload:
+            params["ms2_annotation_file"] = os.path.join("example_data/ms2-libraries", ms2_annotation_file_upload.name)
+            with open(params["ms2_annotation_file"], "wb") as f:
+                f.write(ms2_annotation_file_upload.getbuffer())
+        elif params["ms2_annotation_file"]:
+            st.write("Currently selected MS2 library: " + Path(params["ms2_annotation_file"]).name)
+        else:
             st.warning("No MS2 library selected.")
+            params["ms2_annotation_file"] = ""
 
 
-    mzML_dir = "mzML_files"
-    _, _, c3 = st.columns(3)
-    run_button = c3.button("**Run Workflow!**")
-    if  run_button and any(Path(mzML_dir).iterdir()):
-        st.session_state.viewing_untargeted = True
+    c1, c2, _, c4 = st.columns(4)
+    if c1.button("Load default parameters"):
+        with open("params/metabolomics_defaults.json") as f:
+            params = json.loads(f.read())
+        with open("params/metabolomics.json", "w") as f:
+            f.write(json.dumps(params, indent=4))
+        st.experimental_rerun()
+    if c2.button("**Save parameters**"):
+        with open("params/metabolomics.json", "w") as f:
+            f.write(json.dumps(params, indent=4))
+    if c4.button("**Run Workflow!**"):
+
+        mzML_files = [str(Path("mzML_files", key)) for key, value in st.session_state.items() if key.endswith("mzML") and value]
+
+        if not mzML_files:
+            st.warning("Upload or select some mzML files first!")
+
+        results_dir = Helper().reset_directory(results_dir)
         interim = Helper().reset_directory(os.path.join(results_dir, "interim"))
 
-        # upload annotation libraries or use default
-        library_dir = os.path.join(interim, "annotation_libraries")
-        Helper().reset_directory(library_dir)
-        if annotate_ms1:
-            if ms1_annotation_file_upload:
-                ms1_annotation_file = os.path.join(library_dir, ms1_annotation_file_upload.name)
-                with open(ms1_annotation_file, "wb") as f:
-                    f.write(ms1_annotation_file_upload.getbuffer())
-            else:
-                ms1_annotation_file = ""#"example_data/ms1-libraries/peptidoglycan-soluble-precursors-positive.tsv"
-        if annotate_ms2:
-            if ms2_annotation_file_upload:
-                ms2_annotation_file = os.path.join(library_dir, ms2_annotation_file_upload.name)
-                with open(ms2_annotation_file, "wb") as f:
-                    f.write(ms2_annotation_file_upload.getbuffer())
-            else:
-                ms2_annotation_file = ""#"example_data/ms2-libraries/peptidoglycan-soluble-precursors-positive.mgf"
-
         with st.spinner("Detecting features..."):
-            FeatureFinderMetabo().run(mzML_dir, os.path.join(interim, "FFM"),
-                                    {"noise_threshold_int": ffm_noise,
-                                    "mass_error_ppm": ffm_mass_error,
+            FeatureFinderMetabo().run(mzML_files, os.path.join(interim, "FFM"),
+                                    {"noise_threshold_int": params["ffm_noise"],
+                                    "mass_error_ppm": params["ffm_mass_error"],
                                     "remove_single_traces": ffm_single_traces,
                                     "report_convex_hulls": "true"})
 
@@ -157,21 +176,21 @@ try:
                             os.path.join(interim, "Trafo"),
                             {"max_num_peaks_considered": -1,
                             "superimposer:mz_pair_max_distance": 0.05,
-                            "pairfinder:distance_MZ:max_difference": ma_mz_max,
-                            "pairfinder:distance_MZ:unit": ma_mz_unit,
-                            "pairfinder:distance_RT:max_difference": ma_rt_max})
+                            "pairfinder:distance_MZ:max_difference": params["ma_mz_max"],
+                            "pairfinder:distance_MZ:unit": params["ma_mz_unit"],
+                            "pairfinder:distance_RT:max_difference": params["ma_rt_max"]})
 
         with st.spinner("Aligning mzML files..."):
-            MapAligner().run(mzML_dir, os.path.join(interim, "mzML_aligned"),
+            MapAligner().run(mzML_files, os.path.join(interim, "mzML_aligned"),
             os.path.join(interim, "Trafo"))
             mzML_dir = os.path.join(interim, "mzML_aligned")
 
-        if use_ad:
+        if params["use_ad"]:
             with st.spinner("Determining adducts..."):
                 MetaboliteAdductDecharger().run(os.path.join(interim, "FFM_aligned"), os.path.join(interim, "FeatureMaps_decharged"),
-                            {"potential_adducts": [line.encode() for line in ad_adducts.split("\n")],
-                            "charge_min": ad_charge_min,
-                            "charge_max": ad_charge_max,
+                            {"potential_adducts": [line.encode() for line in params["ad_adducts"].split("\n")],
+                            "charge_min": params["ad_charge_min"],
+                            "charge_max": params["ad_charge_max"],
                             "max_neutrals": 2,
                             "negative_mode": ad_ion_mode,
                             "retention_max_diff": 3.0,
@@ -187,11 +206,11 @@ try:
         with st.spinner("Linking features..."):
             FeatureLinker().run(featureXML_dir,
                             os.path.join(interim,  "FeatureMatrix.consensusXML"),
-                            {"link:mz_tol": fl_mz_tol,
-                                "link:rt_tol": fl_rt_tol,
-                                "mz_unit": fl_mz_unit})
+                            {"link:mz_tol": params["fl_mz_tol"],
+                                "link:rt_tol": params["fl_rt_tol"],
+                                "mz_unit": params["fl_mz_unit"]})
 
-        if use_sirius_manual: # export only sirius ms files to use in the GUI tool
+        if params["use_sirius_manual"]: # export only sirius ms files to use in the GUI tool
             with st.spinner("Exporting files for Sirius..."):
                 Sirius().run(mzML_dir, featureXML_dir, os.path.join(results_dir, "SIRIUS"), "", True,
                             {"-preprocessing:feature_only": "true"})
@@ -202,7 +221,7 @@ try:
         DataFrames().create_consensus_table(os.path.join(interim, "FeatureMatrix.consensusXML"), os.path.join(results_dir, "FeatureMatrix.tsv"), sirius_ms_dir)
         GNPSExport().export_metadata_table_only(os.path.join(interim, "FeatureMatrix.consensusXML"), os.path.join(results_dir, "MetaData.tsv"))
 
-        if use_gnps:
+        if params["use_gnps"]:
             with st.spinner("Exporting files for GNPS..."):
                 # create interim directory for MS2 ids later (they are based on the GNPS mgf file)
                 Helper().reset_directory(os.path.join(interim, "mztab_ms2"))
@@ -213,17 +232,17 @@ try:
                 SpectralMatcher().run(database, mgf_file, output_mztab)
                 DataFrames().annotate_ms2(mgf_file, output_mztab,os.path.join(results_dir, "FeatureMatrix.tsv"), "GNPS library match")
 
-        if annotate_ms1:
+        if params["annotate_ms1"]:
             with st.spinner("Annotating feautures on MS1 level by m/z and RT"):
-                if ms1_annotation_file:
-                    DataFrames().annotate_ms1(os.path.join(results_dir, "FeatureMatrix.tsv"), ms1_annotation_file, annotation_mz_window_ppm, annoation_rt_window_sec)
+                if params["ms1_annotation_file"]:
+                    DataFrames().annotate_ms1(os.path.join(results_dir, "FeatureMatrix.tsv"), params["ms1_annotation_file"], params["annotation_mz_window_ppm"], params["annoation_rt_window_sec"])
                     DataFrames().save_MS_ids(os.path.join(results_dir, "FeatureMatrix.tsv"), os.path.join(results_dir, "MS1-annotations"), "MS1 annotation")
 
-        if annotate_ms2:
+        if params["annotate_ms2"]:
             with st.spinner("Annotating features on MS2 level by fragmentation patterns..."):
-                if ms2_annotation_file:
+                if params["ms2_annotation_file"]:
                     output_mztab = os.path.join(interim, "mztab_ms2", "MS2.mzTab")
-                    SpectralMatcher().run(ms2_annotation_file, mgf_file, output_mztab)
+                    SpectralMatcher().run(params["ms2_annotation_file"], mgf_file, output_mztab)
                     DataFrames().annotate_ms2(mgf_file, output_mztab, os.path.join(results_dir, "FeatureMatrix.tsv"), "MS2 annotation", overwrite_name=True)
                     DataFrames().save_MS_ids(os.path.join(results_dir, "FeatureMatrix.tsv"), os.path.join(results_dir, "MS2-annotations"), "MS2 annotation")
 
@@ -231,24 +250,20 @@ try:
         # get missing values before re-quant
         df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
         st.session_state.missing_values_before = sum([(df[col] == 0).sum() for col in df.columns])
-        if use_requant:
+        if params["use_requant"]:
             with st.spinner("Re-Quantification..."):
-                Requantifier().run(os.path.join(interim, "FeatureMatrix.consensusXML"), os.path.join(results_dir, "FeatureMatrix.tsv"), mzML_dir, featureXML_dir, ffm_mass_error)
+                Requantifier().run(os.path.join(interim, "FeatureMatrix.consensusXML"), os.path.join(results_dir, "FeatureMatrix.tsv"), mzML_dir, featureXML_dir, params["ffm_mass_error"])
             df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
             st.session_state.missing_values_after = sum([(df[col] == 0).sum() for col in df.columns])
         else:
             st.session_state.missing_values_after = None
 
-        if use_sirius_manual:
-            shutil.make_archive(os.path.join(interim, "ExportSirius"), 'zip', sirius_ms_dir)
-        if use_gnps:
+        if params["use_sirius_manual"]:
+            shutil.make_archive(os.path.join(interim, "ExportSirius", "sirius_files"), 'zip', sirius_ms_dir)
+        if params["use_gnps"]:
             shutil.make_archive(os.path.join(interim, "ExportGNPS"), 'zip', os.path.join(results_dir, "GNPS"))
 
         st.success("Complete!")
-
-
-    elif run_button:
-        st.warning("Please upload some mzML files.")
 
     if any(Path(results_dir).iterdir()):
         st.markdown("***")
@@ -284,6 +299,5 @@ try:
                     file_name=f"ExportGNPS-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
                     mime="application/zip"
                 )
-
 except:
     st.warning("Something went wrong.")

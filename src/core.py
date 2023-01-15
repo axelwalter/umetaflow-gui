@@ -7,7 +7,9 @@ from .helpers import Helper
 
 class FeatureFinderMetabo:
     def run(self, mzML, featureXML, params={}, q_threshold=0):
-        if os.path.isdir(mzML):
+        if type(mzML) is list:
+            mzML_files = mzML
+        elif os.path.isdir(mzML):
             mzML_files = [os.path.join(mzML, file) for file in os.listdir(mzML)]
         else:
             mzML_files = [mzML]
@@ -77,7 +79,10 @@ class MapAligner:
             if key.encode() in aligner_par.keys():
                 aligner_par.setValue(key, value)
         aligner.setParameters(aligner_par)
-        inputs = os.listdir(input_files)
+        if type(input_files) is list:
+            inputs = input_files
+        else:
+            inputs = os.listdir(input_files)
         if inputs and inputs[0].endswith("featureXML"):
             Helper().reset_directory(aligned_dir)
             Helper().reset_directory(trafo_dir)
@@ -107,9 +112,9 @@ class MapAligner:
                 FeatureXMLFile().store(os.path.join(aligned_dir, os.path.basename(
                     feature_map.getMetaValue("spectra_data")[0].decode())[:-4] + "featureXML"), feature_map)
 
-        elif inputs and inputs[0].endswith("mzML"):
+        elif inputs and inputs[0].endswith("mzML") and type(input_files) is not list:
             Helper().reset_directory(aligned_dir)
-            for file in os.listdir(input_files):
+            for file in inputs:
                 exp = MSExperiment()
                 MzMLFile().load(os.path.join(input_files, file), exp)
                 exp.sortSpectra(True)
@@ -124,6 +129,22 @@ class MapAligner:
                     exp, trafo_description, True)
                 MzMLFile().store(os.path.join(aligned_dir, file), exp)
 
+        elif inputs and inputs[0].endswith("mzML") and type(input_files) is list:
+            Helper().reset_directory(aligned_dir)
+            for file in inputs:
+                exp = MSExperiment()
+                MzMLFile().load(file, exp)
+                exp.sortSpectra(True)
+                if file[:-4] + "trafoXML" not in os.listdir(trafo_dir):
+                    MzMLFile().store(os.path.join(aligned_dir, Path(file).name), exp)
+                    continue
+                transformer = MapAlignmentTransformer()
+                trafo_description = TransformationDescription()
+                TransformationXMLFile().load(os.path.join(
+                    trafo_dir, file[:-4] + "trafoXML"), trafo_description, False)
+                transformer.transformRetentionTimes(
+                    exp, trafo_description, True)
+                MzMLFile().store(os.path.join(aligned_dir, Path(file).name), exp)
 
 class FeatureLinker:
     def run(self, featureXML_dir, consensusXML_file, params={}):

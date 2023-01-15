@@ -14,13 +14,22 @@ st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layou
 
 with st.sidebar:
     # show currently available mzML files
-    st.markdown("**uploaded mzML files:**")
+    st.markdown("**choose mzML files:**")
     for f in sorted(Path("mzML_files").iterdir()):
         if f.name in st.session_state:
             checked = st.session_state[f.name]
         else:
             checked = True
         st.checkbox(f.name, checked, key=f.name)
+    st.markdown("***")
+    if st.button("Remove **Un**selected Files"):
+        for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
+            file.unlink()
+        st.experimental_rerun()
+    if st.button("⚠️ Remove All"):
+        Helper().reset_directory("mzML_files")
+        st.experimental_rerun()
+
 # try:
 # create result dir if it does not exist already
 results_dir = "results_extractchroms"

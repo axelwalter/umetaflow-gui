@@ -19,6 +19,24 @@ def open_df(path):
     return df
 
 try:
+    with st.sidebar:
+        # show currently available mzML files
+        st.markdown("**choose mzML files:**")
+        for f in sorted(Path("mzML_files").iterdir()):
+            if f.name in st.session_state:
+                checked = st.session_state[f.name]
+            else:
+                checked = True
+            st.checkbox(f.name, checked, key=f.name)
+        st.markdown("***")
+        if st.button("Remove **Un**selected Files"):
+            for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
+                file.unlink()
+            st.experimental_rerun()
+        if st.button("⚠️ Remove All"):
+            Helper().reset_directory("mzML_files")
+            st.experimental_rerun()
+
     st.title("Metabolomics")
 
     # setting results directory

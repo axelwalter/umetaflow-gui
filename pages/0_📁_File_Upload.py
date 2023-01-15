@@ -9,27 +9,36 @@ st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layou
 
 # define directory to store mzML files
 mzML_dir = "mzML_files"
-if not os.path.isdir("mzML_files"):
-    os.mkdir("mzML_files")
+if not os.path.isdir(mzML_dir):
+    os.mkdir(mzML_dir)
 
 with st.sidebar:
     # show currently available mzML files
-    st.markdown("**uploaded mzML files:**")
-    for f in sorted(Path(mzML_dir).iterdir()):
+    st.markdown("**choose mzML files:**")
+    for f in sorted(Path("mzML_files").iterdir()):
         if f.name in st.session_state:
             checked = st.session_state[f.name]
         else:
             checked = True
         st.checkbox(f.name, checked, key=f.name)
+    st.markdown("***")
+    if st.button("Remove **Un**selected Files"):
+        for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
+            file.unlink()
+        st.experimental_rerun()
+    if st.button("⚠️ Remove All"):
+        Helper().reset_directory("mzML_files")
+        st.experimental_rerun()
+    
 
-st.title("File Selection")
+st.title("File Upload")
 st.info("""
-    **How to upload files**
+    **💡 How to upload files**
 
     1. Browse files on your computer
     2. Click the **Add mzML files** button to use them in the workflows
 
-    The currently uploaded files will be used for data analysis in both workflows.
+    Select data for anaylsis from the uploaded files shown in the sidebar.
     """)
 
 accept_multiple = True
@@ -73,15 +82,6 @@ if submitted:
         st.experimental_rerun()
     else:
         st.warning("Upload some files before adding them.")
-
-# st.markdown("##")
-# clear_all = st.button("Remove All Files")
-# st.dataframe({"mzML files": [file.name for file in Path(mzML_dir).iterdir()]})
-
-# if clear_all:
-#     Helper().reset_directory("mzML_files")
-#     st.experimental_rerun()
-
 
 # except:
 #     st.warning("Something went wrong.")

@@ -14,22 +14,22 @@ st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layou
 
 try:
     with st.sidebar:
+        st.markdown("### Uploaded Files")
+        if st.button("⚠️ Remove **All**"):
+            if any(Path("mzML_files").iterdir()):
+                Helper().reset_directory("mzML_files")
+                st.experimental_rerun()
+        if st.button("Remove **Un**selected Files"):
+            for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
+                file.unlink()
+            st.experimental_rerun()
         # show currently available mzML files
-        st.markdown("**choose mzML files for analysis:**")
         for f in sorted(Path("mzML_files").iterdir()):
             if f.name in st.session_state:
                 checked = st.session_state[f.name]
             else:
                 checked = True
             st.checkbox(f.name[:-5], checked, key=f.name)
-        st.markdown("***")
-        if st.button("Remove **Un**selected Files"):
-            for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
-                file.unlink()
-            st.experimental_rerun()
-        if st.button("⚠️ Remove **All**"):
-            Helper().reset_directory("mzML_files")
-            st.experimental_rerun()
 
     # create result dir if it does not exist already
     results_dir = "results_extractchroms"
@@ -216,7 +216,7 @@ try:
         df_auc.index.name = "metabolite"
         df_auc.to_csv(Path(results_dir, "summary.tsv"), sep="\t")
 
-    if any(Path(results_dir).iterdir()):
+    if any(Path(results_dir).glob("*.ftr")):
         # add separator for results
         st.markdown("***")
         df_auc = pd.read_csv(Path(results_dir, "summary.tsv"), sep="\t").set_index("metabolite")

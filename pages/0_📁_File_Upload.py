@@ -1,7 +1,6 @@
 import streamlit as st
 from src.helpers import Helper
 from pathlib import Path
-import pandas as pd
 import os
 import shutil
 
@@ -13,23 +12,6 @@ try:
     if not os.path.isdir(mzML_dir):
         os.mkdir(mzML_dir)
 
-    with st.sidebar:
-        # show currently available mzML files
-        st.markdown("**choose mzML files for analysis:**")
-        for f in sorted(Path("mzML_files").iterdir()):
-            if f.name in st.session_state:
-                checked = st.session_state[f.name]
-            else:
-                checked = True
-            st.checkbox(f.name[:-5], checked, key=f.name)
-        st.markdown("***")
-        if st.button("Remove **Un**selected Files"):
-            for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
-                file.unlink()
-            st.experimental_rerun()
-        if st.button("⚠️ Remove **All**"):
-            Helper().reset_directory("mzML_files")
-            st.experimental_rerun()
 
     st.title("File Upload")
     st.info("""
@@ -69,7 +51,6 @@ try:
                     if file.name not in Path(mzML_dir).iterdir() and file.name.endswith("mzML"):
                         shutil.copy(file, mzML_dir)
                 st.success("Successfully added uploaded files!")
-                st.experimental_rerun()
 
     # upload mzML files
     if submitted:
@@ -80,9 +61,26 @@ try:
                         with open(Path(mzML_dir, file.name),"wb") as f:
                             f.write(file.getbuffer())
                 st.success("Successfully added uploaded files!")
-                st.experimental_rerun()
         else:
             st.warning("Upload some files before adding them.")
+
+    with st.sidebar:
+        st.markdown("### Uploaded Files")
+        if st.button("⚠️ Remove **All**"):
+            if any(Path("mzML_files").iterdir()):
+                Helper().reset_directory("mzML_files")
+                st.experimental_rerun()
+        if st.button("Remove **Un**selected Files"):
+            for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
+                file.unlink()
+            st.experimental_rerun()
+        # show currently available mzML files
+        for f in sorted(Path("mzML_files").iterdir()):
+            if f.name in st.session_state:
+                checked = st.session_state[f.name]
+            else:
+                checked = True
+            st.checkbox(f.name[:-5], checked, key=f.name)
 
 except:
     st.warning("Something went wrong.")

@@ -21,22 +21,22 @@ def open_df(path):
 
 try:
     with st.sidebar:
+        st.markdown("### Uploaded Files")
+        if st.button("⚠️ Remove **All**"):
+            if any(Path("mzML_files").iterdir()):
+                Helper().reset_directory("mzML_files")
+                st.experimental_rerun()
+        if st.button("Remove **Un**selected Files"):
+            for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
+                file.unlink()
+            st.experimental_rerun()
         # show currently available mzML files
-        st.markdown("**choose mzML files for analysis:**")
         for f in sorted(Path("mzML_files").iterdir()):
             if f.name in st.session_state:
                 checked = st.session_state[f.name]
             else:
                 checked = True
             st.checkbox(f.name[:-5], checked, key=f.name)
-        st.markdown("***")
-        if st.button("Remove **Un**selected Files"):
-            for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
-                file.unlink()
-            st.experimental_rerun()
-        if st.button("⚠️ Remove **All**"):
-            Helper().reset_directory("mzML_files")
-            st.experimental_rerun()
 
     st.title("Metabolomics")
 
@@ -156,13 +156,13 @@ try:
     if c2.button("**Save parameters**"):
         with open("params/metabolomics.json", "w") as f:
             f.write(json.dumps(params, indent=4))
-    if c4.button("**Run Workflow!**"):
 
-        mzML_files = [str(Path("mzML_files", key)) for key, value in st.session_state.items() if key.endswith("mzML") and value]
+    run_button =  c4.button("**Run Workflow!**")
 
-        if not mzML_files:
-            st.warning("Upload or select some mzML files first!")
+    # check for mzML files 
+    mzML_files = [str(Path("mzML_files", key)) for key, value in st.session_state.items() if key.endswith("mzML") and value]
 
+    if run_button and mzML_files:
         results_dir = Helper().reset_directory(results_dir)
         interim = Helper().reset_directory(os.path.join(results_dir, "interim"))
 
@@ -267,6 +267,9 @@ try:
             shutil.make_archive(os.path.join(interim, "ExportGNPS"), 'zip', os.path.join(results_dir, "GNPS"))
 
         st.success("Complete!")
+    
+    elif run_button:
+            st.warning("Upload or select some mzML files first!")
 
     if any(Path(results_dir).iterdir()):
         st.markdown("***")

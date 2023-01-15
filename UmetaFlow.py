@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import sys
+import uuid
 
 st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
@@ -14,6 +15,10 @@ try:
 
     if "local" in sys.argv:
         st.session_state.location = "local"
+    elif "user_id" not in st.session_state:
+        st.session_state["user_id"] = uuid.uuid1()
+
+    st.write(st.session_state["user_id"])
 
     # if we run the packaged windows version, we start within the Python directory -> need to change working directory to ..\umetaflow-gui-main
     if "windows" in sys.argv:

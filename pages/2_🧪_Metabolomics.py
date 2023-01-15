@@ -20,6 +20,19 @@ def open_df(path):
     return df
 
 try:
+    # create result dir if it does not exist already
+    if "location" not in st.session_state:
+        st.warning("No online user ID found, please visit the start page first (UmetaFlow tab).")
+        st.experimental_rerun()
+    if "user_id" in st.session_state:
+        if not os.path.exists(str(st.session_state["user_id"])):
+            os.mkdir(str(st.session_state["user_id"]))
+        results_dir = Path(str(st.session_state["user_id"]), "results_metabolomics")
+    else:
+        results_dir = "results_metabolomics"
+    if not os.path.exists(results_dir):
+        os.mkdir(results_dir)
+
     with st.sidebar:
         st.markdown("### Uploaded Files")
         if st.button("⚠️ Remove **All**"):
@@ -47,11 +60,6 @@ try:
         with open("params/metabolomics_defaults.json") as f:
             params = json.loads(f.read())
 
-
-    # setting results directory
-    results_dir = "results_metabolomics"
-    if not os.path.exists(results_dir):
-        os.mkdir(results_dir)
 
     st.markdown("**Feature Detection**")
     col1, col2, col3, col4 = st.columns(4)
@@ -119,7 +127,7 @@ try:
     if params["annotate_ms1"]:
         ms1_annotation_file_upload = st.file_uploader("Select library for MS1 annotations.", type=["tsv"])
         if ms1_annotation_file_upload:
-            params["ms1_annotation_file"] = os.path.join("example_data/ms1-libraries", ms1_annotation_file_upload.name)
+            params["ms1_annotation_file"] = os.path.join(str(st.session_state["user_id"]), ms1_annotation_file_upload.name)
             with open(params["ms1_annotation_file"], "wb") as f:
                     f.write(ms1_annotation_file_upload.getbuffer())
         elif params["ms1_annotation_file"]:
@@ -136,7 +144,7 @@ try:
         params["use_gnps"] = True
         ms2_annotation_file_upload = st.file_uploader("Select library for MS2 annotations", type=["mgf"])
         if ms2_annotation_file_upload:
-            params["ms2_annotation_file"] = os.path.join("example_data/ms2-libraries", ms2_annotation_file_upload.name)
+            params["ms2_annotation_file"] = os.path.join(str(st.session_state["user_id"]), ms2_annotation_file_upload.name)
             with open(params["ms2_annotation_file"], "wb") as f:
                 f.write(ms2_annotation_file_upload.getbuffer())
         elif params["ms2_annotation_file"]:

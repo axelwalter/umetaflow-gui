@@ -57,7 +57,6 @@ The results will be displayed as a summary with all samples and EICs AUC values 
 with open("params/extract.json") as f:
     params = json.loads(f.read())
 
-
 # parameters
 c1, c2 = st.columns(2)
 # text area to define masses in with name, mass and optionl RT boundaries
@@ -79,7 +78,11 @@ params["time_unit"] = c2.radio("time unit", ["seconds", "minutes"], index=["seco
 params["baseline"] = c2.number_input("AUC baseline", 0, 1000000, params["baseline"], 100)
 
 # combine variants of the same metabolite
-params["combine"] = c2.checkbox("combine variants of same metabolite", params["combine"], help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)")
+if params["combine"] == "true":
+    combine = True
+else:
+    combine = False
+params["combine"] = c2.checkbox("combine variants of same metabolite", combine, help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)")
 
 # run the workflow...
 c1, c2, _, c4= st.columns(4)

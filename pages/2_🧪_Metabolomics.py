@@ -54,12 +54,14 @@ try:
         os.mkdir(results_dir)
 
     st.markdown("**Feature Detection**")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         params["ffm_mass_error"] = st.number_input("**mass_error_ppm**", 1.0, 1000.0, params["ffm_mass_error"])
     with col2:
         params["ffm_noise"] = float(st.number_input("**noise_threshold_int**", 10, 1000000000, int(params["ffm_noise"])))
     with col3:
+        params["ffm_peak_width"] = float(st.number_input("**peak_width_at_FWHM**", 0.1, 120.0, params["ffm_peak_width"], 1.0))
+    with col4:
         st.markdown("##")
         params["ffm_single_traces"] = st.checkbox("remove_single_traces", params["ffm_single_traces"])
         if params["ffm_single_traces"]:
@@ -167,6 +169,7 @@ try:
         with st.spinner("Detecting features..."):
             FeatureFinderMetabo().run(mzML_files, os.path.join(interim, "FFM"),
                                     {"noise_threshold_int": params["ffm_noise"],
+                                    "chrom_fwhm": params["ffm_peak_width"],
                                     "mass_error_ppm": params["ffm_mass_error"],
                                     "remove_single_traces": ffm_single_traces,
                                     "report_convex_hulls": "true"})

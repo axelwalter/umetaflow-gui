@@ -1,6 +1,7 @@
 {
     "ffm_mass_error": 10.0,
     "ffm_noise": 1000.0,
+    "ffm_peak_width": 5.0,
     "ffm_single_traces": true,
     "ma_mz_max": 10.0,
     "ma_mz_unit": "Da",

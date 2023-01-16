@@ -67,6 +67,7 @@ You can share this unique workspace ID with other people.
     The same applies for GNPS, here you can export all the files required for Feature Based Molecular Networking and Ion Identity Networking.
 
     Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find additional tabs for **Extracted Ion Chromatograms** and **Statistics**. The data produced here is fully compatible with the web app for [statistical analyis of metabolomics](https://github.com/axelwalter/streamlit-metabolomics-statistics) data.
+    
     ## Quickstart
 
     ### Workspaces

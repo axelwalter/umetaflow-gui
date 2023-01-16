@@ -13,7 +13,8 @@ try:
     # check if app is run locally and set default workspace
     if "local" in sys.argv:
         st.session_state.location = "local"
-        st.session_state["workspace"] = "default-workspace"
+        if "workspace" not in st.session_state:
+            st.session_state["workspace"] = "default-workspace"
     # online we want a new key generated each time
     elif "workspace" not in st.session_state:
         st.session_state["workspace"] = str(uuid.uuid1())

@@ -70,7 +70,3 @@ Load your in-house data for MS1 (`tsv` file with metabolite `m/z` and `RT` value
 Here, you can do basic statistics right away such as calculating mean intensities, fold changes, clustering and heatmaps all with nice visualizations.
 
 For an advanced and complete workflow visit the [app for statistical analysis of metabolomics data](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/).
-
-## Acknowledgement
-
-MS data anylsis is performed using pyOpenMS, check out the documentation [here](https://pyopenms.readthedocs.io/en/latest/index.html).

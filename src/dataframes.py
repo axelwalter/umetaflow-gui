@@ -47,6 +47,9 @@ class DataFrames:
                         else:
                             id_list.append("")
                     df[file.stem+"_SiriusID"] = id_list
+        df_mzML = df[[col for col in df.columns if col.endswith("mzML")]]
+        df_mzML = df_mzML.reindex(sorted(df_mzML.columns), axis=1)
+        df = pd.concat([df[[col for col in df.columns if not col.endswith("mzML")]], df_mzML])
 
         if table_file.endswith("tsv"):
             df.to_csv(table_file, sep="\t")

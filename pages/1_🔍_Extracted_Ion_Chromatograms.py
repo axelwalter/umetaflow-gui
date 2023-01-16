@@ -230,6 +230,7 @@ try:
             df_auc = pd.DataFrame(combined)
             df_auc.set_index(pd.Index(metabolite_names), inplace=True)
         df_auc.index.name = "metabolite"
+        df_auc = df_auc.reindex(sorted(df_auc.columns), axis=1)
         df_auc.to_csv(Path(results_dir, "summary.tsv"), sep="\t")
 
     if any(Path(results_dir).glob("*.ftr")):

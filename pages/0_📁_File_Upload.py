@@ -17,7 +17,7 @@ try:
         **💡 How to upload files**
 
         1. Browse files on your computer
-        2. Click the **Add mzML files** button to use them in the workflows
+        2. Click the **Add the uploaded mzML files** button to use them in the workflows
 
         Select data for anaylsis from the uploaded files shown in the sidebar.
         """)

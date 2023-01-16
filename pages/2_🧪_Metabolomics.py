@@ -22,7 +22,7 @@ def open_df(path):
 try:
     # create result dir if it does not exist already
     if "workspace" in st.session_state:
-        results_dir = Path(str(st.session_state["workspace"]), "results_metabolomics")
+        results_dir = Path(str(st.session_state["workspace"]), "results-metabolomics")
     else:
         st.warning("No online workspace ID found, please visit the start page first (UmetaFlow tab).")
         st.experimental_rerun()
@@ -276,7 +276,7 @@ try:
             st.session_state.missing_values_after = None
 
         if params["use_sirius_manual"]:
-            shutil.make_archive(os.path.join(interim, "ExportSirius", "sirius_files"), 'zip', sirius_ms_dir)
+            shutil.make_archive(os.path.join(interim, "ExportSirius"), 'zip', sirius_ms_dir)
         if params["use_gnps"]:
             shutil.make_archive(os.path.join(interim, "ExportGNPS"), 'zip', os.path.join(results_dir, "GNPS"))
 

@@ -8,9 +8,8 @@ st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layou
 
 try:
     # define directory to store mzML files
-    mzML_dir = "mzML_files"
-    if not os.path.isdir(mzML_dir):
-        os.mkdir(mzML_dir)
+    if not os.path.isdir(st.session_state["mzML_files"]):
+        os.mkdir(st.session_state["mzML_files"])
 
 
     st.title("File Upload")
@@ -41,15 +40,15 @@ try:
     # option for local installation: upload files via directory path
     if st.session_state.location == "local":
         st.markdown("**OR specify the path to a folder containing your mzML files**")
-        c1, c2 = st.columns([0.9, 0.1])
+        c1, c2 = st.columns([0.8, 0.2])
         upload_dir = c1.text_input("path to folder with mzML files")
         upload_dir = r'{}'.format(upload_dir)
         c2.markdown("##")
         if c2.button("Upload"):
             with st.spinner("Uploading files..."):
                 for file in Path(upload_dir).iterdir():
-                    if file.name not in Path(mzML_dir).iterdir() and file.name.endswith("mzML"):
-                        shutil.copy(file, mzML_dir)
+                    if file.name not in st.session_state["mzML_files"].iterdir() and file.name.endswith("mzML"):
+                        shutil.copy(file, st.session_state["mzML_files"])
                 st.success("Successfully added uploaded files!")
 
     # upload mzML files
@@ -57,25 +56,36 @@ try:
         if uploaded_mzML:
             if uploaded_mzML[0]: # opening file dialog and closing without choosing a file results in None upload
                 for file in uploaded_mzML:
-                    if file.name not in Path(mzML_dir).iterdir() and file.name.endswith("mzML"):
-                        with open(Path(mzML_dir, file.name),"wb") as f:
+                    if file.name not in st.session_state["mzML_files"].iterdir() and file.name.endswith("mzML"):
+                        with open(Path(st.session_state["mzML_files"], file.name),"wb") as f:
                             f.write(file.getbuffer())
                 st.success("Successfully added uploaded files!")
         else:
             st.warning("Upload some files before adding them.")
 
+
     with st.sidebar:
-        st.markdown("### Uploaded Files")
-        if st.button("⚠️ Remove **All**"):
-            if any(Path("mzML_files").iterdir()):
-                Helper().reset_directory("mzML_files")
+        # Removing files
+        st.markdown("### Remove Files")
+        c1, c2 = st.columns(2)
+        if c1.button("⚠️ **All**"):
+            try:
+                if any(st.session_state["mzML_files"].iterdir()):
+                    Helper().reset_directory(st.session_state["mzML_files"])
+                    st.experimental_rerun()
+            except:
+                pass
+        if c2.button("**Un**selected"):
+            try:
+                for file in [Path(st.session_state["mzML_files"], key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
+                    file.unlink()
                 st.experimental_rerun()
-        if st.button("Remove **Un**selected Files"):
-            for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
-                file.unlink()
-            st.experimental_rerun()
+            except:
+                pass
+
         # show currently available mzML files
-        for f in sorted(Path("mzML_files").iterdir()):
+        st.markdown("### Uploaded Files")
+        for f in sorted(st.session_state["mzML_files"].iterdir()):
             if f.name in st.session_state:
                 checked = st.session_state[f.name]
             else:

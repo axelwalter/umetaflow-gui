@@ -12,32 +12,38 @@ import json
 
 st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
-# try:
-# create result dir if it does not exist already
-if "location" not in st.session_state:
-    st.warning("No online user ID found, please visit the start page first (UmetaFlow tab).")
+try:
+    # create result dir if it does not exist already
+    if "workspace" in st.session_state:
+    results_dir = Path(str(st.session_state["workspace"]), "results_metabolomics")
+    else:
+    st.warning("No online workspace ID found, please visit the start page first (UmetaFlow tab).")
     st.experimental_rerun()
-if "user_id" in st.session_state:
-    if not os.path.exists(str(st.session_state["user_id"])):
-        os.mkdir(str(st.session_state["user_id"]))
-    results_dir = Path(str(st.session_state["user_id"]), "results_extractchroms")
-else:
-    results_dir = "results_extractchroms"
-if not os.path.exists(results_dir):
+    if not os.path.exists(results_dir):
     os.mkdir(results_dir)
 
-with st.sidebar:
-    st.markdown("### Uploaded Files")
-    if st.button("⚠️ Remove **All**"):
-        if any(Path("mzML_files").iterdir()):
-            Helper().reset_directory("mzML_files")
+    with st.sidebar:
+    # Removing files
+    st.markdown("### Remove Files")
+    c1, c2 = st.columns(2)
+    if c1.button("⚠️ **All**"):
+        try:
+            if any(st.session_state["mzML_files"].iterdir()):
+                Helper().reset_directory(st.session_state["mzML_files"])
+                st.experimental_rerun()
+        except:
+            pass
+    if c2.button("**Un**selected"):
+        try:
+            for file in [Path(st.session_state["mzML_files"], key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
+                file.unlink()
             st.experimental_rerun()
-    if st.button("Remove **Un**selected Files"):
-        for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
-            file.unlink()
-        st.experimental_rerun()
+        except:
+            pass
+
     # show currently available mzML files
-    for f in sorted(Path("mzML_files").iterdir()):
+    st.markdown("### Uploaded Files")
+    for f in sorted(st.session_state["mzML_files"].iterdir()):
         if f.name in st.session_state:
             checked = st.session_state[f.name]
         else:
@@ -45,72 +51,72 @@ with st.sidebar:
         st.checkbox(f.name[:-5], checked, key=f.name)
 
 
-st.title("Extracted Ion Chromatograms (EIC/XIC)")
+    st.title("Extracted Ion Chromatograms (EIC/XIC)")
 
-with st.expander("📖 **Help**"):
+    with st.expander("📖 **Help**"):
     st.markdown("""
-Here you can get extracted ion chromatograms `EIC` from mzML files. A base peak chromatogram `BPC`
-will be automatically generated as well. Select the mass tolerance according to your data either as
-absolute values `Da` or relative to the metabolite mass in parts per million `ppm`.
+    Here you can get extracted ion chromatograms `EIC` from mzML files. A base peak chromatogram `BPC`
+    will be automatically generated as well. Select the mass tolerance according to your data either as
+    absolute values `Da` or relative to the metabolite mass in parts per million `ppm`.
 
-As input you can add `mzML` files and select which ones to use for the chromatogram extraction.
-Download the results of selected samples and chromatograms as `tsv` files.
+    As input you can add `mzML` files and select which ones to use for the chromatogram extraction.
+    Download the results of selected samples and chromatograms as `tsv` files.
 
-You can enter the exact masses of your metabolites each in a new line. Optionally you can label them separated by an equal sign e.g.
-`222.0972=GlcNAc` or add RT limits with a further equal sign e.g. `222.0972=GlcNAc=2.4-2.6`. The specified time unit will be used for the RT limits. To store the list of metabolites for later use you can download them as a text file. Simply
-copy and paste the content of that file into the input field.
+    You can enter the exact masses of your metabolites each in a new line. Optionally you can label them separated by an equal sign e.g.
+    `222.0972=GlcNAc` or add RT limits with a further equal sign e.g. `222.0972=GlcNAc=2.4-2.6`. The specified time unit will be used for the RT limits. To store the list of metabolites for later use you can download them as a text file. Simply
+    copy and paste the content of that file into the input field.
 
-The results will be displayed as a summary with all samples and EICs AUC values as well as the chromatograms as one graph per sample. Choose the samples and chromatograms to display.
-""")
+    The results will be displayed as a summary with all samples and EICs AUC values as well as the chromatograms as one graph per sample. Choose the samples and chromatograms to display.
+    """)
 
-if Path("params/extract.json").is_file():
+    if Path("params/extract.json").is_file():
     with open("params/extract.json") as f:
         params = json.loads(f.read())
-else:
+    else:
     with open("params/extract_defaults.json") as f:
         params = json.loads(f.read())
 
-# parameters
-c1, c2 = st.columns(2)
-# text area to define masses in with name, mass and optionl RT boundaries
-params["masses_text"] = c1.text_area("masses", params["masses_text"], height=380,
+    # parameters
+    c1, c2 = st.columns(2)
+    # text area to define masses in with name, mass and optionl RT boundaries
+    params["masses_text"] = c1.text_area("masses", params["masses_text"], height=380,
             help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.")
 
-# define mass tolerances and their units
-params["mz_unit"] =  c2.radio("mass tolerance unit", ["ppm", "Da"], index=["ppm", "Da"].index(params["mz_unit"]))
+    # define mass tolerances and their units
+    params["mz_unit"] =  c2.radio("mass tolerance unit", ["ppm", "Da"], index=["ppm", "Da"].index(params["mz_unit"]))
 
-if params["mz_unit"] == "ppm":
+    if params["mz_unit"] == "ppm":
     params["tolerance_ppm"] = c2.number_input("mass tolerance", 1, 100, params["tolerance_ppm"])
-else:
+    else:
     params["tolerance_da"] = c2.number_input("mass tolerance", 0.01, 10.0, params["tolerance_da"])
 
-# time unit either seconds or minutes
-params["time_unit"] = c2.radio("time unit", ["seconds", "minutes"], index=["seconds", "minutes"].index(params["time_unit"]))
+    # time unit either seconds or minutes
+    params["time_unit"] = c2.radio("time unit", ["seconds", "minutes"], index=["seconds", "minutes"].index(params["time_unit"]))
 
-# we need an AUC intensity cutoff value
-params["baseline"] = c2.number_input("AUC baseline", 0, 1000000, params["baseline"], 100)
+    # we need an AUC intensity cutoff value
+    params["baseline"] = c2.number_input("AUC baseline", 0, 1000000, params["baseline"], 100)
 
-# combine variants of the same metabolite
-if params["combine"] == "true":
+    # combine variants of the same metabolite
+    if params["combine"] == "true":
     combine = True
-else:
+    else:
     combine = False
-params["combine"] = c2.checkbox("combine variants of same metabolite", combine, help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)")
+    params["combine"] = c2.checkbox("combine variants of same metabolite", combine, help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)")
 
-# run the workflow...
-c1, c2, _, c4= st.columns(4)
-if c1.button("Load default parameters"):
+    # run the workflow...
+    c1, c2, _, c4= st.columns(4)
+    if c1.button("Load default parameters"):
     with open("params/extract_defaults.json") as f:
         params = json.loads(f.read())
-    with open("params/extract.json", "w") as f:
+    with open(Path(st.session_state["workspace"], "extract.json"), "w") as f:
         f.write(json.dumps(params, indent=4))
     st.experimental_rerun()
-if c2.button("**Save parameters**"):
-    with open("params/extract.json", "w") as f:
+    if c2.button("**Save parameters**"):
+    with open(Path(st.session_state["workspace"], "extract.json"), "w") as f:
         f.write(json.dumps(params, indent=4))
-if c4.button(label="**Extract Chromatograms!**"):
+    if c4.button(label="**Extract Chromatograms!**"):
 
-    mzML_files = [str(Path("mzML_files", key)) for key, value in st.session_state.items() if key.endswith("mzML") and value]
+    mzML_files = [str(Path(st.session_state["mzML_files"], key)) for key, value in st.session_state.items() if key.endswith("mzML") and value]
 
     if not mzML_files:
         st.warning("Upload or select some mzML files first!")
@@ -225,7 +231,7 @@ if c4.button(label="**Extract Chromatograms!**"):
     df_auc.index.name = "metabolite"
     df_auc.to_csv(Path(results_dir, "summary.tsv"), sep="\t")
 
-if any(Path(results_dir).glob("*.ftr")):
+    if any(Path(results_dir).glob("*.ftr")):
     # add separator for results
     st.markdown("***")
     df_auc = pd.read_csv(Path(results_dir, "summary.tsv"), sep="\t").set_index("metabolite")
@@ -272,5 +278,5 @@ if any(Path(results_dir).glob("*.ftr")):
             legend_title="metabolite")
         c.plotly_chart(fig)
 
-# except:
-#     st.warning("Something went wrong.")
+except:
+    st.warning("Something went wrong.")

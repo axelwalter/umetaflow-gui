@@ -21,30 +21,36 @@ def open_df(path):
 
 try:
     # create result dir if it does not exist already
-    if "location" not in st.session_state:
-        st.warning("No online user ID found, please visit the start page first (UmetaFlow tab).")
-        st.experimental_rerun()
-    if "user_id" in st.session_state:
-        if not os.path.exists(str(st.session_state["user_id"])):
-            os.mkdir(str(st.session_state["user_id"]))
-        results_dir = Path(str(st.session_state["user_id"]), "results_metabolomics")
+    if "workspace" in st.session_state:
+        results_dir = Path(str(st.session_state["workspace"]), "results_metabolomics")
     else:
-        results_dir = "results_metabolomics"
+        st.warning("No online workspace ID found, please visit the start page first (UmetaFlow tab).")
+        st.experimental_rerun()
     if not os.path.exists(results_dir):
         os.mkdir(results_dir)
 
     with st.sidebar:
-        st.markdown("### Uploaded Files")
-        if st.button("⚠️ Remove **All**"):
-            if any(Path("mzML_files").iterdir()):
-                Helper().reset_directory("mzML_files")
+        # Removing files
+        st.markdown("### Remove Files")
+        c1, c2 = st.columns(2)
+        if c1.button("⚠️ **All**"):
+            try:
+                if any(st.session_state["mzML_files"].iterdir()):
+                    Helper().reset_directory(st.session_state["mzML_files"])
+                    st.experimental_rerun()
+            except:
+                pass
+        if c2.button("**Un**selected"):
+            try:
+                for file in [Path(st.session_state["mzML_files"], key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
+                    file.unlink()
                 st.experimental_rerun()
-        if st.button("Remove **Un**selected Files"):
-            for file in [Path("mzML_files", key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
-                file.unlink()
-            st.experimental_rerun()
+            except:
+                pass
+
         # show currently available mzML files
-        for f in sorted(Path("mzML_files").iterdir()):
+        st.markdown("### Uploaded Files")
+        for f in sorted(st.session_state["mzML_files"].iterdir()):
             if f.name in st.session_state:
                 checked = st.session_state[f.name]
             else:
@@ -127,7 +133,7 @@ try:
     if params["annotate_ms1"]:
         ms1_annotation_file_upload = st.file_uploader("Select library for MS1 annotations.", type=["tsv"])
         if ms1_annotation_file_upload:
-            params["ms1_annotation_file"] = os.path.join(str(st.session_state["user_id"]), ms1_annotation_file_upload.name)
+            params["ms1_annotation_file"] = os.path.join(str(st.session_state["workspace"]), ms1_annotation_file_upload.name)
             with open(params["ms1_annotation_file"], "wb") as f:
                     f.write(ms1_annotation_file_upload.getbuffer())
         elif params["ms1_annotation_file"]:
@@ -144,7 +150,7 @@ try:
         params["use_gnps"] = True
         ms2_annotation_file_upload = st.file_uploader("Select library for MS2 annotations", type=["mgf"])
         if ms2_annotation_file_upload:
-            params["ms2_annotation_file"] = os.path.join(str(st.session_state["user_id"]), ms2_annotation_file_upload.name)
+            params["ms2_annotation_file"] = os.path.join(str(st.session_state["workspace"]), ms2_annotation_file_upload.name)
             with open(params["ms2_annotation_file"], "wb") as f:
                 f.write(ms2_annotation_file_upload.getbuffer())
         elif params["ms2_annotation_file"]:
@@ -158,17 +164,17 @@ try:
     if c1.button("Load default parameters"):
         with open("params/metabolomics_defaults.json") as f:
             params = json.loads(f.read())
-        with open("params/metabolomics.json", "w") as f:
+        with open(Path(st.session_state["workspace"], "metabolomics.json"), "w") as f:
             f.write(json.dumps(params, indent=4))
         st.experimental_rerun()
     if c2.button("**Save parameters**"):
-        with open("params/metabolomics.json", "w") as f:
+        with open(Path(st.session_state["workspace"], "metabolomics.json"), "w") as f:
             f.write(json.dumps(params, indent=4))
 
     run_button =  c4.button("**Run Workflow!**")
 
     # check for mzML files 
-    mzML_files = [str(Path("mzML_files", key)) for key, value in st.session_state.items() if key.endswith("mzML") and value]
+    mzML_files = [str(Path(st.session_state["mzML_files"], key)) for key, value in st.session_state.items() if key.endswith("mzML") and value]
 
     if run_button and mzML_files:
         results_dir = Helper().reset_directory(results_dir)

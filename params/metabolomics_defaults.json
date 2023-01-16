@@ -4,7 +4,7 @@
     "ffm_peak_width": 5.0,
     "ffm_single_traces": true,
     "ma_mz_max": 10.0,
-    "ma_mz_unit": "Da",
+    "ma_mz_unit": "ppm",
     "ma_rt_max": 100.0,
     "use_ad": true,
     "ad_ion_mode": "positive",

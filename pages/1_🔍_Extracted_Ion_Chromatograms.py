@@ -103,9 +103,10 @@ try:
         combine = False
     params["combine"] = c2.checkbox("combine variants of same metabolite", combine, help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)")
 
+    st.markdown("##")
     # run the workflow...
     c1, c2, _, c4= st.columns(4)
-    if c1.button("Load default parameters"):
+    if c1.button("Load defaults"):
         with open("params/extract_defaults.json") as f:
             params = json.loads(f.read())
         with open(Path(st.session_state["workspace"], "extract.json"), "w") as f:

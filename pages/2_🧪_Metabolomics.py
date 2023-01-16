@@ -59,6 +59,14 @@ try:
 
     st.title("Metabolomics")
 
+    with st.expander("📖 **Help**"):
+        st.markdown("""
+    This workflow includes the core UmetaFlow pipeline which results in a table of metabolic features.
+
+    - The most important parameter are marked as **bold** text. Adjust them according to your instrument.
+    - All the steps with checkboxes are optional.
+    """)
+
     if Path("params/metabolomics.json").is_file():
         with open("params/metabolomics.json") as f:
             params = json.loads(f.read())
@@ -66,18 +74,18 @@ try:
         with open("params/metabolomics_defaults.json") as f:
             params = json.loads(f.read())
 
-
+    st.markdown("#### 1. Pre-Processing")
     st.markdown("**Feature Detection**")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        params["ffm_mass_error"] = st.number_input("**mass_error_ppm**", 1.0, 1000.0, params["ffm_mass_error"])
+        params["ffm_mass_error"] = st.number_input("**mass error ppm**", 1.0, 1000.0, params["ffm_mass_error"])
     with col2:
-        params["ffm_noise"] = float(st.number_input("**noise_threshold_int**", 10, 1000000000, int(params["ffm_noise"])))
+        params["ffm_noise"] = float(st.number_input("**noise threshold**", 10, 1000000000, int(params["ffm_noise"])))
     with col3:
-        params["ffm_peak_width"] = float(st.number_input("**peak_width_at_FWHM**", 0.1, 120.0, params["ffm_peak_width"], 1.0))
+        params["ffm_peak_width"] = float(st.number_input("**peak width at FWHM**", 0.1, 120.0, params["ffm_peak_width"], 1.0))
     with col4:
         st.markdown("##")
-        params["ffm_single_traces"] = st.checkbox("remove_single_traces", params["ffm_single_traces"])
+        params["ffm_single_traces"] = st.checkbox("remove single traces", params["ffm_single_traces"])
         if params["ffm_single_traces"]:
             ffm_single_traces = "true"
         else:
@@ -86,13 +94,11 @@ try:
     st.markdown("**Map Alignment**")
     col1, col2, col3 = st.columns(3)
     with col1:
-        params["ma_mz_max"] = st.number_input("pairfinder:distance_MZ:max_difference", 0.01, 1000.0, params["ma_mz_max"], step=1.,format="%.2f")
+        params["ma_mz_max"] = st.number_input("**mz max difference**", 0.01, 1000.0, params["ma_mz_max"], step=1.,format="%.2f")
     with col2:
-        params["ma_mz_unit"] = st.radio("pairfinder:distance_MZ:unit", ["ppm", "Da"], ["ppm", "Da"].index(params["ma_mz_unit"]))
+        params["ma_mz_unit"] = st.radio("mz distance unit", ["ppm", "Da"], ["ppm", "Da"].index(params["ma_mz_unit"]))
     with col3:
-        params["ma_rt_max"] = float(st.number_input("pairfinder:distance_RT:max_difference", 1, 1000, int(params["ma_rt_max"]), 10))
-
-    params["use_requant"] = st.checkbox("**Re-Quantification**", params["use_requant"], help="Go back into the raw data to re-quantify consensus features that have missing values.")
+        params["ma_rt_max"] = float(st.number_input("RT max difference", 1, 1000, int(params["ma_rt_max"]), 10))
 
     if params["use_ad"]:
         use_ad = True
@@ -109,26 +115,31 @@ try:
                 ad_ion_mode = "true"
                 params["ad_adducts"] = "H:-:1.0"
         with col2:
-            params["ad_adducts"] = st.text_area("potential_adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4")
+            params["ad_adducts"] = st.text_area("potential adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4")
         with col3:
-            params["ad_charge_min"] = st.number_input("charge_min", 1, 10, 1)
+            params["ad_charge_min"] = st.number_input("charge min", 1, 10, 1)
         with col4:
-            params["ad_charge_max"] = st.number_input("charge_max", 1, 10, 3)
-
-    params["use_sirius_manual"] = st.checkbox("**Export files for SIRIUS**", params["use_sirius_manual"], help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
-    params["use_gnps"] = st.checkbox("**Export files for GNPS**", params["use_gnps"], help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
-    if params["use_gnps"]:
-        params["annotate_gnps_library"] = st.checkbox("annotate features with GNPS library", True)
-
+            params["ad_charge_max"] = st.number_input("charge max", 1, 10, 3)
+    
     st.markdown("**Feature Linking**")
     col1, col2, col3 = st.columns(3)
     with col1:
-        params["fl_mz_tol"] = float(st.number_input("link:mz_tol", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
+        params["fl_mz_tol"] = float(st.number_input("**mz tolerance**", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
     with col2:
-        params["fl_mz_unit"] = st.radio("mz_unit", ["ppm", "Da"])
+        params["fl_mz_unit"] = st.radio("mz tolerance unit", ["ppm", "Da"])
     with col3:
-        params["fl_rt_tol"] = float(st.number_input("link:rt_tol", 1, 200, 30))
+        params["fl_rt_tol"] = float(st.number_input("RT tolerance", 1, 200, 30))
 
+    st.markdown("#### 2. Re-Quantification")
+    params["use_requant"] = st.checkbox("**Re-Quantification**", params["use_requant"], help="Go back into the raw data to re-quantify consensus features that have missing values.")
+
+    st.markdown("#### 3. Export files for SIRIUS and GNPS")
+    params["use_sirius_manual"] = st.checkbox("**Export files for SIRIUS**", params["use_sirius_manual"], help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.")
+    params["use_gnps"] = st.checkbox("**Export files for GNPS**", params["use_gnps"], help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.")
+    if params["use_gnps"]:
+        params["annotate_gnps_library"] = st.checkbox("annotate features with GNPS library", True, help="UmetaFlow contains the complete GNPS library in mgf file format. Check to annotate.")
+
+    st.markdown("#### 4. Annotation via in-house library")
     params["annotate_ms1"] = st.checkbox("**MS1 annotation by m/z and RT**", value=params["annotate_ms1"], help="Annotate features on MS1 level with known m/z and retention times values.")
     if params["annotate_ms1"]:
         ms1_annotation_file_upload = st.file_uploader("Select library for MS1 annotations.", type=["tsv"])
@@ -159,9 +170,9 @@ try:
             st.warning("No MS2 library selected.")
             params["ms2_annotation_file"] = ""
 
-
+    st.markdown("##")
     c1, c2, _, c4 = st.columns(4)
-    if c1.button("Load default parameters"):
+    if c1.button("Load defaults"):
         with open("params/metabolomics_defaults.json") as f:
             params = json.loads(f.read())
         with open(Path(st.session_state["workspace"], "metabolomics.json"), "w") as f:

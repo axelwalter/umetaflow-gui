@@ -7,28 +7,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 # from sklearn.preprocessing import StandardScaler
 
-def get_dendrogram(scaled, label_pos="bottom"):
-    fig = ff.create_dendrogram(scaled, labels=list(scaled.index))
-    fig.update_layout(template='plotly_white')
-    fig.update_xaxes(side=label_pos)
-    return fig
-
-def get_heatmap(ord_ft):
-    #Heatmap
-    fig = px.imshow(ord_ft,y=list(ord_ft.index), x=list(ord_ft.columns), text_auto=True, aspect="auto",
-                color_continuous_scale='PuOr_r', range_color=[-3,3])
-
-    fig.update_layout(
-        autosize=False,
-        width=700,
-        height=1200,
-        xaxis_title="",
-        yaxis_title="")
-
-    # fig.update_yaxes(visible=False)
-    fig.update_xaxes(tickangle = 35)
-    return fig
-
 st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
 try:

@@ -252,11 +252,11 @@ try:
         st.markdown(f"**{df_auc.shape[0]} rows, {df_auc.shape[1]} columns**")
         st.dataframe(df_auc)
         fig = px.bar(df_auc.T, barmode="group")
-        st.plotly_chart(fig)
         fig.update_layout(
             xaxis_title="",
             yaxis_title="area under curve",
             legend_title="metabolite")
+        st.plotly_chart(fig)
 
         # compare two files side by side
         st.markdown("#### File Comparison")

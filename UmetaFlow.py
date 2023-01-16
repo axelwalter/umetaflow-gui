@@ -32,8 +32,9 @@ try:
 """
         if st.session_state["location"] == "online":
             info += """
-⚠️ You can share this unique workspace ID with other people. 
-Anyone with this ID can access your data!
+You can share this unique workspace ID with other people.
+
+⚠️ Anyone with this ID can access your data!
 """
         else:
             info += "You can create a new workspace or enter an existing one."

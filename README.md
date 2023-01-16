@@ -1,4 +1,4 @@
-# UmetaFlow GUI [![Open UmetaFlow!](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://axelwalter-umetaflow-gui-umetaflow-pdiomd.streamlit.app/Metabolomics-new-requant)
+# UmetaFlow GUI [![Open UmetaFlow!](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://axelwalter-umetaflow-gui-umetaflow-pdiomd.streamlit.app/)
 
 This app is based on the [UmetaFlow](https://chemrxiv.org/engage/chemrxiv/article-details/634fb68fdfbd2b6abc5c5fcd) workflow for LC-MS data analysis. UmetaFlow is implemented as a [snakemake pipeline](https://github.com/NBChub/snakemake-UmetaFlow) and as a Python version in [Jupyter notebooks](https://github.com/eeko-kon/pyOpenMS_UmetaFlow) based on [pyOpenMS](https://pyopenms.readthedocs.io/en/latest/index.html).
 

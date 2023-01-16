@@ -25,7 +25,7 @@ try:
         new_workspace = st.text_input("enter workspace", "")
         if st.button("**Enter Workspace**") and new_workspace:
             st.session_state["workspace"] = new_workspace
-        info = f"""💡 Your workspace name:
+        info = f"""💡 Your workspace ID:
 
 **{st.session_state['workspace']}**
 

@@ -22,7 +22,7 @@ class DataFrames:
                 break
         if "adduct" in df.columns:
             df.insert(0, "metabolite", [f"{round(mz, 4)}@{round(rt, 2)}@{adduct}" for mz, rt, adduct in zip(df["mz"].tolist(), df["RT"].tolist(), df["adduct"].tolist())])
-        else:    
+        else:
             df.insert(0, "metabolite", [f"{round(mz, 4)}@{round(rt, 2)}" for mz, rt in zip(df["mz"].tolist(), df["RT"].tolist())])
         not_sample = [c for c in df.columns if c not in ["mz", "RT", "charge", "adduct", "name", "quality"]]
         df[not_sample] = df[not_sample].applymap(lambda x: int(round(x, 0)) if isinstance(x, (int, float)) else x)
@@ -49,7 +49,7 @@ class DataFrames:
                     df[file.stem+"_SiriusID"] = id_list
         df_mzML = df[[col for col in df.columns if col.endswith("mzML")]]
         df_mzML = df_mzML.reindex(sorted(df_mzML.columns), axis=1)
-        df = pd.concat([df[[col for col in df.columns if not col.endswith("mzML")]], df_mzML])
+        df = pd.concat([df[[col for col in df.columns if not col.endswith("mzML")]], df_mzML], axis=1)
 
         if table_file.endswith("tsv"):
             df.to_csv(table_file, sep="\t")

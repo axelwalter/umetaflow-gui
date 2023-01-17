@@ -18,12 +18,11 @@ Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find
 
 `cd umetaflow-gui`
 
-3. Install the [latest pyopenms version](https://pyopenms.readthedocs.io/en/latest/installation.html#nightly-ci-wheels)
-4. Install all other Python modules specified in the requirements file with pip
+3. Install all other Python modules specified in the requirements file with pip
 
 `pip install -r requirements.txt`
 
-5. Launch the streamlit app locally in your browser
+4. Launch the streamlit app locally in your browser
 
 `streamlit run UmetaFlow.py local`
 

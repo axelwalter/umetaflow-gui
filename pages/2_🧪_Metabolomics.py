@@ -104,23 +104,23 @@ try:
         use_ad = True
     else:
         use_ad = False
-    params["use_ad"] = st.checkbox("**Adduct Detection**", use_ad)
+    params["use_ad"] = st.checkbox("**Adduct Detection**", use_ad, help="Available for positive mode right now.")
     if params["use_ad"]:
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
+        # with col1:
+            # params["ad_ion_mode"] = st.radio("ionization mode", ["positive", "negative"])
+            # if params["ad_ion_mode"] == "positive":
+            #     ad_negative_mode = "false"
+            # else:
+            #     ad_negative_mode = "true"
         with col1:
-            params["ad_ion_mode"] = st.radio("ionization mode", ["positive", "negative"])
-            if params["ad_ion_mode"] == "positive":
-                ad_ion_mode = "false"
-            else:
-                ad_ion_mode = "true"
-                params["ad_adducts"] = "H:-:1.0"
+            params["ad_adducts"] = st.text_area("potential adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4", help="Specify adducts and neutral additions/losses. Format: adducts:charge:probability. The summed up probability for all charged entries needs to be 1.0.")
         with col2:
-            params["ad_adducts"] = st.text_area("potential adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4")
-        with col3:
             params["ad_charge_min"] = st.number_input("charge min", 1, 10, 1)
-        with col4:
             params["ad_charge_max"] = st.number_input("charge max", 1, 10, 3)
-    
+        with col3:
+            params["ad_rt_max_diff"] = float(st.number_input("RT max difference", 1, 60, 3, help="Groups features with slightly different RT."))
+
     st.markdown("**Feature Linking**")
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -220,9 +220,9 @@ try:
                             "charge_min": params["ad_charge_min"],
                             "charge_max": params["ad_charge_max"],
                             "max_neutrals": 2,
-                            "negative_mode": ad_ion_mode,
-                            "retention_max_diff": 3.0,
-                            "retention_max_diff_local": 3.0})
+                            # "negative_mode": ad_negative_mode,
+                            "retention_max_diff": params["ad_rt_max_diff"],
+                            "retention_max_diff_local": params["ad_rt_max_diff"]})
             featureXML_dir = os.path.join(interim, "FeatureMaps_decharged")
         else:
             featureXML_dir = os.path.join(interim, "FFM_aligned")

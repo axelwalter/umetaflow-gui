@@ -5,5 +5,5 @@
     "tolerance_da": 0.2,
     "time_unit": "seconds",
     "baseline": 1000,
-    "combine": "false"
+    "combine": false
 }

@@ -173,11 +173,9 @@ try:
     st.markdown("##")
     c1, c2, _, c4 = st.columns(4)
     if c1.button("Load defaults"):
-        with open("params/metabolomics_defaults.json") as f:
-            params = json.loads(f.read())
-        with open(Path(st.session_state["workspace"], "metabolomics.json"), "w") as f:
-            f.write(json.dumps(params, indent=4))
-        st.experimental_rerun()
+        if Path(st.session_state["workspace"], "metabolomics.json").is_file():
+            Path(st.session_state["workspace"], "metabolomics.json").unlink()
+
     if c2.button("**Save parameters**"):
         with open(Path(st.session_state["workspace"], "metabolomics.json"), "w") as f:
             f.write(json.dumps(params, indent=4))

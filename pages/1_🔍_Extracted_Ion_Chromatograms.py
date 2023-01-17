@@ -9,6 +9,7 @@ from src.gnps import *
 from pathlib import Path
 from datetime import datetime
 import json
+import time
 
 st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
@@ -97,24 +98,19 @@ try:
     params["baseline"] = c2.number_input("AUC baseline", 0, 1000000, params["baseline"], 100)
 
     # combine variants of the same metabolite
-    if params["combine"] == "true":
-        combine = True
-    else:
-        combine = False
-    params["combine"] = c2.checkbox("combine variants of same metabolite", combine, help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)")
+    params["combine"] = c2.checkbox("combine variants of same metabolite", params["combine"], help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)")
 
     st.markdown("##")
     # run the workflow...
     c1, c2, _, c4= st.columns(4)
     if c1.button("Load defaults"):
-        with open("params/extract_defaults.json") as f:
-            params = json.loads(f.read())
-        with open(Path(st.session_state["workspace"], "extract.json"), "w") as f:
-            f.write(json.dumps(params, indent=4))
-        st.experimental_rerun()
+        if Path(st.session_state["workspace"], "extract.json").is_file():
+            Path(st.session_state["workspace"], "extract.json").unlink()
+
     if c2.button("**Save parameters**"):
         with open(Path(st.session_state["workspace"], "extract.json"), "w") as f:
             f.write(json.dumps(params, indent=4))
+
     if c4.button(label="**Extract Chromatograms!**"):
 
         mzML_files = [str(Path(st.session_state["mzML_files"], key)) for key, value in st.session_state.items() if key.endswith("mzML") and value]

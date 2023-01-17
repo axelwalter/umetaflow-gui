@@ -67,8 +67,8 @@ try:
     - All the steps with checkboxes are optional.
     """)
 
-    if Path("params/metabolomics.json").is_file():
-        with open("params/metabolomics.json") as f:
+    if Path(Path(st.session_state["workspace"], "metabolomics.json")).is_file():
+        with open(Path(st.session_state["workspace"], "metabolomics.json")) as f:
             params = json.loads(f.read())
     else:
         with open("params/metabolomics_defaults.json") as f:
@@ -80,9 +80,9 @@ try:
     with col1:
         params["ffm_mass_error"] = st.number_input("**mass error ppm**", 1.0, 1000.0, params["ffm_mass_error"])
     with col2:
-        params["ffm_noise"] = float(st.number_input("**noise threshold**", 10, 1000000000, int(params["ffm_noise"])))
+        params["ffm_noise"] = st.number_input("**noise threshold**", 10, 1000000000, int(params["ffm_noise"]))
     with col3:
-        params["ffm_peak_width"] = float(st.number_input("**peak width at FWHM**", 0.1, 120.0, params["ffm_peak_width"], 1.0))
+        params["ffm_peak_width"] = st.number_input("**peak width at FWHM**", 0.1, 120.0, params["ffm_peak_width"], 1.0)
     with col4:
         st.markdown("##")
         params["ffm_single_traces"] = st.checkbox("remove single traces", params["ffm_single_traces"])
@@ -114,21 +114,21 @@ try:
             # else:
             #     ad_negative_mode = "true"
         with col1:
-            params["ad_adducts"] = st.text_area("potential adducts", "H:+:0.9\nNa:+:0.1\nH-2O-1:0:0.4", help="Specify adducts and neutral additions/losses. Format: adducts:charge:probability. The summed up probability for all charged entries needs to be 1.0.")
+            params["ad_adducts"] = st.text_area("potential adducts", params["ad_adducts"], help="Specify adducts and neutral additions/losses. Format: adducts:charge:probability. The summed up probability for all charged entries needs to be 1.0.")
         with col2:
-            params["ad_charge_min"] = st.number_input("charge min", 1, 10, 1)
-            params["ad_charge_max"] = st.number_input("charge max", 1, 10, 3)
+            params["ad_charge_min"] = st.number_input("charge min", 1, 10, params["ad_charge_min"])
+            params["ad_charge_max"] = st.number_input("charge max", 1, 10, params["ad_charge_max"])
         with col3:
-            params["ad_rt_max_diff"] = float(st.number_input("RT max difference", 1, 60, 3, help="Groups features with slightly different RT."))
+            params["ad_rt_max_diff"] = float(st.number_input("RT max difference", 1, 60, int(params["ad_rt_max_diff"]), help="Groups features with slightly different RT."))
 
     st.markdown("**Feature Linking**")
     col1, col2, col3 = st.columns(3)
     with col1:
-        params["fl_mz_tol"] = float(st.number_input("**mz tolerance**", 0.01, 1000.0, 10.0, step=1.,format="%.2f"))
+        params["fl_mz_tol"] = float(st.number_input("**mz tolerance**", 0.01, 1000.0, params["fl_mz_tol"], step=1.,format="%.2f"))
     with col2:
-        params["fl_mz_unit"] = st.radio("mz tolerance unit", ["ppm", "Da"])
+        params["fl_mz_unit"] = st.radio("mz tolerance unit", ["ppm", "Da"], ["ppm", "Da"].index(params["fl_mz_unit"]))
     with col3:
-        params["fl_rt_tol"] = float(st.number_input("RT tolerance", 1, 200, 30))
+        params["fl_rt_tol"] = float(st.number_input("RT tolerance", 1, 200, int(params["fl_rt_tol"])))
 
     st.markdown("#### 2. Re-Quantification")
     params["use_requant"] = st.checkbox("**Re-Quantification**", params["use_requant"], help="Go back into the raw data to re-quantify consensus features that have missing values.")

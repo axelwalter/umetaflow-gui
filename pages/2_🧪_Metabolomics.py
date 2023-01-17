@@ -80,7 +80,7 @@ try:
     with col1:
         params["ffm_mass_error"] = st.number_input("**mass error ppm**", 1.0, 1000.0, params["ffm_mass_error"])
     with col2:
-        params["ffm_noise"] = st.number_input("**noise threshold**", 10, 1000000000, int(params["ffm_noise"]))
+        params["ffm_noise"] = float(st.number_input("**noise threshold**", 10, 1000000000, int(params["ffm_noise"]), 100))
     with col3:
         params["ffm_peak_width"] = st.number_input("**peak width at FWHM**", 0.1, 120.0, params["ffm_peak_width"], 1.0)
     with col4:
@@ -91,14 +91,15 @@ try:
         else:
             ffm_single_traces = "false"
 
-    st.markdown("**Map Alignment**")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        params["ma_mz_max"] = st.number_input("**mz max difference**", 0.01, 1000.0, params["ma_mz_max"], step=1.,format="%.2f")
-    with col2:
-        params["ma_mz_unit"] = st.radio("mz distance unit", ["ppm", "Da"], ["ppm", "Da"].index(params["ma_mz_unit"]))
-    with col3:
-        params["ma_rt_max"] = float(st.number_input("RT max difference", 1, 1000, int(params["ma_rt_max"]), 10))
+    params["use_ma"] = st.checkbox("**Map Alignment**", params["use_ma"])
+    if params["use_ma"]:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            params["ma_mz_max"] = st.number_input("**mz max difference**", 0.01, 1000.0, params["ma_mz_max"], step=1.,format="%.2f")
+        with col2:
+            params["ma_mz_unit"] = st.radio("mz distance unit", ["ppm", "Da"], ["ppm", "Da"].index(params["ma_mz_unit"]))
+        with col3:
+            params["ma_rt_max"] = float(st.number_input("RT max difference", 1, 1000, int(params["ma_rt_max"]), 10))
 
     if params["use_ad"]:
         use_ad = True
@@ -189,31 +190,42 @@ try:
         results_dir = Helper().reset_directory(results_dir)
         interim = Helper().reset_directory(os.path.join(results_dir, "interim"))
 
+        with st.spinner("Fetching raw data..."):
+            mzML_dir = os.path.join(interim, "mzML_original")
+            Helper().reset_directory(mzML_dir)
+            for file in mzML_files:
+                shutil.copy(file, mzML_dir)
+
         with st.spinner("Detecting features..."):
-            FeatureFinderMetabo().run(mzML_files, os.path.join(interim, "FFM"),
+            FeatureFinderMetabo().run(mzML_dir, os.path.join(interim, "FFM"),
                                     {"noise_threshold_int": params["ffm_noise"],
                                     "chrom_fwhm": params["ffm_peak_width"],
                                     "mass_error_ppm": params["ffm_mass_error"],
                                     "remove_single_traces": ffm_single_traces,
                                     "report_convex_hulls": "true"})
 
-        with st.spinner("Aligning feature maps..."):
-            MapAligner().run(os.path.join(interim, "FFM"), os.path.join(interim, "FFM_aligned"),
-                            os.path.join(interim, "Trafo"),
-                            {"max_num_peaks_considered": -1,
-                            "superimposer:mz_pair_max_distance": 0.05,
-                            "pairfinder:distance_MZ:max_difference": params["ma_mz_max"],
-                            "pairfinder:distance_MZ:unit": params["ma_mz_unit"],
-                            "pairfinder:distance_RT:max_difference": params["ma_rt_max"]})
+        if params["use_ma"]:
+            with st.spinner("Aligning feature maps..."):
+                MapAligner().run(os.path.join(interim, "FFM"), os.path.join(interim, "FFM_aligned"),
+                                os.path.join(interim, "Trafo"),
+                                {"max_num_peaks_considered": -1,
+                                "superimposer:mz_pair_max_distance": 0.05,
+                                "pairfinder:distance_MZ:max_difference": params["ma_mz_max"],
+                                "pairfinder:distance_MZ:unit": params["ma_mz_unit"],
+                                "pairfinder:distance_RT:max_difference": params["ma_rt_max"]})
+                featureXML_dir = os.path.join(interim, "FFM_aligned")
 
-        with st.spinner("Aligning mzML files..."):
-            MapAligner().run(mzML_files, os.path.join(interim, "mzML_aligned"),
-            os.path.join(interim, "Trafo"))
-            mzML_dir = os.path.join(interim, "mzML_aligned")
+            with st.spinner("Aligning mzML files..."):
+                MapAligner().run(mzML_dir, os.path.join(interim, "mzML_aligned"),
+                os.path.join(interim, "Trafo"))
+                mzML_dir = os.path.join(interim, "mzML_aligned")
+
+        else:
+            featureXML_dir = os.path.join(interim, "FFM")
 
         if params["use_ad"]:
             with st.spinner("Determining adducts..."):
-                MetaboliteAdductDecharger().run(os.path.join(interim, "FFM_aligned"), os.path.join(interim, "FeatureMaps_decharged"),
+                MetaboliteAdductDecharger().run(featureXML_dir, os.path.join(interim, "FeatureMaps_decharged"),
                             {"potential_adducts": [line.encode() for line in params["ad_adducts"].split("\n")],
                             "charge_min": params["ad_charge_min"],
                             "charge_max": params["ad_charge_max"],
@@ -222,9 +234,7 @@ try:
                             "retention_max_diff": params["ad_rt_max_diff"],
                             "retention_max_diff_local": params["ad_rt_max_diff"]})
             featureXML_dir = os.path.join(interim, "FeatureMaps_decharged")
-        else:
-            featureXML_dir = os.path.join(interim, "FFM_aligned")
-        
+
         with st.spinner("Mapping MS2 data to features..."):
             MapID().run(mzML_dir, featureXML_dir, os.path.join(interim, "FeatureMaps_ID_mapped"))
             featureXML_dir = os.path.join(interim, "FeatureMaps_ID_mapped")
@@ -290,7 +300,7 @@ try:
             shutil.make_archive(os.path.join(interim, "ExportGNPS"), 'zip', os.path.join(results_dir, "GNPS"))
 
         st.success("Complete!")
-    
+
     elif run_button:
             st.warning("Upload or select some mzML files first!")
 

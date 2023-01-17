@@ -3,6 +3,7 @@
     "ffm_noise": 1000,
     "ffm_peak_width": 5.0,
     "ffm_single_traces": true,
+    "use_ma": true,
     "ma_mz_max": 10.0,
     "ma_mz_unit": "ppm",
     "ma_rt_max": 100,

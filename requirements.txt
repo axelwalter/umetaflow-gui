@@ -3,8 +3,8 @@ pandas
 numpy
 plotly
 pyteomics
-openpyxl
-sklearn
+bokeh
+scikit-learn
 datashader
 holoviews
 --index-url https://pypi.cs.uni-tuebingen.de/simple/ pyopenms_nightly

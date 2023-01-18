@@ -223,7 +223,15 @@ class DataFrames:
             features["metabolite"] = metabolites
         features.to_csv(feature_matrix_df_file, sep="\t", index=False)
 
-def scale_df(df):
-    scaled = pd.DataFrame(StandardScaler().fit_transform(df)).set_index(df.index)
-    scaled.columns = df.columns
-    return scaled
+    def scale_df(df):
+        scaled = pd.DataFrame(StandardScaler().fit_transform(df)).set_index(df.index)
+        scaled.columns = df.columns
+        return scaled
+
+    def mzML_to_pkl(mzML_file_path, ftr_dir):
+        exp = MSExperiment()
+        MzMLFile().load(str(mzML_file_path), exp)
+        df = exp.get_df()
+        df.insert(0, "mslevel", [spec.getMSLevel() for spec in exp])
+        df.insert(0, "precursormz", [spec.getPrecursors()[0].getMZ() if spec.getPrecursors() else 0 for spec in exp])
+        df.to_pickle(Path(ftr_dir, mzML_file_path.stem+".ftr"))

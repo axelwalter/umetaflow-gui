@@ -49,6 +49,11 @@ You can share this unique workspace ID with other people.
     if not os.path.isdir(st.session_state["mzML_files"]):
         os.mkdir(st.session_state["mzML_files"])
 
+    # define directory to store mzML files as dataframes in ftr format
+    st.session_state["mzML_dfs"] = Path(st.session_state["workspace"], "mzML_dfs")
+    if not os.path.isdir(st.session_state["mzML_dfs"]):
+        os.mkdir(st.session_state["mzML_dfs"])
+
     # if we run the packaged windows version, we start within the Python directory -> need to change working directory to ..\umetaflow-gui-main
     if "windows" in sys.argv:
         os.chdir("../umetaflow-gui-main")

@@ -1,5 +1,6 @@
 import streamlit as st
 from src.helpers import Helper
+from src.dataframes import *
 from pathlib import Path
 import os
 import shutil
@@ -49,6 +50,7 @@ try:
                 for file in Path(upload_dir).iterdir():
                     if file.name not in st.session_state["mzML_files"].iterdir() and file.name.endswith("mzML"):
                         shutil.copy(file, st.session_state["mzML_files"])
+                        DataFrames.mzML_to_pkl(file, st.session_state["mzML_dfs"])
                 st.success("Successfully added uploaded files!")
 
     # upload mzML files
@@ -59,6 +61,7 @@ try:
                     if file.name not in st.session_state["mzML_files"].iterdir() and file.name.endswith("mzML"):
                         with open(Path(st.session_state["mzML_files"], file.name),"wb") as f:
                             f.write(file.getbuffer())
+                        DataFrames.mzML_to_pkl(Path(st.session_state["mzML_files"], file.name), st.session_state["mzML_dfs"])
                 st.success("Successfully added uploaded files!")
         else:
             st.warning("Upload some files before adding them.")
@@ -72,12 +75,16 @@ try:
             try:
                 if any(st.session_state["mzML_files"].iterdir()):
                     Helper().reset_directory(st.session_state["mzML_files"])
+                if any(st.session_state["mzML_dfs"].iterdir()):
+                    Helper().reset_directory(st.session_state["mzML_dfs"])
                     st.experimental_rerun()
             except:
                 pass
         if c2.button("**Un**selected"):
             try:
                 for file in [Path(st.session_state["mzML_files"], key) for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
+                    file.unlink()
+                for file in [Path(st.session_state["mzML_dfs"], key[:-4]+"pkl") for key, value in st.session_state.items() if key.endswith("mzML") and not value]:
                     file.unlink()
                 st.experimental_rerun()
             except:

@@ -4,8 +4,8 @@ from pathlib import Path
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from src.dataframes import scale_df
-from src.plotting import Plot
+from src.dataframes import *
+from src.plotting import *
 
 st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
@@ -13,15 +13,14 @@ try:
     st.title("Statistics")
     st.info("""#### 💡 Important
 
+We have developed a web app specifically for metabolomics data analyisis. 
 
-    We have developed a web app specifically for metabolomics data analyisis. 
+Visit [the GitHub repository](https://github.com/axelwalter/streamlit-metabolomics-statistics) or [**open the app**](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/) directly from here.
 
-    Visit [the GitHub repository](https://github.com/axelwalter/streamlit-metabolomics-statistics) or [**open the app**](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/) directly from here.
+#### What you need from this app
 
-    #### What you need from this app
-
-    Both Workflows let you download a **Feature Matrix** and a **Meta Data** table in `tsv` format. Edit the meta data by defining sample types (e.g. Sample, Blank or Pool)
-    and add at least one more custom attribute column to where your samples differentiate (e.g. ATTRIBUTE_Treatment: antibiotic and control).
+Both Workflows let you download a **Feature Matrix** and a **Meta Data** table in `tsv` format. Edit the meta data by defining sample types (e.g. Sample, Blank or Pool)
+and add at least one more custom attribute column to where your samples differentiate (e.g. ATTRIBUTE_Treatment: antibiotic and control).
     """)
 
     st.markdown("##")
@@ -85,7 +84,7 @@ try:
 
         st.markdown("### Clustering and Heatmap")
         if st.button("**🔥 Generate Heatmap**"):
-            df_scaled = scale_df(df[[col for col in df.columns if col.endswith(".mzML")]])
+            df_scaled = DataFrames.scale_df(df[[col for col in df.columns if col.endswith(".mzML")]])
             st.markdown("##### Clustering")
             st.plotly_chart(Plot.dendrogram(df_scaled.T))
 

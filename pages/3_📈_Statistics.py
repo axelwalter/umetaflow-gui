@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 import numpy as np
-import plotly.figure_factory as ff
 import plotly.express as px
 import plotly.graph_objects as go
-# from sklearn.preprocessing import StandardScaler
+from src.dataframes import scale_df
+from src.plotting import Plot
 
 st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
@@ -14,14 +14,14 @@ try:
     st.info("""#### 💡 Important
 
 
-We have developed a web app specifically for metabolomics data analyisis. 
+    We have developed a web app specifically for metabolomics data analyisis. 
 
-Visit [the GitHub repository](https://github.com/axelwalter/streamlit-metabolomics-statistics) or [**open the app**](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/) directly from here.
+    Visit [the GitHub repository](https://github.com/axelwalter/streamlit-metabolomics-statistics) or [**open the app**](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/) directly from here.
 
-#### What you need from this app
+    #### What you need from this app
 
-Both Workflows let you download a **Feature Matrix** and a **Meta Data** table in `tsv` format. Edit the meta data by defining sample types (e.g. Sample, Blank or Pool)
-and add at least one more custom attribute column to where your samples differentiate (e.g. ATTRIBUTE_Treatment: antibiotic and control).
+    Both Workflows let you download a **Feature Matrix** and a **Meta Data** table in `tsv` format. Edit the meta data by defining sample types (e.g. Sample, Blank or Pool)
+    and add at least one more custom attribute column to where your samples differentiate (e.g. ATTRIBUTE_Treatment: antibiotic and control).
     """)
 
     st.markdown("##")
@@ -33,12 +33,12 @@ and add at least one more custom attribute column to where your samples differen
 
     if st.session_state["stats-choice"] == "Metabolomics":
         if Path(st.session_state["workspace"], "results-metabolomics", "FeatureMatrix.tsv").is_file():
-            df = pd.read_csv(Path(st.session_state["workspace"], "results-metabolomics", "FeatureMatrix.tsv"), sep="\t")
+            df = pd.read_csv(Path(st.session_state["workspace"], "results-metabolomics", "FeatureMatrix.tsv"), sep="\t").set_index("metabolite")
         else:
             st.warning("No metabolomics results found.")
     else:
         if Path(st.session_state["workspace"], "results-extract-chromatograms", "summary.tsv").is_file():
-            df = pd.read_csv(Path(st.session_state["workspace"], "results-extract-chromatograms", "summary.tsv"), sep="\t")
+            df = pd.read_csv(Path(st.session_state["workspace"], "results-extract-chromatograms", "summary.tsv"), sep="\t").set_index("metabolite")
         else:
             st.warning("No chromatogram extraction results found.")
 
@@ -53,9 +53,9 @@ and add at least one more custom attribute column to where your samples differen
         b = c2.selectbox("samples B", samples)
 
         if a != b:
-            mean = pd.concat([df[[col for col in df.columns if a in col]].mean(axis=1), df[[col for col in df.columns if b in col]].mean(axis=1)], axis=1).set_index(df.metabolite).rename(columns={0: a, 1: b})
+            mean = pd.concat([df[[col for col in df.columns if a in col]].mean(axis=1), df[[col for col in df.columns if b in col]].mean(axis=1)], axis=1).rename(columns={0: a, 1: b})
             change = pd.DataFrame(np.log2(mean[a] / mean[b])).rename(columns={0: "log2 fold change"})
-            std = pd.concat([df[[col for col in df.columns if a in col]].std(axis=1), df[[col for col in df.columns if b in col]].std(axis=1)], axis=1).set_index(df.metabolite).rename(columns={0: a, 1: b})
+            std = pd.concat([df[[col for col in df.columns if a in col]].std(axis=1), df[[col for col in df.columns if b in col]].std(axis=1)], axis=1).rename(columns={0: a, 1: b})
             with st.expander("intermediate results"):
                 st.markdown("**Mean intensities**")
                 st.dataframe(mean)
@@ -83,31 +83,15 @@ and add at least one more custom attribute column to where your samples differen
         else:
             st.warning("Choose different samples for comparison.")
 
-        # st.markdown("### Clustering and Heatmap")
-        # if st.button("**🔥 Generate Heatmap**"):
-        #     df_heat = df[[col for col in df.columns if col.endswith(".mzML")]].set_index(df["metabolite"])
-        #     # df_heat = StandardScaler().fit_transform(df_heat)
-        #     fig = ff.create_dendrogram(df_heat.T, labels=list(df_heat.T.index))
-        #     # fig.update_layout(template='plotly_white')
-        #     fig.update_xaxes(side="top")
-        #     st.markdown("##### Clustering")
-        #     st.plotly_chart(fig)
+        st.markdown("### Clustering and Heatmap")
+        if st.button("**🔥 Generate Heatmap**"):
+            df_scaled = scale_df(df[[col for col in df.columns if col.endswith(".mzML")]])
+            st.markdown("##### Clustering")
+            st.plotly_chart(Plot.dendrogram(df_scaled.T))
 
-        #     #Heatmap
-        #     fig = px.imshow(df_heat,y=list(df_heat.index), x=list(df_heat.columns), text_auto=True, aspect="auto",
-        #                 color_continuous_scale='RdBu_r', range_color=[-3,3])
-
-        #     fig.update_layout(
-        #         autosize=False,
-        #         width=700,
-        #         height=1200,
-        #         xaxis_title="",
-        #         yaxis_title="")
-
-        #     # fig.update_yaxes(visible=False)
-        #     fig.update_xaxes(tickangle = 35)
-        #     st.markdown("##### Heatmap")
-        #     st.plotly_chart(fig)
+            #Heatmap
+            st.markdown("##### Heatmap")
+            st.plotly_chart(Plot.heatmap(df_scaled))
 
 except:
     st.warning("Something went wrong.")

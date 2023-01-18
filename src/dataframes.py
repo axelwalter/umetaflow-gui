@@ -5,7 +5,8 @@ from pathlib import Path
 from .helpers import Helper
 import pyteomics
 from pyteomics import mztab, mgf
-import streamlit as st
+from sklearn.preprocessing import StandardScaler
+
 
 class DataFrames:
     def create_consensus_table(self, consensusXML_file, table_file, sirius_ms_dir=""):
@@ -221,3 +222,8 @@ class DataFrames:
                     metabolites.append(x)
             features["metabolite"] = metabolites
         features.to_csv(feature_matrix_df_file, sep="\t", index=False)
+
+def scale_df(df):
+    scaled = pd.DataFrame(StandardScaler().fit_transform(df)).set_index(df.index)
+    scaled.columns = df.columns
+    return scaled

@@ -1,6 +1,7 @@
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
+import plotly.figure_factory as ff
 
 COLORS=['#636efa', '#ef553b',
         '#00cc96', '#ab63fa',
@@ -100,4 +101,24 @@ class Plot:
         # fig.layout.width = 200+10*len(df.columns)
         # fig.layout.height = 30*len(df.index)
         fig.update_layout(title=title)
+        return fig
+
+    def dendrogram(df):
+        fig = ff.create_dendrogram(df, labels=list(df.index))
+        fig.update_xaxes(side="top")
+        return fig
+
+    def heatmap(df):        
+        fig = px.imshow(df,y=list(df.index), x=list(df.columns), text_auto=True, aspect="auto",
+        color_continuous_scale='RdBu_r', range_color=[-3,3])
+
+        fig.update_layout(
+            autosize=False,
+            width=700,
+            height=1200,
+            xaxis_title="",
+            yaxis_title="")
+
+        # fig.update_yaxes(visible=False)
+        fig.update_xaxes(tickangle = 35)
         return fig

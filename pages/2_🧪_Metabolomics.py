@@ -79,17 +79,24 @@ try:
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         params["ffm_mass_error"] = st.number_input("**mass error ppm**", 1.0, 1000.0, params["ffm_mass_error"])
+        params["ffm_min_fwhm"] = st.number_input("min peak width at FWHM", 0.1, 60.0, params["ffm_min_fwhm"])
+        
     with col2:
         params["ffm_noise"] = float(st.number_input("**noise threshold**", 10, 1000000000, int(params["ffm_noise"]), 100))
+        params["ffm_peak_width"] = st.number_input("peak width at FWHM", 0.1, 120.0, params["ffm_peak_width"], 1.0)
     with col3:
-        params["ffm_peak_width"] = st.number_input("**peak width at FWHM**", 0.1, 120.0, params["ffm_peak_width"], 1.0)
-    with col4:
         st.markdown("##")
         params["ffm_single_traces"] = st.checkbox("remove single traces", params["ffm_single_traces"])
         if params["ffm_single_traces"]:
             ffm_single_traces = "true"
         else:
             ffm_single_traces = "false"
+        st.markdown("#####")
+        params["ffm_max_fwhm"] = st.number_input("max peak width at FWHM", 0.2, 60.0, params["ffm_max_fwhm"])
+    with col4:
+        params["ffm_snr"] = st.number_input("min S/N ratio", 1.0, 20.0, params["ffm_snr"], 1.0)
+    if not (params["ffm_min_fwhm"] <= params["ffm_peak_width"] <= params["ffm_max_fwhm"]):
+        st.warning("Check your peak width settings.")
 
     params["use_ma"] = st.checkbox("**Map Alignment**", params["use_ma"])
     if params["use_ma"]:
@@ -200,9 +207,12 @@ try:
             FeatureFinderMetabo().run(mzML_dir, os.path.join(interim, "FFM"),
                                     {"noise_threshold_int": params["ffm_noise"],
                                     "chrom_fwhm": params["ffm_peak_width"],
+                                    "chrom_peak_snr": params["ffm_snr"],
                                     "mass_error_ppm": params["ffm_mass_error"],
                                     "remove_single_traces": ffm_single_traces,
-                                    "report_convex_hulls": "true"})
+                                    "report_convex_hulls": "true",
+                                    "min_fwhm": params["ffm_min_fwhm"],
+                                    "max_fwhm": params["ffm_max_fwhm"]})
 
         if params["use_ma"]:
             with st.spinner("Aligning feature maps..."):

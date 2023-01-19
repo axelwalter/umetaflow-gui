@@ -3,7 +3,6 @@ import plotly.express as px
 import numpy as np
 import pandas as pd
 
-
 template = "simple_white"
 
 
@@ -143,4 +142,46 @@ def plot_ms_spectrum(df_spectrum, title, color):
         xaxis_title="m/z",
         yaxis_title="intensity"
     )
+    return fig
+
+
+def plot_peak_map_2D(df):
+    # df = StandardScaler().fit_transform(df)
+    fig = px.scatter(color_continuous_scale=px.colors.sequential.Mint)
+    cutoff = np.max([np.max(arr) for arr in df["intarray"]])/100 # 1% of max value
+    cutoff = np.mean([np.median(arr) for arr in df["intarray"]]) * 3 # three times estimated noise level
+    for i, row in df.iterrows():
+        if not i%4 == 0: # showing only every fourth scan
+            continue
+        int_f = row["intarray"][row["intarray"] > cutoff]
+        mz_f = row["mzarray"][row["intarray"] > cutoff]
+        fig.add_trace(go.Scattergl(x=[row["RT"]]*len(int_f), y=mz_f, mode="markers", marker_color=int_f, opacity=1))
+    fig.update_layout(
+        showlegend=False,
+        title_text = f"showing values above 3x estimated noise level of {int(cutoff/3)}",
+        xaxis_title="retention time (s)",
+        yaxis_title="m/z")
+    scale=[(0.00, "rgba(255, 215, 1, 0.0)"),   (0.33, "rgba(255, 215, 1, 0.33)"),
+            (0.33, "rgba(255, 162, 0, 0.33)"), (0.66, "rgba(255, 162, 0, 0.66)"),
+            (0.66, "rgba(255, 39, 39, 0.66)"),  (0.88, "rgba(255, 39, 39, 0.88)"),
+            (0.88, "rgba(168, 25, 25, 0.88)"),  (1.00, "rgba(168, 25, 25, 1)")]
+    fig.update_traces(marker_colorscale=scale, selector=dict(type='scattergl'))
+    return fig
+
+def plot_bpc(df, ms1_rt, ms2_rt = 0):
+    intensity = np.array([max(intensity_array) for intensity_array in df["intarray"]])
+    fig = px.line(df, x="RT", y=intensity)
+    fig.add_trace(go.Scatter(x=[ms1_rt], y=[intensity[np.abs(df["RT"]-ms1_rt).argmin()]], name="MS1 spectrum",
+                            text="MS1", textposition="top center", textfont=dict(color='#EF553B', size=20)))
+    fig.data[1].update(mode='markers+text', marker_symbol="x", marker=dict(color="#EF553B", size=12)) 
+    if ms2_rt > 0:
+        fig.add_trace(go.Scatter(x=[ms2_rt], y=[intensity[np.abs(df["RT"]-ms2_rt).argmin()]], name="MS2 spectrum", 
+                                text="MS2", textposition="top center", textfont=dict(color='#00CC96', size=20)))
+        fig.data[2].update(mode='markers+text', marker_symbol="x", marker=dict(color="#00CC96", size=12))
+    fig.update_traces(showlegend=False)
+    fig.update_layout(
+        showlegend=False,
+        title_text="base peak chromatogram",
+        xaxis_title="retention time (s)",
+        yaxis_title="intensity (cps)")
     return fig

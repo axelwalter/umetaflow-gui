@@ -27,6 +27,6 @@
     "annotate_gnps_library": true,
     "annoation_rt_window_sec": 60,
     "annotation_mz_window_ppm": 10,
-    "ms1_annotation_file": "default-workspace/peptidoglycan-soluble-precursors-positive.tsv",
+    "ms1_annotation_file": "",
     "ms2_annotation_file": ""
 }

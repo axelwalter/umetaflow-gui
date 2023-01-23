@@ -60,10 +60,11 @@ You can share this unique workspace ID with other people.
 
 
     # set page title
-    st.title("UmetaFlow")
-
+    c1, c2 = st.columns([0.75, 0.25])
+    c1.markdown("# UmetaFlow")
+    c2.image("resources/OpenMS.png", use_column_width=True)
     st.markdown("""
-    ## A universal tool for metabolomics data analysis
+    ## A universal metabolomics tool
 
     This app is based on the [UmetaFlow](https://chemrxiv.org/engage/chemrxiv/article-details/634fb68fdfbd2b6abc5c5fcd) workflow for LC-MS data analysis. UmetaFlow is implemented as a [snakemake pipeline](https://github.com/NBChub/snakemake-UmetaFlow) and as a Python version in [Jupyter notebooks](https://github.com/eeko-kon/pyOpenMS_UmetaFlow) based on [pyOpenMS](https://pyopenms.readthedocs.io/en/latest/index.html).
 

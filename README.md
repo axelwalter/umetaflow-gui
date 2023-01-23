@@ -27,7 +27,10 @@ Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find
 `streamlit run UmetaFlow.py local`
 
 ### Windows
-Download the [windows executable](https://github.com/axelwalter/umetaflow-gui/releases/download/v0.1.0/easy-MS.zip) file and unzip it. Run the `Update.exe` file once to install the tool. It is recommended to run the update once in a while to get the latest changes. To start the tool simply run `easy-MS.exe`.
+1. Download and extract the [UmetaFlow.zip](https://github.com/axelwalter/umetaflow-gui/releases/download/v1.0.0/UmetaFlow.zip) file
+2. Run the `Update` script (also from time to time to get latest changes).
+> The command prompt will close once the update is done.
+3. Run the app by executing` UmetaFlow`
 
 ## Quickstart
 

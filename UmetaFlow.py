@@ -25,6 +25,8 @@ try:
 
     # show the workspace options and info text
     with st.sidebar:
+        st.image("resources/OpenMS.png", "powered by")
+        st.markdown("***")
         st.markdown("### Workspaces")
         new_workspace = st.text_input("enter workspace", "")
         if st.button("**Enter Workspace**") and new_workspace:
@@ -58,12 +60,8 @@ You can share this unique workspace ID with other people.
     if not os.path.isdir(st.session_state["mzML_dfs"]):
         os.mkdir(st.session_state["mzML_dfs"])
 
-
-    # set page title
-    c1, c2 = st.columns([0.75, 0.25])
-    c1.markdown("# UmetaFlow")
-    c2.image("resources/OpenMS.png", use_column_width=True)
     st.markdown("""
+    # UmetaFlow
     ## A universal metabolomics tool
 
     This app is based on the [UmetaFlow](https://chemrxiv.org/engage/chemrxiv/article-details/634fb68fdfbd2b6abc5c5fcd) workflow for LC-MS data analysis. UmetaFlow is implemented as a [snakemake pipeline](https://github.com/NBChub/snakemake-UmetaFlow) and as a Python version in [Jupyter notebooks](https://github.com/eeko-kon/pyOpenMS_UmetaFlow) based on [pyOpenMS](https://pyopenms.readthedocs.io/en/latest/index.html).

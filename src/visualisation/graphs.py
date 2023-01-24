@@ -182,8 +182,7 @@ def plot_peak_map_2D(df):
         xaxis_title="retention time (s)",
         yaxis_title="m/z",
         plot_bgcolor='rgb(255,255,255)',
-        height=7000,
-        width=500)
+        height=800)
     
     fig.layout.template = "plotly_white"
 

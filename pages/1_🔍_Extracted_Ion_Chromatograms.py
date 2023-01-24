@@ -50,6 +50,7 @@ try:
             else:
                 checked = True
             st.checkbox(f.name[:-5], checked, key=f.name)
+
         st.markdown("***")
         st.image("resources/OpenMS.png", "powered by")
 

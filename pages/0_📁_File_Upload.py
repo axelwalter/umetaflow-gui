@@ -96,8 +96,6 @@ try:
                 st.experimental_rerun()
             except:
                 pass
-        st.markdown("***")
-        st.image("resources/OpenMS.png", "powered by")
 
         # show currently available mzML files
         st.markdown("### Uploaded Files")
@@ -108,5 +106,7 @@ try:
                 checked = True
             st.checkbox(f.name[:-5], checked, key=f.name)
 
+        st.markdown("***")
+        st.image("resources/OpenMS.png", "powered by")
 except:
     st.warning("Something went wrong.")

@@ -30,8 +30,6 @@ try:
         if st.button("**Enter Workspace**") and new_workspace:
             st.session_state["workspace"] = new_workspace
         info = f"""💡 Your workspace ID:
-        st.markdown("***")
-        st.image("resources/OpenMS.png", "powered by")
 
 **{st.session_state['workspace']}**
 
@@ -45,6 +43,9 @@ You can share this unique workspace ID with other people.
         else:
             info += "You can create a new workspace or enter an existing one."
         st.info(info)
+
+        st.markdown("***")
+        st.image("resources/OpenMS.png", "powered by")
 
     # if the selected workspace does not exist, create it
     if not os.path.exists(str(st.session_state["workspace"])):

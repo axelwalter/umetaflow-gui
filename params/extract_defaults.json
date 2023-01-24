@@ -1,5 +1,5 @@
 {
-    "masses_text": "222.0972=GlcNAc\n294.1183=MurNAc",
+    "masses_text": "608.0889=UDP-GlcNAc\n680.11=UDP-MurNAc",
     "mz_unit": "ppm",
     "tolerance_ppm": 10,
     "tolerance_da": 0.2,

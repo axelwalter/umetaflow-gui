@@ -1,4 +1,5 @@
 --index-url https://pypi.cs.uni-tuebingen.de/simple/ pyopenms_nightly
+resources/pyopenms_nightly-3.0.0.dev20230105-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 streamlit
 pandas
 numpy

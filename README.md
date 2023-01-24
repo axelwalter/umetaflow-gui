@@ -1,4 +1,4 @@
-# UmetaFlow GUI [![Open UmetaFlow!](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://axelwalter-umetaflow-gui-umetaflow-pdiomd.streamlit.app/)
+# UmetaFlow GUI [![Open UmetaFlow!](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://axelwalter-umetaflow-gui-umetaflow-a8vy7d.streamlit.app/)
 **powered by:**
 
 <img src="resources/OpenMS.png" width=20%>

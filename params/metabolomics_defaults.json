@@ -21,7 +21,7 @@
     "fl_mz_tol": 10.0,
     "fl_mz_unit": "ppm",
     "fl_rt_tol": 30.0,
-    "annotate_ms1": true,
+    "annotate_ms1": false,
     "annotate_ms2": false,
     "use_requant": false,
     "annotate_gnps_library": true,

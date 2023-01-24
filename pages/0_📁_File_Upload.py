@@ -108,5 +108,7 @@ try:
 
         st.markdown("***")
         st.image("resources/OpenMS.png", "powered by")
+    
+    st.write([file for file in Path(".").iterdir()])
 except:
     st.warning("Something went wrong.")

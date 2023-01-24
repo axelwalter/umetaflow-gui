@@ -248,9 +248,10 @@ try:
                             "retention_max_diff_local": params["ad_rt_max_diff"]})
             featureXML_dir = os.path.join(interim, "FeatureMaps_decharged")
 
-        with st.spinner("Mapping MS2 data to features..."):
-            MapID().run(mzML_dir, featureXML_dir, os.path.join(interim, "FeatureMaps_ID_mapped"))
-            featureXML_dir = os.path.join(interim, "FeatureMaps_ID_mapped")
+        if st.session_state["use_sirius_manual"] or st.session_state["annotate_ms2"] or st.session_state["use_gnps"]:
+            with st.spinner("Mapping MS2 data to features..."):
+                MapID().run(mzML_dir, featureXML_dir, os.path.join(interim, "FeatureMaps_ID_mapped"))
+                featureXML_dir = os.path.join(interim, "FeatureMaps_ID_mapped")
 
         with st.spinner("Linking features..."):
             FeatureLinker().run(featureXML_dir,

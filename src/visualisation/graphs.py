@@ -134,8 +134,6 @@ def plot_ms_spectrum(df_spectrum, title, color):
 
     df = create_spectra(df_spectrum['mzarray'].tolist()[0], df_spectrum['intarray'].tolist()[0])
     fig = px.line(df, x="mz", y="intensity")
-    # fig = go.Figure()
-    # fig.add_trace(go.Scatter(x=x,y=y, hoveron=x))
     fig.update_traces(line_color=color)
     fig.update_layout(
         showlegend=False,
@@ -143,6 +141,7 @@ def plot_ms_spectrum(df_spectrum, title, color):
         xaxis_title="m/z",
         yaxis_title="intensity"
     )
+    fig.update_yaxes(fixedrange=True)
     return fig
 
 

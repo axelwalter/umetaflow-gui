@@ -163,10 +163,10 @@ def plot_bpc(df, ms1_rt, ms2_rt = 0):
         yaxis_title="intensity (cps)")
     return fig
 
-def plot_peak_map_2D(df):
+def plot_peak_map_2D(df, cutoff):
     fig = go.Figure()
     ints = np.concatenate([df.loc[index, "intarray"] for index in df.index])
-    int_filter = ints > 1000 # show only ints over threshold
+    int_filter = ints > cutoff # show only ints over threshold
     ints = ints[int_filter]
     mzs = np.concatenate([df.loc[index, "mzarray"] for index in df.index])[int_filter]
     rts = np.concatenate([np.full(len(df.loc[index, "mzarray"]), df.loc[index, "RT"]) for index in df.index])[int_filter]

@@ -75,8 +75,6 @@ try:
 
 
     with st.sidebar:
-        st.image("resources/OpenMS.png", "powered by")
-        st.markdown("***")
         # Removing files
         st.markdown("### Remove Files")
         c1, c2 = st.columns(2)
@@ -98,6 +96,8 @@ try:
                 st.experimental_rerun()
             except:
                 pass
+        st.markdown("***")
+        st.image("resources/OpenMS.png", "powered by")
 
         # show currently available mzML files
         st.markdown("### Uploaded Files")

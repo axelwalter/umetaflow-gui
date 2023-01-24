@@ -12,7 +12,6 @@ st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layou
 try:
     with st.sidebar:
         st.image("resources/OpenMS.png", "powered by")
-        st.markdown("***")
 
     st.title("Statistics")
     st.info("""#### 💡 Important

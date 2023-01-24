@@ -24,8 +24,6 @@ try:
         os.mkdir(results_dir)
 
     with st.sidebar:
-        st.image("resources/OpenMS.png", "powered by")
-        st.markdown("***")
         # Removing files
         st.markdown("### Remove Files")
         c1, c2 = st.columns(2)
@@ -52,6 +50,8 @@ try:
             else:
                 checked = True
             st.checkbox(f.name[:-5], checked, key=f.name)
+        st.markdown("***")
+        st.image("resources/OpenMS.png", "powered by")
 
 
     st.title("Extracted Ion Chromatograms (EIC/XIC)")

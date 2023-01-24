@@ -9,7 +9,6 @@ try:
 
     with st.sidebar:
         st.image("resources/OpenMS.png", "powered by")
-        st.markdown("***")
 
     st.title("Visualization")
 

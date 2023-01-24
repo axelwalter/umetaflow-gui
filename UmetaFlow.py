@@ -25,13 +25,13 @@ try:
 
     # show the workspace options and info text
     with st.sidebar:
-        st.image("resources/OpenMS.png", "powered by")
-        st.markdown("***")
         st.markdown("### Workspaces")
         new_workspace = st.text_input("enter workspace", "")
         if st.button("**Enter Workspace**") and new_workspace:
             st.session_state["workspace"] = new_workspace
         info = f"""💡 Your workspace ID:
+        st.markdown("***")
+        st.image("resources/OpenMS.png", "powered by")
 
 **{st.session_state['workspace']}**
 

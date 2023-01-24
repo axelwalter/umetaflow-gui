@@ -28,7 +28,8 @@ try:
 
             df_ms1 = spectra[sample].loc[spectra[sample]["mslevel"] == 1]
             if show_peak_map:
-                peak_map = plot_peak_map_2D(df_ms1)
+                with st.spinner("Generating 2D peak map..."):
+                    peak_map = plot_peak_map_2D(df_ms1)
                 st.plotly_chart(peak_map)
             df_ms2 = spectra[sample].loc[spectra[sample]["mslevel"] == 2]
 

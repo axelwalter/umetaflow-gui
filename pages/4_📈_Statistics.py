@@ -10,6 +10,10 @@ from src.plotting import *
 st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
 try:
+    with st.sidebar:
+        st.image("resources/OpenMS.png", "powered by")
+        st.markdown("***")
+
     st.title("Statistics")
     st.info("""#### 💡 Important
 

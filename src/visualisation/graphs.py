@@ -165,7 +165,7 @@ def plot_bpc(df, ms1_rt, ms2_rt = 0):
     return fig
 
 def plot_peak_map_2D(df):
-    fig = px.scatter(color_continuous_scale=px.colors.sequential.Mint)
+    fig = go.Figure()
     ints = np.concatenate([df.loc[index, "intarray"] for index in df.index])
     int_filter = ints > 1000 # show only ints over threshold
     ints = ints[int_filter]
@@ -177,14 +177,23 @@ def plot_peak_map_2D(df):
     mzs = mzs[sort]
     rts = rts[sort]
 
-    fig.add_trace(go.Scattergl(name="peaks", x=rts, y=mzs, mode="markers", marker_color=ints))
+    fig.add_trace(go.Scattergl(name="peaks", x=rts, y=mzs, mode="markers", marker_color=ints, marker_symbol="square"))
     fig.update_layout(
         xaxis_title="retention time (s)",
-        yaxis_title="m/z")
+        yaxis_title="m/z",
+        plot_bgcolor='rgb(255,255,255)',
+        height=7000,
+        width=500)
+    
+    fig.layout.template = "plotly_white"
+
     scale=[
-        (0.00, "rgba(234, 241, 86, 1.0)"),   (0.01, "rgba(248, 154, 65, 1.0)"),
-        (0.2, "rgba(162, 90, 133, 1.0)"),   (0.4, "rgba(53, 50, 155, 1.0)"),
-        (1.0, "rgba(3, 35, 51, 1)")
+        (0.00, "rgba(233, 233, 233, 1.0)"),
+        (0.01, "rgba(243, 236, 166, 1.0)"),
+        (0.1, "rgba(255, 168, 0, 1.0)"),
+        (0.2, "rgba(191, 0, 191, 1.0)"),
+        (0.4, "rgba(68, 0, 206, 1.0)"),
+        (1.0, "rgba(33, 0, 101, 1.0)")
     ]
     fig.update_traces(marker_colorscale=scale, hovertext=ints.round(), selector=dict(type='scattergl'))
     return fig

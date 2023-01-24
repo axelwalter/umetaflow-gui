@@ -1,10 +1,7 @@
+--index-url https://pypi.cs.uni-tuebingen.de/simple/ pyopenms_nightly
 streamlit
 pandas
 numpy
 plotly
 pyteomics
-bokeh
 scikit-learn
-datashader
-holoviews
---index-url https://pypi.cs.uni-tuebingen.de/simple/ pyopenms_nightly

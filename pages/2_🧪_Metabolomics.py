@@ -13,10 +13,11 @@ import json
 st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
 def open_df(path):
+    df = pd.DataFrame()
     if os.path.isfile(path):
         df = pd.read_csv(path, sep="\t")
     else:
-        return
+        return None
     return df
 
 # try:
@@ -332,38 +333,39 @@ elif run_button:
         st.warning("Upload or select some mzML files first!")
 
 if any(Path(results_dir).iterdir()):
-    st.markdown("***")
     df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
-    st.markdown("#### Feature Matrix")
-    st.markdown(f"**{df.shape[0]} rows, {df.shape[1]} columns**")
-    st.dataframe(df)
-    st.markdown("##")
-    st.markdown("#### Metrics")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("missing values", st.session_state.missing_values_before)
-    col2.metric("missing values after re-quantification", st.session_state.missing_values_after)
-    col3.metric("number of features", df.shape[0])
-    col4.metric("number of samples", len([col for col in df.columns if "mzML" in col]))
-    st.markdown("#### Downloads")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.download_button("Feature Matrix", df.to_csv(sep="\t", index=False), f"FeatureMatrix-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv")
-    df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
-    col2.download_button("Meta Data", df_md.to_csv(sep="\t", index=False), f"MetaData-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv")
-    if Path(results_dir, "interim", "ExportSirius.zip").is_file():
-        with open(os.path.join(results_dir, "interim", "ExportSirius.zip"), "rb") as fp:
-            btn = col3.download_button(
-                label="Files for Sirius",
-                data=fp,
-                file_name=f"ExportSirius-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
-                mime="application/zip"
-            )
-    if Path(results_dir, "interim", "ExportGNPS.zip").is_file():
-        with open(os.path.join(results_dir, "interim", "ExportGNPS.zip"), "rb") as fp:
-            btn = col4.download_button(
-                label="Files for GNPS",
-                data=fp,
-                file_name=f"ExportGNPS-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
-                mime="application/zip"
-            )
+    if not df.empty:
+        st.markdown("***")
+        st.markdown("#### Feature Matrix")
+        st.markdown(f"**{df.shape[0]} rows, {df.shape[1]} columns**")
+        st.dataframe(df)
+        st.markdown("##")
+        st.markdown("#### Metrics")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("missing values", st.session_state.missing_values_before)
+        col2.metric("missing values after re-quantification", st.session_state.missing_values_after)
+        col3.metric("number of features", df.shape[0])
+        col4.metric("number of samples", len([col for col in df.columns if "mzML" in col]))
+        st.markdown("#### Downloads")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.download_button("Feature Matrix", df.to_csv(sep="\t", index=False), f"FeatureMatrix-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv")
+        df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
+        col2.download_button("Meta Data", df_md.to_csv(sep="\t", index=False), f"MetaData-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv")
+        if Path(results_dir, "interim", "ExportSirius.zip").is_file():
+            with open(os.path.join(results_dir, "interim", "ExportSirius.zip"), "rb") as fp:
+                btn = col3.download_button(
+                    label="Files for Sirius",
+                    data=fp,
+                    file_name=f"ExportSirius-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
+                    mime="application/zip"
+                )
+        if Path(results_dir, "interim", "ExportGNPS.zip").is_file():
+            with open(os.path.join(results_dir, "interim", "ExportGNPS.zip"), "rb") as fp:
+                btn = col4.download_button(
+                    label="Files for GNPS",
+                    data=fp,
+                    file_name=f"ExportGNPS-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
+                    mime="application/zip"
+                )
 # except:
 #     st.warning("Something went wrong.")

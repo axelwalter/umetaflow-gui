@@ -52,32 +52,27 @@ class FeatureFinderMetabo:
             # elution peaks, empty FeatureMap, empty list for feature chromatograms
             ffm.run(elution_peaks, feature_map, chromatograms)
 
-            feature_map.setUniqueIds()
             feature_map.setPrimaryMSRunPath([mzML_file.encode()])
 
             feature_map_chroms = FeatureMap(feature_map)
             feature_map_chroms.clear(False)
 
             if feature_map.size() == len(chromatograms):
-                for f, chrom in zip(feature_map, chromatograms):
-                    rt, intensities = chrom[0].get_peaks()
-                    f.setMetaValue("chrom_rts", ",".join(rt.astype(str)))
-                    f.setMetaValue("chrom_intensities", ",".join(intensities.astype(str)))
+                for f in feature_map:
+                    # get the matching monoisotopic chromatogram
+                    match = [c[0] for c in chromatograms if int(c[0].getName().split("_")[0]) == f.getUniqueId()][0]
+                    rts, ints = match.get_peaks()
+                    f.setMetaValue("chrom_rts", ",".join(rts.astype(str)))
+                    f.setMetaValue("chrom_intensities", ",".join(ints.astype(str)))
                     feature_map_chroms.push_back(f)
+
+            feature_map_chroms.setUniqueIds()
 
             if os.path.isdir(featureXML):
                 FeatureXMLFile().store(os.path.join(featureXML, os.path.basename(
                     mzML_file)[:-4] + "featureXML"), feature_map_chroms)
             else:
                 FeatureXMLFile().store(featureXML, feature_map_chroms)
-
-            # # store chromatograms in mzML file
-            # exp = MSExperiment()
-            # for chrom in chromatograms:
-            #     exp.addChromatogram(chrom)
-            # MzMLFile().store(str(Path(chrom_dir, Path(mzML_file).name)), exp)
-
-
 
 class MapAligner:
     def run(self, input_files, aligned_dir, trafo_dir, params={}):

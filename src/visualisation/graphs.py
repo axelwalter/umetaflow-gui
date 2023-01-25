@@ -195,8 +195,7 @@ def plot_peak_map_2D(df, cutoff):
     fig.update_traces(marker_colorscale=COLOR_SCALE, hovertext=ints.round(), selector=dict(type='scattergl'))
     return fig
 
-def plot_feature_map(df, int_cutoff=0):
-    df = df[df["intensity"] > int_cutoff]
+def plot_feature_map(df):
     fig = go.Figure()
     # fig.add_traces([go.Scattergl(x=[df.loc[i, "RTstart"], df.loc[i, "RTend"]], y=[df.loc[i, "mz"], df.loc[i, "mz"]], mode="lines", line=dict(color="rgba(41,55,155, 0.5)")) for i in df.index])
     fig.add_trace(go.Scattergl(name="feature", x=df["RT"], y=df["mz"], mode="markers", marker_color=df["intensity"], marker_symbol="square", marker_size=12,
@@ -205,11 +204,23 @@ def plot_feature_map(df, int_cutoff=0):
                             hovertemplate="<b>mz: %{customdata[0]}<br>intensity: %{customdata[1]}<br>RTstart: %{customdata[2]}<br>RTend: %{customdata[3]}<br>RTrange: %{customdata[4]}<br>FWHM: %{customdata[5]}<br>charge: %{customdata[6]}<br>quality: %{customdata[7]}<br>adduct: %{customdata[8]}<br>"))
 
     fig.update_layout(
-        xaxis_title="retention time (s)",
+        title = "2D Feature Map",
+        xaxis_title="retention time",
         yaxis_title="m/z",
-        plot_bgcolor='rgb(255,255,255)',
+        plot_bgcolor="rgb(255,255,255)",
         height=800,
         width=1000)
     fig.layout.template = "plotly_white"
     fig.update_traces(showlegend=False, marker_colorscale=COLOR_SCALE, hovertext="int: "+df["intensity"].astype(int).astype(str)+" q: "+df["quality"].astype(str), selector=dict(type='scattergl'))
+    return fig
+
+def plot_feature_chromatogram(df):
+    fig = px.line(x=df.loc[df.index[0], "chrom_rts"], y=df.loc[df.index[0], "chrom_intensities"])
+    fig.update_layout(
+        title=f"monoisotopic peak: {df.loc[df.index[0], 'mz']} m/z",
+        xaxis_title="retention time",
+        yaxis_title="intensity (counts per second)",
+        plot_bgcolor="rgb(255,255,255)"
+    )
+    fig.layout.template = "plotly_white"
     return fig

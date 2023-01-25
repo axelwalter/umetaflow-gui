@@ -44,15 +44,24 @@ def display_FFM_data(feature_maps):
     if name:
         df = feature_maps[name]
         c1, c2, c3 = st.columns(3)
-
         c1.metric("number of features", df.shape[0])
         c2.metric("lowest intensity", int(min(df["intensity"])))
         c3.metric("highest intensity", int(max(df["intensity"])))
-
         int_cutoff = c1.number_input("show features with intensity above x 10e6", 0, int(max(df["intensity"])/1000000), 0, 1) * 1000000
+        df = df[df["intensity"] > int_cutoff]
         df.sort_values(by=["intensity"], inplace=True)
         df.fillna("None", inplace=True)
-        fig = plot_feature_map(df, int_cutoff)
+        selected_feature = c2.selectbox("detailed feature view", df["metabolite"])
+
+        c1, c2 = st.columns(2)
+        # 2D chromatogram peak map of feature area
+        fig = plot_feature_chromatogram(df[df["metabolite"] == selected_feature])
+        c1.plotly_chart(fig)
+        # chromatogram monoisotopic mass
+
+
+        # 2D feature map
+        fig = plot_feature_map(df)
         st.plotly_chart(fig)
 
 # try:

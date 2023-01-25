@@ -1,5 +1,6 @@
 from pyopenms import *
 import pandas as pd
+import numpy as np
 import os
 from pathlib import Path
 from .helpers import Helper
@@ -228,10 +229,21 @@ class DataFrames:
         scaled.columns = df.columns
         return scaled
 
-    def mzML_to_pkl(mzML_file_path, ftr_dir):
+    def mzML_to_ftr(mzML_file_path, ftr_dir):
         exp = MSExperiment()
         MzMLFile().load(str(mzML_file_path), exp)
         df = exp.get_df()
         df.insert(0, "mslevel", [spec.getMSLevel() for spec in exp])
         df.insert(0, "precursormz", [spec.getPrecursors()[0].getMZ() if spec.getPrecursors() else 0 for spec in exp])
-        df.to_pickle(Path(ftr_dir, mzML_file_path.stem+".ftr"))
+        df.to_feather(Path(ftr_dir, mzML_file_path.stem+".ftr"))
+
+    def featureXML_to_ftr(featureXML_file_path, ftr_dir):
+        fm = FeatureMap()
+        FeatureXMLFile().load(str(featureXML_file_path), fm)
+        df = fm.get_df(export_peptide_identifications=False).reset_index()
+        df["adduct"] = [f.getMetaValue("dc_charge_adducts") for f in fm]
+        df["fwhm"] = [f.getMetaValue("FWHM") for f in fm]
+        df["chrom_rts"] = [np.array(f.getMetaValue("chrom_rts").split(",")).astype(np.float64) for f in fm]
+        df["chrom_intensities"] = [np.array(f.getMetaValue("chrom_intensities").split(",")).astype(np.float64) for f in fm]
+        df["metabolite"] = df["mz"].round(5).astype(str) + "@" + df["RT"].round(2).astype(str)
+        df.to_feather(Path(ftr_dir, featureXML_file_path.stem+".ftr"))

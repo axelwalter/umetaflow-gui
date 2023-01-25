@@ -19,7 +19,7 @@ try:
         example_mzML_dir = Path("example_data", "mzML")
         for file in example_mzML_dir.glob("*.mzML"):
             shutil.copy(file, Path(st.session_state["mzML_files"]))
-            DataFrames.mzML_to_pkl(file, st.session_state["mzML_dfs"])
+            DataFrames.mzML_to_ftr(file, st.session_state["mzML_dfs"])
 
     st.info("""
         **💡 How to upload files**
@@ -57,7 +57,7 @@ try:
                 for file in Path(upload_dir).iterdir():
                     if file.name not in st.session_state["mzML_files"].iterdir() and file.name.endswith("mzML"):
                         shutil.copy(file, st.session_state["mzML_files"])
-                        DataFrames.mzML_to_pkl(file, st.session_state["mzML_dfs"])
+                        DataFrames.mzML_to_ftr(file, st.session_state["mzML_dfs"])
                 st.success("Successfully added uploaded files!")
 
     # upload mzML files
@@ -68,7 +68,7 @@ try:
                     if file.name not in st.session_state["mzML_files"].iterdir() and file.name.endswith("mzML"):
                         with open(Path(st.session_state["mzML_files"], file.name),"wb") as f:
                             f.write(file.getbuffer())
-                        DataFrames.mzML_to_pkl(Path(st.session_state["mzML_files"], file.name), st.session_state["mzML_dfs"])
+                        DataFrames.mzML_to_ftr(Path(st.session_state["mzML_files"], file.name), st.session_state["mzML_dfs"])
                 st.success("Successfully added uploaded files!")
         else:
             st.warning("Upload some files before adding them.")

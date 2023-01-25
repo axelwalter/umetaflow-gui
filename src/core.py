@@ -6,7 +6,7 @@ from pyopenms import *
 from .helpers import Helper
 
 class FeatureFinderMetabo:
-    def run(self, mzML, featureXML, params={}, q_threshold=0):
+    def run(self, mzML, featureXML, params={}):
         if type(mzML) is list:
             mzML_files = mzML
         elif os.path.isdir(mzML):
@@ -15,6 +15,7 @@ class FeatureFinderMetabo:
             mzML_files = [mzML]
         if not featureXML.endswith(".featureXML"):
             Helper().reset_directory(featureXML)
+
         for mzML_file in mzML_files:
             exp = MSExperiment()
             MzMLFile().load(mzML_file, exp)
@@ -47,28 +48,35 @@ class FeatureFinderMetabo:
                     ffm_par.setValue(key, value)
             ffm.setParameters(ffm_par)
             feature_map = FeatureMap()
-            feat_chrom = []
+            chromatograms = []
             # elution peaks, empty FeatureMap, empty list for feature chromatograms
-            ffm.run(elution_peaks, feature_map, feat_chrom)
+            ffm.run(elution_peaks, feature_map, chromatograms)
 
             feature_map.setUniqueIds()
             feature_map.setPrimaryMSRunPath([mzML_file.encode()])
 
-            feature_map_filtered = FeatureMap(feature_map)
-            feature_map_filtered.clear(False)
+            feature_map_chroms = FeatureMap(feature_map)
+            feature_map_chroms.clear(False)
 
-            if q_threshold:
-                for f in feature_map:
-                    if f.getOverallQuality() > q_threshold:  # 0.0005 was good
-                        feature_map_filtered.push_back(f)
-                print('Features before quality filter: ' + str(feature_map.size()))
-                print('Features after quality filter: ' + str(feature_map_filtered.size()))
-                feature_map = feature_map_filtered
+            if feature_map.size() == len(chromatograms):
+                for f, chrom in zip(feature_map, chromatograms):
+                    rt, intensities = chrom[0].get_peaks()
+                    f.setMetaValue("chrom_rts", ",".join(rt.astype(str)))
+                    f.setMetaValue("chrom_intensities", ",".join(intensities.astype(str)))
+                    feature_map_chroms.push_back(f)
+
             if os.path.isdir(featureXML):
                 FeatureXMLFile().store(os.path.join(featureXML, os.path.basename(
-                    mzML_file)[:-4] + "featureXML"), feature_map)
+                    mzML_file)[:-4] + "featureXML"), feature_map_chroms)
             else:
-                FeatureXMLFile().store(featureXML, feature_map)
+                FeatureXMLFile().store(featureXML, feature_map_chroms)
+
+            # # store chromatograms in mzML file
+            # exp = MSExperiment()
+            # for chrom in chromatograms:
+            #     exp.addChromatogram(chrom)
+            # MzMLFile().store(str(Path(chrom_dir, Path(mzML_file).name)), exp)
+
 
 
 class MapAligner:

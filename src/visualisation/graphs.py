@@ -6,7 +6,14 @@ import pandas as pd
 
 template = "simple_white"
 
-
+COLOR_SCALE=[
+    (0.00, "rgba(233, 233, 233, 1.0)"),
+    (0.01, "rgba(243, 236, 166, 1.0)"),
+    (0.1, "rgba(255, 168, 0, 1.0)"),
+    (0.2, "rgba(191, 0, 191, 1.0)"),
+    (0.4, "rgba(68, 0, 206, 1.0)"),
+    (1.0, "rgba(33, 0, 101, 1.0)")
+]
 ##############################################################################
 #############                 Consensus Graphs           #####################
 ##############################################################################
@@ -183,16 +190,26 @@ def plot_peak_map_2D(df, cutoff):
         plot_bgcolor='rgb(255,255,255)',
         height=800,
         width=1000)
-
     fig.layout.template = "plotly_white"
 
-    scale=[
-        (0.00, "rgba(233, 233, 233, 1.0)"),
-        (0.01, "rgba(243, 236, 166, 1.0)"),
-        (0.1, "rgba(255, 168, 0, 1.0)"),
-        (0.2, "rgba(191, 0, 191, 1.0)"),
-        (0.4, "rgba(68, 0, 206, 1.0)"),
-        (1.0, "rgba(33, 0, 101, 1.0)")
-    ]
-    fig.update_traces(marker_colorscale=scale, hovertext=ints.round(), selector=dict(type='scattergl'))
+    fig.update_traces(marker_colorscale=COLOR_SCALE, hovertext=ints.round(), selector=dict(type='scattergl'))
+    return fig
+
+def plot_feature_map(df, int_cutoff=0):
+    df = df[df["intensity"] > int_cutoff]
+    fig = go.Figure()
+    # fig.add_traces([go.Scattergl(x=[df.loc[i, "RTstart"], df.loc[i, "RTend"]], y=[df.loc[i, "mz"], df.loc[i, "mz"]], mode="lines", line=dict(color="rgba(41,55,155, 0.5)")) for i in df.index])
+    fig.add_trace(go.Scattergl(name="feature", x=df["RT"], y=df["mz"], mode="markers", marker_color=df["intensity"], marker_symbol="square", marker_size=12,
+                            customdata = np.stack((df["mz"].round(5), df["intensity"].astype(int), df["RTstart"].astype(int), df["RTend"].astype(int),
+                                                df["RTend"].astype(int)-df["RTstart"].astype(int), df["fwhm"].round(), df["charge"], df["quality"], df["adduct"]), axis=-1),
+                            hovertemplate="<b>mz: %{customdata[0]}<br>intensity: %{customdata[1]}<br>RTstart: %{customdata[2]}<br>RTend: %{customdata[3]}<br>RTrange: %{customdata[4]}<br>FWHM: %{customdata[5]}<br>charge: %{customdata[6]}<br>quality: %{customdata[7]}<br>adduct: %{customdata[8]}<br>"))
+
+    fig.update_layout(
+        xaxis_title="retention time (s)",
+        yaxis_title="m/z",
+        plot_bgcolor='rgb(255,255,255)',
+        height=800,
+        width=1000)
+    fig.layout.template = "plotly_white"
+    fig.update_traces(showlegend=False, marker_colorscale=COLOR_SCALE, hovertext="int: "+df["intensity"].astype(int).astype(str)+" q: "+df["quality"].astype(str), selector=dict(type='scattergl'))
     return fig

@@ -185,7 +185,8 @@ def plot_peak_map_2D(df, cutoff):
 
     fig.add_trace(go.Scattergl(name="peaks", x=rts, y=mzs, mode="markers", marker_color=ints, marker_symbol="square"))
     fig.update_layout(
-        xaxis_title="retention time (s)",
+        title="2D peak map",
+        xaxis_title="retention time",
         yaxis_title="m/z",
         plot_bgcolor='rgb(255,255,255)',
         height=800,
@@ -204,7 +205,7 @@ def plot_feature_map(df):
                             hovertemplate="<b>mz: %{customdata[0]}<br>intensity: %{customdata[1]}<br>RTstart: %{customdata[2]}<br>RTend: %{customdata[3]}<br>RTrange: %{customdata[4]}<br>FWHM: %{customdata[5]}<br>charge: %{customdata[6]}<br>quality: %{customdata[7]}<br>adduct: %{customdata[8]}<br>"))
 
     fig.update_layout(
-        title = "2D Feature Map",
+        title = "2D peak map",
         xaxis_title="retention time",
         yaxis_title="m/z",
         plot_bgcolor="rgb(255,255,255)",
@@ -217,7 +218,7 @@ def plot_feature_map(df):
 def plot_feature_chromatogram(df):
     fig = px.line(x=df.loc[df.index[0], "chrom_rts"], y=df.loc[df.index[0], "chrom_intensities"])
     fig.update_layout(
-        title=f"monoisotopic peak: {df.loc[df.index[0], 'mz']} m/z",
+        title=f"monoisotopic peak chromatogram",
         xaxis_title="retention time",
         yaxis_title="intensity (counts per second)",
         plot_bgcolor="rgb(255,255,255)"

@@ -87,11 +87,14 @@ class Visualization:
             c3.metric("FWHM", feature["fwhm"].round(2))
 
     def display_map_alignemnt(feature_maps):
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         name = c1.selectbox("choose feature map", [key for key, value in feature_maps.items() if not value["original_rt"].isnull().any()])
         if name:
             df = feature_maps[name]
-            st.dataframe(df)
+            c2.metric("reference map (contains most features)", [key for key, value in feature_maps.items() if value["original_rt"].isnull().any()][0])
+            c3.metric("mean RT deviation", np.mean(df["RT"]-df["original_rt"]).round(2))
+            fig = Plot.plot_feature_map_alignment(df)
+            st.plotly_chart(fig)
 
     def display_consensus_map():
         pass

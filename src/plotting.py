@@ -229,3 +229,16 @@ class Plot:
         )
         fig.layout.template = "plotly_white"
         return fig
+    
+    def plot_feature_map_alignment(df):
+        fig = go.Figure()
+        fig.add_trace(go.Scattergl(name="before aligment", x=df["original_rt"], y=df["mz"], mode="markers", marker_symbol="circle", marker_size=12))
+        fig.add_trace(go.Scattergl(name="after aligment", x=df["RT"], y=df["mz"], mode="markers", marker_symbol="circle", marker_size=8))
+        fig.update_layout(
+            title=f"feature map alignment",
+            xaxis_title="retention time",
+            yaxis_title="m/z",
+            plot_bgcolor="rgb(255,255,255)"
+        )
+        fig.layout.template = "plotly_white"
+        return fig

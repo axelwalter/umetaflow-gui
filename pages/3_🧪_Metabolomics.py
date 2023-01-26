@@ -392,7 +392,7 @@ if any(Path(results_dir).iterdir()):
         Visualization.display_FFM_data({file.stem: pd.read_feather(file) for file in Path(st.session_state["workspace"], "results-metabolomics", "interim", "FFM_dfs").iterdir()},
                         {file.stem: pd.read_feather(file) for file in Path(st.session_state["mzML_dfs"]).iterdir()})
 
-    elif choice == "feature alignment":
+    elif choice == "feature map alignment":
         Visualization.display_map_alignemnt({file.stem: pd.read_feather(file)[["mz", "RT", "original_rt"]] for file in Path(st.session_state["workspace"], "results-metabolomics", "interim", "FFM_aligned_dfs").iterdir()})
 
     else:

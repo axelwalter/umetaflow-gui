@@ -342,21 +342,23 @@ try:
             st.markdown("##")
             st.markdown("#### Metrics")
             col1, col2, col3, col4 = st.columns(4)
-            col1.metric("missing values", st.session_state.missing_values_before)
-            col2.metric("missing values after re-quantification", st.session_state.missing_values_after)
+            if "missing_values_before" in st.session_state:
+                col1.metric("missing values", st.session_state.missing_values_before)
+            if "missing_values_after" in st.session_state:
+                col2.metric("missing values after re-quantification", st.session_state.missing_values_after)
             col3.metric("number of features", df.shape[0])
             col4.metric("number of samples", len([col for col in df.columns if "mzML" in col]))
             st.markdown("#### Downloads")
             col1, col2, col3, col4 = st.columns(4)
-            col1.download_button("Feature Matrix", df.to_csv(sep="\t", index=False), f"FeatureMatrix-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv")
+            col1.download_button("Feature Matrix", df.to_csv(sep="\t", index=False), f"FeatureMatrix-{datetime.now().strftime('%d%m%Y-%H-%M')}.tsv")
             df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
-            col2.download_button("Meta Data", df_md.to_csv(sep="\t", index=False), f"MetaData-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv")
+            col2.download_button("Meta Data", df_md.to_csv(sep="\t", index=False), f"MetaData-{datetime.now().strftime('%d%m%Y-%H-%M')}.tsv")
             if Path(results_dir, "interim", "ExportSirius.zip").is_file():
                 with open(os.path.join(results_dir, "interim", "ExportSirius.zip"), "rb") as fp:
                     btn = col3.download_button(
                         label="Files for Sirius",
                         data=fp,
-                        file_name=f"ExportSirius-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
+                        file_name=f"ExportSirius-{datetime.now().strftime('%d%m%Y-%H-%M')}.zip",
                         mime="application/zip"
                     )
             if Path(results_dir, "interim", "ExportGNPS.zip").is_file():
@@ -364,7 +366,7 @@ try:
                     btn = col4.download_button(
                         label="Files for GNPS",
                         data=fp,
-                        file_name=f"ExportGNPS-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
+                        file_name=f"ExportGNPS-{datetime.now().strftime('%d%m%Y-%H-%M')}.zip",
                         mime="application/zip"
                     )
 except:

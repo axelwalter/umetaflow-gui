@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 class Statistics:
     def normalize_max(self, df):
         """Normalize values between 0 and 1 for the complete DataFrame.
@@ -18,7 +19,6 @@ class Statistics:
         df_max = column_maxes.max()
 
         return df / df_max
-
 
     def maximum_absolute_scaling_per_column(self, df):
         """Normalize values between 0 and 1 for each column seperately.
@@ -38,7 +38,6 @@ class Statistics:
             column_values = pd.to_numeric(df_scaled[column])
             df_scaled[column] = column_values / column_values.abs().max()
         return df_scaled
-
 
     def get_mean_std_change_df(self, df, sample_pairs):
         """Calculate DataFrames for mean, standard deviation and fold change.
@@ -66,10 +65,12 @@ class Statistics:
         df_mean = pd.DataFrame(index=df.index)
         df_std = pd.DataFrame(index=df.index)
         df_change = pd.DataFrame(index=df.index)
-        
+
         # replicate numbers should be at the end of the file name separated with # (e.g. samplename#1)
         for name in [sample for sample_pair in sample_pairs for sample in sample_pair]:
-            replicates = [c for c in df.columns if c.startswith(name + "#") or c == name]
+            replicates = [
+                c for c in df.columns if c.startswith(name + "#") or c == name
+            ]
             print(replicates)
             df_mean[name] = df[replicates].mean(axis=1)
             df_std[name] = df[replicates].std(axis=1)
@@ -79,7 +80,19 @@ class Statistics:
             df_change[pair[1] + "/" + pair[0]] = np.log2(
                 df_pair[pair[1]] / df_pair[pair[0]]
             )
-        df_mean = df_mean.applymap(lambda x: int(round(x, 0)) if isinstance(x, (int, float, )) else x)
+        df_mean = df_mean.applymap(
+            lambda x: int(round(x, 0))
+            if isinstance(
+                x,
+                (
+                    int,
+                    float,
+                ),
+            )
+            else x
+        )
         df_std.fillna(0, inplace=True)
-        df_std = df_std.applymap(lambda x: int(round(x, 0)) if isinstance(x, (int, float)) else x)
+        df_std = df_std.applymap(
+            lambda x: int(round(x, 0)) if isinstance(x, (int, float)) else x
+        )
         return df_mean, df_std, df_change

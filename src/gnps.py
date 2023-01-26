@@ -4,10 +4,15 @@ from pathlib import Path
 import pandas as pd
 import os
 
+
 class GNPSExport:
     def run(self, consensusXML_file, aligned_mzML_dir, gnps_dir):
         Helper().reset_directory(gnps_dir)
-        all_mzML_files = [str(f) for f in Path(aligned_mzML_dir).iterdir() if f.is_file() and str(f).endswith("mzML")]
+        all_mzML_files = [
+            str(f)
+            for f in Path(aligned_mzML_dir).iterdir()
+            if f.is_file() and str(f).endswith("mzML")
+        ]
         mzML_files = []
         for mzML in all_mzML_files:
             exp = MSExperiment()
@@ -28,13 +33,23 @@ class GNPSExport:
         ConsensusXMLFile().store(consensusXML_file, filtered_map)
 
         # for FFBM
-        GNPSMGFFile().store(String(consensusXML_file), [file.encode() for file in mzML_files], String(os.path.join(gnps_dir, "MS2.mgf")))
-        GNPSQuantificationFile().store(consensus_map, os.path.join(gnps_dir, "FeatureQantificationTable.txt"))
-        GNPSMetaValueFile().store(consensus_map, os.path.join(gnps_dir, "MetaValueTable.tsv"))
+        GNPSMGFFile().store(
+            String(consensusXML_file),
+            [file.encode() for file in mzML_files],
+            String(os.path.join(gnps_dir, "MS2.mgf")),
+        )
+        GNPSQuantificationFile().store(
+            consensus_map, os.path.join(gnps_dir, "FeatureQantificationTable.txt")
+        )
+        GNPSMetaValueFile().store(
+            consensus_map, os.path.join(gnps_dir, "MetaValueTable.tsv")
+        )
 
         # for IIMN
         IonIdentityMolecularNetworking().annotateConsensusMap(consensus_map)
-        IonIdentityMolecularNetworking().writeSupplementaryPairTable(consensus_map, os.path.join(gnps_dir, "SupplementaryPairTable.csv"))
+        IonIdentityMolecularNetworking().writeSupplementaryPairTable(
+            consensus_map, os.path.join(gnps_dir, "SupplementaryPairTable.csv")
+        )
 
         # finally remove filtered.consensusXML file
         os.remove(consensusXML_file)
@@ -44,6 +59,6 @@ class GNPSExport:
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         GNPSMetaValueFile().store(consensus_map, metadata_file)
         df = pd.read_csv(metadata_file, sep="\t", index_col=[0])
-        df["ATTRIBUTE_Sample_Type"] = ["Sample"]*len(df["filename"])
+        df["ATTRIBUTE_Sample_Type"] = ["Sample"] * len(df["filename"])
         df.drop("ATTRIBUTE_MAPID", inplace=True, axis=1)
         df.to_csv(metadata_file, sep="\t", index=False)

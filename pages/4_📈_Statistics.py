@@ -75,11 +75,13 @@ and add at least one more custom attribute column to where your samples differen
                     fig.add_trace(go.Bar(x=samples, y=mean.loc[feature], name=feature, error_y=dict(type="data", array=std.loc[feature], visible=True)))
                 else:
                     fig.add_trace(go.Bar(x=samples, y=mean.loc[feature], name=feature))
-            fig.update_layout(title="Metabolite Intensities", yaxis=dict(title="mean intensity"))
+            fig.update_layout(title="Metabolite Intensities", yaxis=dict(title="mean intensity"), plot_bgcolor="rgb(255,255,255)")
+            fig.layout.template = "plotly_white"
             st.plotly_chart(fig)
 
             fig = px.bar(std, barmode="group")
-            fig.update_layout(title="log 2 fold change", yaxis=dict(title="log 2 fold change"))
+            fig.update_layout(title="log 2 fold change", yaxis=dict(title="log 2 fold change"), plot_bgcolor="rgb(255,255,255)")
+            fig.layout.template = "plotly_white"
             st.plotly_chart(fig)
 
         else:

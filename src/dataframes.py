@@ -242,6 +242,7 @@ class DataFrames:
         FeatureXMLFile().load(str(featureXML_file_path), fm)
         df = fm.get_df(export_peptide_identifications=False).reset_index()
         df["adduct"] = [f.getMetaValue("dc_charge_adducts") for f in fm]
+        df["original_rt"] = [f.getMetaValue("original_RT") for f in fm]
         df["fwhm"] = [f.getMetaValue("FWHM") for f in fm]
         df["chrom_rts"] = [np.array(f.getMetaValue("chrom_rts").split(",")).astype(np.float64) for f in fm]
         df["chrom_intensities"] = [np.array(f.getMetaValue("chrom_intensities").split(",")).astype(np.float64) for f in fm]

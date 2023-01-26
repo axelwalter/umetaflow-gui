@@ -1,6 +1,7 @@
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
+import numpy as np
 import plotly.figure_factory as ff
 
 COLORS=['#636efa', '#ef553b',
@@ -8,6 +9,15 @@ COLORS=['#636efa', '#ef553b',
         '#ffa15a', '#19d3f3',
         '#ff6692', '#b6e880',
         '#fe9aff', 'rgb(23, 190, 207)']
+
+COLOR_SCALE=[
+    (0.00, "rgba(233, 233, 233, 1.0)"),
+    (0.01, "rgba(243, 236, 166, 1.0)"),
+    (0.1, "rgba(255, 168, 0, 1.0)"),
+    (0.2, "rgba(191, 0, 191, 1.0)"),
+    (0.4, "rgba(68, 0, 206, 1.0)"),
+    (1.0, "rgba(33, 0, 101, 1.0)")
+]
 
 def cycle(my_list):
     start_at = 0
@@ -121,4 +131,101 @@ class Plot:
 
         # fig.update_yaxes(visible=False)
         fig.update_xaxes(tickangle = 35)
+        return fig
+
+    def plot_ms_spectrum(df_spectrum, title, color):
+        """
+        Takes a pandas Dataframe with one row (spectrum) and generates a needle plot with m/z and intensity dimension.
+        """
+        def create_spectra(x,y, zero=0):
+            x=np.repeat(x,3)
+            y=np.repeat(y,3)
+            y[::3]=y[2::3]=zero
+            return pd.DataFrame({"mz": x, "intensity": y})
+
+        df = create_spectra(df_spectrum['mzarray'].tolist()[0], df_spectrum['intarray'].tolist()[0])
+        fig = px.line(df, x="mz", y="intensity")
+        fig.update_traces(line_color=color)
+        fig.update_layout(
+            showlegend=False,
+            title_text=title,
+            xaxis_title="m/z",
+            yaxis_title="intensity"
+        )
+        fig.update_yaxes(fixedrange=True)
+        return fig
+
+
+    def plot_bpc(df, ms1_rt, ms2_rt = 0):
+        intensity = np.array([max(intensity_array) for intensity_array in df["intarray"]])
+        fig = px.line(df, x="RT", y=intensity)
+        fig.add_trace(go.Scatter(x=[ms1_rt], y=[intensity[np.abs(df["RT"]-ms1_rt).argmin()]], name="MS1 spectrum",
+                                text="MS1", textposition="top center", textfont=dict(color='#EF553B', size=20)))
+        fig.data[1].update(mode='markers+text', marker_symbol="x", marker=dict(color="#EF553B", size=12)) 
+        if ms2_rt > 0:
+            fig.add_trace(go.Scatter(x=[ms2_rt], y=[intensity[np.abs(df["RT"]-ms2_rt).argmin()]], name="MS2 spectrum", 
+                                    text="MS2", textposition="top center", textfont=dict(color='#00CC96', size=20)))
+            fig.data[2].update(mode='markers+text', marker_symbol="x", marker=dict(color="#00CC96", size=12))
+        fig.update_traces(showlegend=False)
+        fig.update_layout(
+            showlegend=False,
+            title_text="base peak chromatogram",
+            xaxis_title="retention time (s)",
+            yaxis_title="intensity (cps)")
+        return fig
+
+    def plot_peak_map_2D(df, cutoff):
+        fig = go.Figure()
+        ints = np.concatenate([df.loc[index, "intarray"] for index in df.index])
+        int_filter = ints > cutoff # show only ints over threshold
+        ints = ints[int_filter]
+        mzs = np.concatenate([df.loc[index, "mzarray"] for index in df.index])[int_filter]
+        rts = np.concatenate([np.full(len(df.loc[index, "mzarray"]), df.loc[index, "RT"]) for index in df.index])[int_filter]
+
+        sort = np.argsort(ints)
+        ints = ints[sort]
+        mzs = mzs[sort]
+        rts = rts[sort]
+
+        fig.add_trace(go.Scattergl(name="peaks", x=rts, y=mzs, mode="markers", marker_color=ints, marker_symbol="square"))
+        fig.update_layout(
+            title="2D peak map",
+            xaxis_title="retention time",
+            yaxis_title="m/z",
+            plot_bgcolor='rgb(255,255,255)',
+            height=800,
+            width=1000)
+        fig.layout.template = "plotly_white"
+
+        fig.update_traces(marker_colorscale=COLOR_SCALE, hovertext=ints.round(), selector=dict(type='scattergl'))
+        return fig
+
+    def plot_feature_map(df):
+        fig = go.Figure()
+        # fig.add_traces([go.Scattergl(x=[df.loc[i, "RTstart"], df.loc[i, "RTend"]], y=[df.loc[i, "mz"], df.loc[i, "mz"]], mode="lines", line=dict(color="rgba(41,55,155, 0.5)")) for i in df.index])
+        fig.add_trace(go.Scattergl(name="feature", x=df["RT"], y=df["mz"], mode="markers", marker_color=df["intensity"], marker_symbol="square", marker_size=12,
+                                customdata = np.stack((df["mz"].round(5), df["intensity"].astype(int), df["RTstart"].astype(int), df["RTend"].astype(int),
+                                                    df["RTend"].astype(int)-df["RTstart"].astype(int), df["fwhm"].round(), df["charge"], df["quality"], df["adduct"]), axis=-1),
+                                hovertemplate="<b>mz: %{customdata[0]}<br>intensity: %{customdata[1]}<br>RTstart: %{customdata[2]}<br>RTend: %{customdata[3]}<br>RTrange: %{customdata[4]}<br>FWHM: %{customdata[5]}<br>charge: %{customdata[6]}<br>quality: %{customdata[7]}<br>adduct: %{customdata[8]}<br>"))
+
+        fig.update_layout(
+            title = "2D peak map",
+            xaxis_title="retention time",
+            yaxis_title="m/z",
+            plot_bgcolor="rgb(255,255,255)",
+            height=800,
+            width=1000)
+        fig.layout.template = "plotly_white"
+        fig.update_traces(showlegend=False, marker_colorscale=COLOR_SCALE, hovertext="int: "+df["intensity"].astype(int).astype(str)+" q: "+df["quality"].astype(str), selector=dict(type='scattergl'))
+        return fig
+
+    def plot_feature_chromatogram(df):
+        fig = px.line(x=df.loc[df.index[0], "chrom_rts"], y=df.loc[df.index[0], "chrom_intensities"])
+        fig.update_layout(
+            title=f"monoisotopic peak chromatogram",
+            xaxis_title="retention time",
+            yaxis_title="intensity (counts per second)",
+            plot_bgcolor="rgb(255,255,255)"
+        )
+        fig.layout.template = "plotly_white"
         return fig

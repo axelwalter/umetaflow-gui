@@ -248,3 +248,7 @@ class DataFrames:
         df["chrom_intensities"] = [np.array(f.getMetaValue("chrom_intensities").split(",")).astype(np.float64) for f in fm]
         df["metabolite"] = df["mz"].round(5).astype(str) + "@" + df["RT"].round(2).astype(str)
         df.to_feather(Path(ftr_dir, featureXML_file_path.stem+".ftr"))
+
+    def consensus_df_additional_annotations(tsv_file_path, ftr_file_path):
+        df = pd.read_csv(tsv_file_path, sep="\t")
+        df.to_feather(ftr_file_path)

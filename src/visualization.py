@@ -96,5 +96,10 @@ class Visualization:
             fig = Plot.plot_feature_map_alignment(df)
             st.plotly_chart(fig)
 
-    def display_consensus_map():
-        pass
+    def display_consensus_map(df):
+        st.dataframe(df)
+        c1, c2, c3 = st.columns(3)
+        sample = c1.selectbox("choose sample to highlight", [col for col in df.columns if col.endswith(".mzML")])
+        df.sort_values(by=[sample], inplace=True)
+        fig = Plot.plot_consensus_map(df, sample)
+        st.plotly_chart(fig)

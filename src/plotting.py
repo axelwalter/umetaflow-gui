@@ -150,8 +150,10 @@ class Plot:
             showlegend=False,
             title_text=title,
             xaxis_title="m/z",
-            yaxis_title="intensity"
+            yaxis_title="intensity",
+            plot_bgcolor='rgb(255,255,255)'
         )
+        fig.layout.template = "plotly_white"
         fig.update_yaxes(fixedrange=True)
         return fig
 
@@ -171,7 +173,9 @@ class Plot:
             showlegend=False,
             title_text="base peak chromatogram",
             xaxis_title="retention time (s)",
-            yaxis_title="intensity (cps)")
+            yaxis_title="intensity (cps)",
+            plot_bgcolor='rgb(255,255,255)')
+        fig.layout.template = "plotly_white"
         return fig
 
     def plot_peak_map_2D(df, cutoff):
@@ -241,4 +245,30 @@ class Plot:
             plot_bgcolor="rgb(255,255,255)"
         )
         fig.layout.template = "plotly_white"
+        return fig
+    
+    def plot_consensus_map(df, sample):
+        # fig = px.scatter(df, x="RT", y="mz", marginal_x="violin", marginal_y="violin", color=sample, color_continuous_scale=COLOR_SCALE)
+        fig = go.Figure()
+
+        # define custom data for hovering
+        meta_values = (df["mz"].round(5),
+                            df["charge"],
+                            df["quality"])
+        if "adduct" in df.columns:
+            meta_values.append(df["adduct"])
+
+        customdata = np.stack(meta_values, axis=-1)
+        hovertemplate = "<b>mz: %{customdata[0]}<br>intensity: %{customdata[1]}<br>RTstart: %{customdata[2]}<br>RTend: %{customdata[3]}<br>RTrange: %{customdata[4]}<br>FWHM: %{customdata[5]}<br>charge: %{customdata[6]}<br>quality: %{customdata[7]}<br>adduct: %{customdata[8]}<br>"
+
+        fig.add_trace(go.Scattergl(name="feature", x=df["RT"], y=df["mz"], mode="markers", marker_color=df[sample], marker_symbol="square", marker_size=12))
+        fig.update_layout(
+            title=f"consensus map with intensities from {sample}",
+            xaxis_title="retention time",
+            yaxis_title="m/z",
+            showlegend=False,
+            plot_bgcolor="rgb(255,255,255)"
+        )
+        fig.update_traces(showlegend=False, marker_colorscale=COLOR_SCALE, selector=dict(type='scattergl'))
+
         return fig

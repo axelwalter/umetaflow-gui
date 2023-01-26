@@ -12,14 +12,6 @@ import json
 
 st.set_page_config(page_title="UmetaFlow", page_icon="resources/icon.png", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
-def open_df(path):
-    df = pd.DataFrame()
-    if os.path.isfile(path):
-        df = pd.read_csv(path, sep="\t")
-    else:
-        return None
-    return df
-
 # try:
 # create result dir if it does not exist already
 if "workspace" in st.session_state:
@@ -312,12 +304,12 @@ if run_button and mzML_files:
 
     # re-quantification
     # get missing values before re-quant
-    df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
+    df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
     st.session_state.missing_values_before = sum([(df[col] == 0).sum() for col in df.columns])
     if params["use_requant"]:
         with st.spinner("Re-Quantification..."):
             Requantifier().run(os.path.join(interim, "FeatureMatrix.consensusXML"), os.path.join(results_dir, "FeatureMatrix.tsv"), mzML_dir, featureXML_dir, params["ffm_mass_error"])
-        df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
+        df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
         st.session_state.missing_values_after = sum([(df[col] == 0).sum() for col in df.columns])
     else:
         st.session_state.missing_values_after = None
@@ -327,20 +319,19 @@ if run_button and mzML_files:
     if params["use_gnps"]:
         shutil.make_archive(os.path.join(interim, "ExportGNPS"), 'zip', os.path.join(results_dir, "GNPS"))
 
+    DataFrames.consensus_df_additional_annotations(Path(results_dir, "FeatureMatrix.tsv"), Path(results_dir, "FeatureMatrix.ftr"))
     st.success("Complete!")
 
 elif run_button:
         st.warning("Upload or select some mzML files first!")
 
 if any(Path(results_dir).iterdir()):
-    df = open_df(os.path.join(results_dir, "FeatureMatrix.tsv"))
+    df = pd.read_feather(os.path.join(results_dir, "FeatureMatrix.ftr"))
     if not df.empty:
         st.markdown("***")
         st.markdown("#### Feature Matrix")
         st.markdown(f"**{df.shape[0]} rows, {df.shape[1]} columns**")
         st.dataframe(df)
-        st.markdown("##")
-        st.markdown("#### Metrics")
         col1, col2, col3, col4 = st.columns(4)
         if "missing_values_before" in st.session_state:
             col1.metric("missing values", st.session_state.missing_values_before)
@@ -348,6 +339,7 @@ if any(Path(results_dir).iterdir()):
             col2.metric("missing values after re-quantification", st.session_state.missing_values_after)
         col3.metric("number of features", df.shape[0])
         col4.metric("number of samples", len([col for col in df.columns if "mzML" in col]))
+        st.markdown("***")
         st.markdown("#### Downloads")
         col1, col2, col3, col4 = st.columns(4)
         col1.download_button("Feature Matrix", df.to_csv(sep="\t", index=False), f"FeatureMatrix-{datetime.now().strftime('%d%m%Y-%H-%M')}.tsv")
@@ -369,15 +361,21 @@ if any(Path(results_dir).iterdir()):
                     file_name=f"ExportGNPS-{datetime.now().strftime('%d%m%Y-%H-%M')}.zip",
                     mime="application/zip"
                 )
+    st.markdown("***")
     st.markdown("#### Inspect Details")
     # display detailed results
     options = ["mzML files"]
     try:
-        if any(Path(st.session_state["workspace"], "results-metabolomics", "interim", "FFM_dfs").iterdir()):
-            options.append("detected features")
-        if any(Path(st.session_state["workspace"], "results-metabolomics", "interim", "FFM_aligned").iterdir()):
-            options.append("feature map alignment")
-        if Path(st.session_state["workspace"], "results-metabolomics", "interim", "FeatureMatrix.consensusXML").is_file():
+        path = Path(results_dir, "interim", "FFM_dfs")
+        if path.exists():
+            if any(path.iterdir()):
+                options.append("detected features")
+        path = Path(results_dir, "interim", "FFM_aligned_dfs")
+        if path.exists():
+            if any(path.iterdir()):
+                options.append("feature map alignment")
+        path = Path(results_dir, "FeatureMatrix.ftr")
+        if path.is_file():
             options.append("consensus features")
     except FileNotFoundError:
         pass
@@ -396,7 +394,7 @@ if any(Path(results_dir).iterdir()):
         Visualization.display_map_alignemnt({file.stem: pd.read_feather(file)[["mz", "RT", "original_rt"]] for file in Path(st.session_state["workspace"], "results-metabolomics", "interim", "FFM_aligned_dfs").iterdir()})
 
     else:
-        st.info("Coming soon!")
+        Visualization.display_consensus_map(pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")))
 
 # except:
 #     st.warning("Something went wrong.")

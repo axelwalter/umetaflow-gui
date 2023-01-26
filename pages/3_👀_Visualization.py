@@ -88,6 +88,8 @@ def display_FFM_data(feature_maps, spectra):
         c2.metric("retention time range", np.round(feature["RTend"]-feature["RTstart"], 2))
         c3.metric("FWHM", feature["fwhm"].round(2))
 
+def display_consensus_map():
+    pass
 
 try:
     with st.sidebar:

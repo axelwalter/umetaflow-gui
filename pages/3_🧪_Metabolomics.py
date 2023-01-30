@@ -6,7 +6,7 @@ from src.dataframes import *
 from src.sirius import Sirius
 from src.gnps import GNPSExport
 from src.visualization import Visualization
-from src.umetaflow import UmetaFlow
+from src.umetaflow import UmetaFlow, run_alternative_requant, run
 from pathlib import Path
 from datetime import datetime
 import json
@@ -325,80 +325,7 @@ try:
 
         results_dir = Helper().reset_directory(results_dir)
 
-        umetaflow = UmetaFlow(params, mzML_files, results_dir)
-
-        # if not params["use_requant"]:
-        with st.spinner("Fetching raw data..."):
-            umetaflow.fetch_raw_data()
-
-        with st.spinner("Detecting features..."):
-            umetaflow.feature_detection()
-
-        if params["use_ad"]:
-            with st.spinner("Determining adducts..."):
-                umetaflow.adduct_detection()
-
-        with st.spinner("Exporting feature maps for visualization..."):
-            umetaflow.feature_maps_to_df()
-
-        if params["use_ma"]:
-            with st.spinner("Aligning feature maps..."):
-                umetaflow.align_feature_maps()
-                umetaflow.feature_maps_to_df()
-
-            with st.spinner("Aligning mzML files..."):
-                umetaflow.align_peak_maps()
-
-        # annotate only when necessary
-        if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
-            with st.spinner("Mapping MS2 data to features..."):
-                umetaflow.map_MS2()
-
-        # export only sirius ms files to use in the GUI tool
-        if params["use_sirius_manual"]:
-            with st.spinner("Exporting files for Sirius..."):
-                umetaflow.sirius()
-
-        with st.spinner("Linking features..."):
-            umetaflow.link_feature_maps()
-            umetaflow.consensus_df()
-
-        df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
-        st.session_state.missing_values_before = sum(
-            [(df[col] == 0).sum() for col in df.columns]
-        )
-
-        if params["use_requant"]:
-            with st.spinner("Re-quantification..."):
-                umetaflow.requantify()
-
-        df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
-        st.session_state.missing_values_after = sum(
-            [(df[col] == 0).sum() for col in df.columns]
-        )
-
-        # export metadata
-        umetaflow.export_metadata()
-
-        if params["use_gnps"]:
-            with st.spinner("Exporting files for GNPS..."):
-                umetaflow.gnps()
-
-        if params["annotate_ms1"]:
-            with st.spinner("Annotating feautures on MS1 level by m/z and RT"):
-                umetaflow.annotate_MS1()
-
-        if params["annotate_ms2"]:
-            with st.spinner(
-                "Annotating features on MS2 level by fragmentation patterns..."
-            ):
-                umetaflow.annotate_MS2()
-
-        # make zip archives
-        umetaflow.make_zip_archives()
-
-        # additional_data
-        umetaflow.additional_data_for_consensus_df()
+        run(params, mzML_files, results_dir)
 
         st.success("Complete!")
 
@@ -410,7 +337,17 @@ try:
         df = pd.DataFrame()
 
         if Path(results_dir, "FeatureMatrix.tsv").is_file():
-            df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
+            df = pd.read_csv(Path(results_dir, "FeatureMatrix.tsv"), sep="\t")
+            st.session_state["missing_values_before"] = sum(
+                [(df[col] == 0).sum() for col in df.columns]
+            )
+        if Path(results_dir, "FeatureMatrixRequantified.tsv").is_file():
+            df = pd.read_csv(
+                Path(results_dir, "FeatureMatrixRequantified.tsv"), sep="\t"
+            )
+            st.session_state["missing_values_after"] = sum(
+                [(df[col] == 0).sum() for col in df.columns]
+            )
 
         if not df.empty:
             st.markdown("***")
@@ -476,6 +413,9 @@ try:
             if path.exists():
                 if any(path.iterdir()):
                     options.append("feature map alignment")
+            path = Path(results_dir, "interim", "FFMID_df")
+            if path.exists():
+                options.append("feature re-quantification")
             path = Path(results_dir, "FeatureMatrix.ftr")
             if path.is_file():
                 options.append("consensus features")
@@ -494,7 +434,7 @@ try:
             )
 
         elif choice == "detected features":
-            Visualization.display_FFM_data(
+            Visualization.display_feature_data(
                 {
                     file.stem: pd.read_feather(file)
                     for file in Path(
@@ -521,17 +461,31 @@ try:
                 }
             )
 
-        elif choice == "consensus features":
-            Visualization.display_consensus_map(
-                pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
+        elif choice == "feature re-quantification":
+            if params["use_ma"]:
+                mzML_dir = Path(results_dir, "interim", "mzML_aligned_df")
+            else:
+                mzML_dir = Path(st.session_state["mzML_dfs"])
+            Visualization.display_feature_data(
                 {
                     file.stem: pd.read_feather(file)
                     for file in Path(
                         results_dir,
                         "interim",
-                        "FFM_dfs",
+                        "FFMID_df",
                     ).iterdir()
                 },
+                {file.stem: pd.read_feather(file) for file in mzML_dir.iterdir()},
+            )
+
+        elif choice == "consensus features":
+            if params["use_requant"]:
+                feature_dir = Path(results_dir, "interim", "FFMID_df")
+            else:
+                feature_dir = Path(results_dir, "interim", "FFM_df")
+            Visualization.display_consensus_map(
+                pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
+                {file.stem: pd.read_feather(file) for file in feature_dir.iterdir()},
             )
 
 except:

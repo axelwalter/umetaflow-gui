@@ -4,6 +4,7 @@ from .sirius import Sirius
 from .gnps import GNPSExport
 from .helpers import *
 from .dataframes import DataFrames
+import streamlit as st
 
 
 class UmetaFlow:
@@ -84,10 +85,9 @@ class UmetaFlow:
         )
         self.featureXML_dir = Path(self.interim, "FFM_aligned")
 
-    def feature_maps_to_df(self):
+    def feature_maps_to_df(self, requant=False):
         df_path = Path(self.featureXML_dir).name + "_df"
         Helper().reset_directory(Path(self.interim, df_path))
-        requant = self.params["use_requant"]
         for file in Path(self.featureXML_dir).iterdir():
             DataFrames.featureXML_to_ftr(
                 file, Path(self.interim, df_path), requant=requant
@@ -100,6 +100,12 @@ class UmetaFlow:
             Path(self.interim, "Trafo"),
         )
         self.mzML_dir = Path(self.interim, "mzML_aligned")
+
+    def peak_maps_to_df(self):
+        df_path = Path(self.mzML_dir).name + "_df"
+        Helper().reset_directory(Path(self.interim, df_path))
+        for file in Path(self.mzML_dir).iterdir():
+            DataFrames.mzML_to_ftr(file, Path(self.interim, df_path))
 
     def map_MS2(self):
         MapID().run(
@@ -138,10 +144,19 @@ class UmetaFlow:
         )
         self.sirius_ms_dir = os.path.join(self.results_dir, "SIRIUS", "sirius_files")
 
+    def requantify_alternative(self):
+        Requantifier().run(
+            str(self.consensusXML),
+            self.consensus_tsv,
+            self.mzML_dir,
+            self.featureXML_dir,
+            self.params["ffm_mass_error"],
+        )
+
     def requantify(self):
-        # FeatureMapHelper.FFMID_library_from_consensus_df(
-        #     self.consensus_tsv, Path(self.interim, "FFMID.tsv")
-        # )
+        FeatureMapHelper.FFMID_library_from_consensus_df(
+            self.consensus_tsv, Path(self.interim, "FFMID.tsv")
+        )
         # FeatureMapHelper().split_consensus_map(
         #     str(self.consensusXML),
         #     str(Path(self.interim, "ConsensusComplete.consensusXML")),
@@ -151,17 +166,17 @@ class UmetaFlow:
         #     str(Path(self.interim, "ConsensusMissing.consensusXML")),
         #     Path(self.interim, "FFMID_libraries"),
         # )
-        # FeatureFinderMetaboIdent().run(
-        #     self.mzML_dir,
-        #     str(Path(self.interim, "FFMID_tmp")),
-        #     Path(self.interim, "FFMID_libraries"),
-        #     {
-        #         "detect:peak_width": self.params["ffm_peak_width"],
-        #         "extract:mz_window": self.params["ffm_mass_error"],
-        #         "extract:n_isotopes": 2,
-        #         # "extract:rt_window": self.params["ffm_peak_width"] * 4,
-        #     },
-        # )
+        FeatureFinderMetaboIdent().run(
+            self.mzML_dir,
+            str(Path(self.interim, "FFMID")),
+            Path(self.interim, "FFMID.tsv"),
+            {
+                "detect:peak_width": self.params["ffm_peak_width"],
+                "extract:mz_window": self.params["ffm_mass_error"],
+                "extract:n_isotopes": 2,
+                # "extract:rt_window": self.params["ffm_peak_width"] * 4,
+            },
+        )
         # FeatureMapHelper().consensus_to_feature_maps(
         #     str(Path(self.interim, "ConsensusComplete.consensusXML")),
         #     self.featureXML_dir,
@@ -172,16 +187,9 @@ class UmetaFlow:
         #     Path(self.interim, "FeatureMapsComplete"),
         #     Path(self.interim, "FFMID_tmp"),
         # )
-        # self.consensusXML = Path(self.interim, "FeatureMatrixRequantified.consensusXML")
-        # self.consensus_tsv = Path(self.results_dir, "FeatureMatrixRequantified.tsv")
-        # self.featureXML_dir = Path(self.interim, "FFMID")
-        Requantifier().run(
-            str(self.consensusXML),
-            self.consensus_tsv,
-            self.mzML_dir,
-            self.featureXML_dir,
-            self.params["ffm_mass_error"],
-        )
+        self.consensusXML = Path(self.interim, "FeatureMatrixRequantified.consensusXML")
+        self.consensus_tsv = Path(self.results_dir, "FeatureMatrixRequantified.tsv")
+        self.featureXML_dir = Path(self.interim, "FFMID")
 
     def export_metadata(self):
         GNPSExport().export_metadata_table_only(
@@ -258,3 +266,166 @@ class UmetaFlow:
             Path(self.results_dir, "FeatureMatrix.ftr"),
             self.consensusXML,
         )
+
+
+def run_alternative_requant(params, mzML_files, results_dir):
+    umetaflow = UmetaFlow(params, mzML_files, results_dir)
+    # if not params["use_requant"]:
+    with st.spinner("Fetching raw data..."):
+        umetaflow.fetch_raw_data()
+
+    with st.spinner("Detecting features..."):
+        umetaflow.feature_detection()
+
+    if params["use_ad"]:
+        with st.spinner("Determining adducts..."):
+            umetaflow.adduct_detection()
+
+    with st.spinner("Exporting feature maps for visualization..."):
+        umetaflow.feature_maps_to_df()
+
+    if params["use_ma"]:
+        with st.spinner("Aligning feature maps..."):
+            umetaflow.align_feature_maps()
+            umetaflow.feature_maps_to_df()
+
+        with st.spinner("Aligning mzML files..."):
+            umetaflow.align_peak_maps()
+
+    # annotate only when necessary
+    if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
+        with st.spinner("Mapping MS2 data to features..."):
+            umetaflow.map_MS2()
+
+    # export only sirius ms files to use in the GUI tool
+    if params["use_sirius_manual"]:
+        with st.spinner("Exporting files for Sirius..."):
+            umetaflow.sirius()
+
+    with st.spinner("Linking features..."):
+        umetaflow.link_feature_maps()
+        umetaflow.consensus_df()
+
+    df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
+    st.session_state.missing_values_before = sum(
+        [(df[col] == 0).sum() for col in df.columns]
+    )
+
+    if params["use_requant"]:
+        with st.spinner("Re-quantification..."):
+            umetaflow.requantify_alternative()
+
+    df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
+    st.session_state.missing_values_after = sum(
+        [(df[col] == 0).sum() for col in df.columns]
+    )
+
+    # export metadata
+    umetaflow.export_metadata()
+
+    if params["use_gnps"]:
+        with st.spinner("Exporting files for GNPS..."):
+            umetaflow.gnps()
+
+    if params["annotate_ms1"]:
+        with st.spinner("Annotating feautures on MS1 level by m/z and RT"):
+            umetaflow.annotate_MS1()
+
+    if params["annotate_ms2"]:
+        with st.spinner(
+            "Annotating features on MS2 level by fragmentation patterns..."
+        ):
+            umetaflow.annotate_MS2()
+
+    # make zip archives
+    umetaflow.make_zip_archives()
+
+    # additional_data
+    umetaflow.additional_data_for_consensus_df()
+
+
+def run(params, mzML_files, results_dir):
+    umetaflow = UmetaFlow(params, mzML_files, results_dir)
+
+    # if not params["use_requant"]:
+    with st.spinner("Fetching raw data..."):
+        umetaflow.fetch_raw_data()
+
+    with st.spinner("Detecting features..."):
+        umetaflow.feature_detection()
+
+    if params["use_ad"] and not params["use_requant"]:
+        with st.spinner("Determining adducts..."):
+            umetaflow.adduct_detection()
+
+    with st.spinner("Exporting feature maps for visualization..."):
+        umetaflow.feature_maps_to_df()
+
+    if params["use_ma"]:
+        with st.spinner("Aligning feature maps..."):
+            umetaflow.align_feature_maps()
+            umetaflow.feature_maps_to_df()
+
+        with st.spinner("Aligning mzML files..."):
+            umetaflow.align_peak_maps()
+            umetaflow.peak_maps_to_df()
+
+    # annotate only when necessary
+    if (
+        params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]
+    ) and not params["use_requant"]:
+        with st.spinner("Mapping MS2 data to features..."):
+            umetaflow.map_MS2()
+
+    # export only sirius ms files to use in the GUI tool
+    if params["use_sirius_manual"] and not params["use_requant"]:
+        with st.spinner("Exporting files for Sirius..."):
+            umetaflow.sirius()
+
+    with st.spinner("Linking features..."):
+        umetaflow.link_feature_maps()
+        umetaflow.consensus_df()
+
+    if params["use_requant"]:
+        # for requant run FFMID and Feature Linking and optionally Adduct Decharging and Mapping MS2 data
+        with st.spinner("Re-quantification..."):
+            umetaflow.requantify()
+
+        if params["use_ad"]:
+            with st.spinner("Determining adducts..."):
+                umetaflow.adduct_detection()
+
+        with st.spinner("Exporting re-quantified feature maps for visualization..."):
+            umetaflow.feature_maps_to_df(requant=True)
+
+        # annotate only when necessary
+        if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
+            with st.spinner("Mapping MS2 data to features..."):
+                umetaflow.map_MS2()
+
+        if params["use_sirius_manual"]:
+            with st.spinner("Exporting files for Sirius..."):
+                umetaflow.sirius()
+
+        with st.spinner("Linking re-quantified features..."):
+            umetaflow.link_feature_maps()
+            umetaflow.consensus_df()
+
+    # export metadata
+    umetaflow.export_metadata()
+
+    if params["use_gnps"]:
+        with st.spinner("Exporting files for GNPS..."):
+            umetaflow.gnps()
+
+    if params["annotate_ms1"]:
+        with st.spinner("Annotating features on MS1 level by m/z and RT"):
+            umetaflow.annotate_MS1()
+
+    if params["annotate_ms2"]:
+        with st.spinner(
+            "Annotating features on MS2 level by fragmentation patterns..."
+        ):
+            umetaflow.annotate_MS2()
+
+    umetaflow.additional_data_for_consensus_df()

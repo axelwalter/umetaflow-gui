@@ -82,7 +82,7 @@ class Visualization:
                     c2.markdown("##")
                     c2.plotly_chart(Plot.plot_bpc(df_ms1, ms1_rt, ms2_rt))
 
-    def display_FFM_data(feature_maps, spectra):
+    def display_feature_data(feature_maps, spectra):
         c1, c2 = st.columns(2)
         name = c1.selectbox("choose feature map", [key for key in feature_maps.keys()])
         if name:
@@ -92,7 +92,7 @@ class Visualization:
             c2.metric("lowest intensity", int(min(df["intensity"])))
             c3.metric("highest intensity", int(max(df["intensity"])))
             int_cutoff = (
-                c1.number_input(
+                st.number_input(
                     "show features with intensity above cutoff value x 10e6",
                     0,
                     int(max(df["intensity"]) / 1000000),
@@ -153,6 +153,8 @@ class Visualization:
                 np.round(feature["RTend"] - feature["RTstart"], 2),
             )
             c3.metric("FWHM", feature["fwhm"].round(2))
+            if "snr" in feature.columns:
+                c4.metric("S/N", feature["snr"].round(2))
 
     def display_map_alignemnt(feature_maps: dict):
         c1, c2, c3 = st.columns(3)
@@ -186,8 +188,7 @@ class Visualization:
             means=df[[col for col in df.columns if col.endswith(".mzML")]].mean(axis=1)
         )
 
-        c1, c2 = st.columns([0.7, 0.3])
-
+        c1, c2 = st.columns(2)
         # select a sample or all for mean intensities
         sample = c1.selectbox(
             "choose sample to highlight",
@@ -209,7 +210,7 @@ class Visualization:
         )
 
         fig = Plot.plot_consensus_map(df, sample)
-        c1.plotly_chart(fig)
+        st.plotly_chart(fig)
 
         # determine which features in which samples to plot as chromatogram
         to_plot = {
@@ -219,4 +220,4 @@ class Visualization:
         }
 
         fig = Plot.plot_consensus_feature_chromatograms(feature_maps, to_plot, feature)
-        c2.plotly_chart(fig)
+        st.plotly_chart(fig)

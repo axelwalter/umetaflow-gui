@@ -452,6 +452,7 @@ class Plot:
 
         # define custom data for hovering
         meta_values = [
+            df["metabolite"],
             df["mz"].round(5),
             df["RT"].round(),
             df[sample],
@@ -460,21 +461,22 @@ class Plot:
         ]
 
         hovertemplate = """
-<b>mz: %{customdata[0]}<br>
-RT: %{customdata[1]}<br>
-intensity: %{customdata[2]}<br>
-charge: %{customdata[3]}<br>
-quality: %{customdata[4]}<br>
+<b>name: %{customdata[0]}<br>
+mz: %{customdata[1]}<br>
+RT: %{customdata[2]}<br>
+intensity: %{customdata[3]}<br>
+charge: %{customdata[4]}<br>
+quality: %{customdata[5]}<br>
 """
 
         if "adduct" in df.columns:
             meta_values.append(df["adduct"])
             hovertemplate += "adduct: %{customdata[5]}<br>"
 
-        for sample in [col for col in df.columns if col.endswith("mzML")]:
-            meta_values.append(df[sample])
+        for s in [col for col in df.columns if col.endswith("mzML")]:
+            meta_values.append(df[s])
             hovertemplate += (
-                sample[:-5] + ": %{customdata[" + str(len(meta_values) - 1) + "]}<br>"
+                s[:-5] + ": %{customdata[" + str(len(meta_values) - 1) + "]}<br>"
             )
 
         customdata = np.stack(meta_values, axis=-1)

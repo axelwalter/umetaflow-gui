@@ -327,8 +327,34 @@ class DataFrames:
         df = fm.get_df(export_peptide_identifications=False).reset_index()
         df["adduct"] = [f.getMetaValue("dc_charge_adducts") for f in fm]
         df["original_rt"] = [f.getMetaValue("original_RT") for f in fm]
-        df["fwhm"] = [f.getMetaValue("FWHM") for f in fm]
-        if not requant:
+
+        if requant:
+            df["chrom_rts"] = [
+                np.array(
+                    [
+                        x[0]
+                        for x in f.getSubordinates()[0]
+                        .getConvexHulls()[0]
+                        .getHullPoints()
+                    ]
+                ).astype(np.float64)
+                for f in fm
+            ]
+            df["chrom_intensities"] = [
+                np.array(
+                    [
+                        x[1]
+                        for x in f.getSubordinates()[0]
+                        .getConvexHulls()[0]
+                        .getHullPoints()
+                    ]
+                ).astype(np.float64)
+                for f in fm
+            ]
+            df["fwhm"] = [f.getMetaValue("model_FWHM") for f in fm]
+            df["snr"] = [f.getMetaValue("sn_ratio") for f in fm]
+
+        else:
             df["chrom_rts"] = [
                 np.array(f.getMetaValue("chrom_rts").split(",")).astype(np.float64)
                 for f in fm
@@ -339,6 +365,8 @@ class DataFrames:
                 )
                 for f in fm
             ]
+            df["fwhm"] = [f.getMetaValue("FWHM") for f in fm]
+
         df["metabolite"] = (
             df["mz"].round(5).astype(str) + "@" + df["RT"].round(2).astype(str)
         )

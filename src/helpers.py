@@ -160,7 +160,7 @@ class FeatureMapHelper:
             {
                 "CompoundName": df["metabolite"],
                 "SumFormula": np.full(df.shape[0], ""),
-                "Mass": df["mz"],
+                "Mass": df["mz"] * df["charge"] - (df["charge"] * 1.007825),
                 "Charge": df["charge"],
                 "RetentionTime": df["RT"],
                 "RetentionTimeRange": np.full(df.shape[0], 0),

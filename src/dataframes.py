@@ -86,9 +86,9 @@ class DataFrames:
             axis=1,
         )
 
-        if table_file.endswith("tsv"):
+        if str(table_file).endswith("tsv"):
             df.to_csv(table_file, sep="\t")
-        elif table_file.endswith("ftr"):
+        elif str(table_file).endswith("ftr"):
             df.reset_index().to_feather(table_file)
         return df
 
@@ -321,21 +321,24 @@ class DataFrames:
         )
         df.to_feather(Path(ftr_dir, mzML_file_path.stem + ".ftr"))
 
-    def featureXML_to_ftr(featureXML_file_path, ftr_dir):
+    def featureXML_to_ftr(featureXML_file_path, ftr_dir, requant=False):
         fm = FeatureMap()
         FeatureXMLFile().load(str(featureXML_file_path), fm)
         df = fm.get_df(export_peptide_identifications=False).reset_index()
         df["adduct"] = [f.getMetaValue("dc_charge_adducts") for f in fm]
         df["original_rt"] = [f.getMetaValue("original_RT") for f in fm]
         df["fwhm"] = [f.getMetaValue("FWHM") for f in fm]
-        df["chrom_rts"] = [
-            np.array(f.getMetaValue("chrom_rts").split(",")).astype(np.float64)
-            for f in fm
-        ]
-        df["chrom_intensities"] = [
-            np.array(f.getMetaValue("chrom_intensities").split(",")).astype(np.float64)
-            for f in fm
-        ]
+        if not requant:
+            df["chrom_rts"] = [
+                np.array(f.getMetaValue("chrom_rts").split(",")).astype(np.float64)
+                for f in fm
+            ]
+            df["chrom_intensities"] = [
+                np.array(f.getMetaValue("chrom_intensities").split(",")).astype(
+                    np.float64
+                )
+                for f in fm
+            ]
         df["metabolite"] = (
             df["mz"].round(5).astype(str) + "@" + df["RT"].round(2).astype(str)
         )

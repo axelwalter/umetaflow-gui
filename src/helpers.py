@@ -1,5 +1,7 @@
 import os
 import csv
+import pandas as pd
+import numpy as np
 import shutil
 from pyopenms import *
 
@@ -151,3 +153,19 @@ class FeatureMapHelper:
                     with open(file, "a", newline="") as tsvfile:
                         writer = csv.writer(tsvfile, delimiter="\t")
                         writer.writerow(row)
+
+    def FFMID_library_from_consensus_df(consensus_df_path: str, library_path: str):
+        df = pd.read_csv(consensus_df_path, sep="\t")
+        lib = pd.DataFrame(
+            {
+                "CompoundName": df["metabolite"],
+                "SumFormula": np.full(df.shape[0], ""),
+                "Mass": df["mz"],
+                "Charge": df["charge"],
+                "RetentionTime": df["RT"],
+                "RetentionTimeRange": np.full(df.shape[0], 0),
+                "IsoDistribution": np.full(df.shape[0], 0),
+            },
+            index=range(df.shape[0]),
+        )
+        lib.to_csv(library_path, sep="\t", index=False)

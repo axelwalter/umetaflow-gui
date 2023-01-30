@@ -6,7 +6,6 @@ from src.dataframes import *
 from src.sirius import Sirius
 from src.gnps import GNPSExport
 from src.visualization import Visualization
-from src.umetaflow import UmetaFlow
 from pathlib import Path
 from datetime import datetime
 import json
@@ -319,113 +318,267 @@ mzML_files = [
 
 
 if run_button and mzML_files:
-
     results_dir = Helper().reset_directory(results_dir)
+    interim = Helper().reset_directory(os.path.join(results_dir, "interim"))
 
-    umetaflow = UmetaFlow(params, mzML_files, results_dir)
-
-    # if not params["use_requant"]:
     with st.spinner("Fetching raw data..."):
-        umetaflow.fetch_raw_data()
+        mzML_dir = os.path.join(interim, "mzML_original")
+        Helper().reset_directory(mzML_dir)
+        for file in mzML_files:
+            shutil.copy(file, mzML_dir)
 
     with st.spinner("Detecting features..."):
-        umetaflow.feature_detection()
+        FeatureFinderMetabo().run(
+            mzML_dir,
+            os.path.join(interim, "FFM"),
+            {
+                "noise_threshold_int": params["ffm_noise"],
+                "chrom_fwhm": params["ffm_peak_width"],
+                "chrom_peak_snr": params["ffm_snr"],
+                "report_chromatograms": "true",
+                "mass_error_ppm": params["ffm_mass_error"],
+                "remove_single_traces": ffm_single_traces,
+                "report_convex_hulls": "true",
+                "min_fwhm": params["ffm_min_fwhm"],
+                "max_fwhm": params["ffm_max_fwhm"],
+            },
+        )
+        featureXML_dir = os.path.join(interim, "FFM")
 
-    if params["use_ad"]:
+    if params["use_ad"] and not params["use_requant"]:
         with st.spinner("Determining adducts..."):
-            umetaflow.adduct_detection()
+            MetaboliteAdductDecharger().run(
+                featureXML_dir,
+                os.path.join(interim, "FFM_decharged"),
+                {
+                    "potential_adducts": [
+                        line.encode() for line in params["ad_adducts"].split("\n")
+                    ],
+                    "charge_min": params["ad_charge_min"],
+                    "charge_max": params["ad_charge_max"],
+                    "max_neutrals": 2,
+                    # "negative_mode": ad_negative_mode,
+                    "retention_max_diff": params["ad_rt_max_diff"],
+                    "retention_max_diff_local": params["ad_rt_max_diff"],
+                },
+            )
+        shutil.rmtree(featureXML_dir)
+        Path(interim, "FFM_decharged").rename(Path(featureXML_dir))
 
     with st.spinner("Exporting feature maps for visualization..."):
-        umetaflow.feature_maps_to_df()
+        # export feature maps to dataframes
+        Helper().reset_directory(Path(interim, "FFM_dfs"))
+        for file in Path(featureXML_dir).iterdir():
+            DataFrames.featureXML_to_ftr(file, Path(interim, "FFM_dfs"))
 
     if params["use_ma"]:
         with st.spinner("Aligning feature maps..."):
-            umetaflow.align_feature_maps()
-            umetaflow.feature_maps_to_df()
+            MapAligner().run(
+                featureXML_dir,
+                os.path.join(interim, "FFM_aligned"),
+                os.path.join(interim, "Trafo"),
+                {
+                    "max_num_peaks_considered": -1,
+                    "superimposer:mz_pair_max_distance": 0.05,
+                    "pairfinder:distance_MZ:max_difference": params["ma_mz_max"],
+                    "pairfinder:distance_MZ:unit": params["ma_mz_unit"],
+                    "pairfinder:distance_RT:max_difference": params["ma_rt_max"],
+                },
+            )
+            featureXML_dir = os.path.join(interim, "FFM_aligned")
+
+            Helper().reset_directory(Path(interim, "FFM_aligned_dfs"))
+            for file in Path(featureXML_dir).iterdir():
+                DataFrames.featureXML_to_ftr(file, Path(interim, "FFM_aligned_dfs"))
 
         with st.spinner("Aligning mzML files..."):
-            umetaflow.align_peak_maps()
+            MapAligner().run(
+                mzML_dir,
+                os.path.join(interim, "mzML_aligned"),
+                os.path.join(interim, "Trafo"),
+            )
+            mzML_dir = os.path.join(interim, "mzML_aligned")
 
-    # annotate only when necessary
-    if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
+    # annotate only when necessary, if requant is used this will be skipped for FFM results
+    if (
+        params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]
+    ) and not params["use_requant"]:
         with st.spinner("Mapping MS2 data to features..."):
-            umetaflow.map_MS2()
+            MapID().run(
+                mzML_dir,
+                featureXML_dir,
+                os.path.join(interim, "FeatureMaps_ID_mapped"),
+            )
+            featureXML_dir = os.path.join(interim, "FeatureMaps_ID_mapped")
 
-    # export only sirius ms files to use in the GUI tool
-    if params["use_sirius_manual"]:
+    if params[
+        "use_sirius_manual"
+    ]:  # export only sirius ms files to use in the GUI tool
         with st.spinner("Exporting files for Sirius..."):
-            umetaflow.sirius()
+            Sirius().run(
+                mzML_dir,
+                featureXML_dir,
+                os.path.join(results_dir, "SIRIUS"),
+                "",
+                True,
+                {"-preprocessing:feature_only": "true"},
+            )
+        sirius_ms_dir = os.path.join(results_dir, "SIRIUS", "sirius_files")
+    else:
+        sirius_ms_dir = ""
 
     with st.spinner("Linking features..."):
-        umetaflow.link_feature_maps()
-        umetaflow.consensus_df()
-
-    df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
-    st.session_state.missing_values_before = sum(
-        [(df[col] == 0).sum() for col in df.columns]
-    )
+        FeatureLinker().run(
+            featureXML_dir,
+            os.path.join(interim, "FeatureMatrix.consensusXML"),
+            {
+                "link:mz_tol": params["fl_mz_tol"],
+                "link:rt_tol": params["fl_rt_tol"],
+                "mz_unit": params["fl_mz_unit"],
+            },
+        )
+        DataFrames().create_consensus_table(
+            os.path.join(interim, "FeatureMatrix.consensusXML"),
+            os.path.join(results_dir, "FeatureMatrix.tsv"),
+            sirius_ms_dir,
+        )
 
     if params["use_requant"]:
+        # for requant run FFMID and Feature Linking and optionally Adduct Decharging and Mapping MS2 data
         with st.spinner("Re-quantification..."):
-            umetaflow.requantify()
+            FeatureMapHelper.FFMID_library_from_consensus_df(
+                Path(results_dir, "FeatureMatrix.tsv"), Path(interim, "FFMID.tsv")
+            )
+            FeatureFinderMetaboIdent().run(
+                mzML_dir,
+                os.path.join(interim, "FFMID"),
+                os.path.join(interim, "FFMID.tsv"),
+                {
+                    "detect:peak_width": params["ffm_peak_width"],
+                    "extract:mz_window": params["ffm_mass_error"],
+                    "extract:n_isotopes": 2,
+                    "extract:rt_window": params["ffm_peak_width"] * 4,
+                },
+            )
 
-    df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
-    st.session_state.missing_values_after = sum(
-        [(df[col] == 0).sum() for col in df.columns]
+        with st.spinner("Linking re-quantified features..."):
+            FeatureLinker().run(
+                featureXML_dir,
+                os.path.join(interim, "FeatureMatrixRequant.consensusXML"),
+                {
+                    "link:mz_tol": params["fl_mz_tol"],
+                    "link:rt_tol": params["fl_rt_tol"],
+                    "mz_unit": params["fl_mz_unit"],
+                },
+            )
+            DataFrames().create_consensus_table(
+                os.path.join(interim, "FeatureMatrixRequant.consensusXML"),
+                os.path.join(results_dir, "FeatureMatrixRequant.tsv"),
+                sirius_ms_dir,
+            )
+
+            # if params["use_ad"]:
+
+    GNPSExport().export_metadata_table_only(
+        os.path.join(interim, "FeatureMatrix.consensusXML"),
+        os.path.join(results_dir, "MetaData.tsv"),
     )
-
-    # export metadata
-    umetaflow.export_metadata()
 
     if params["use_gnps"]:
         with st.spinner("Exporting files for GNPS..."):
-            umetaflow.gnps()
+            # create interim directory for MS2 ids later (they are based on the GNPS mgf file)
+            Helper().reset_directory(os.path.join(interim, "mztab_ms2"))
+            GNPSExport().run(
+                os.path.join(interim, "FeatureMatrix.consensusXML"),
+                mzML_dir,
+                os.path.join(results_dir, "GNPS"),
+            )
+            output_mztab = os.path.join(interim, "mztab_ms2", "GNPS.mzTab")
+            mgf_file = os.path.join(results_dir, "GNPS", "MS2.mgf")
+            database = "example_data/ms2-libraries/GNPS-LIBRARY.mgf"
+            SpectralMatcher().run(database, mgf_file, output_mztab)
+            DataFrames().annotate_ms2(
+                mgf_file,
+                output_mztab,
+                os.path.join(results_dir, "FeatureMatrix.tsv"),
+                "GNPS library match",
+            )
 
     if params["annotate_ms1"]:
         with st.spinner("Annotating feautures on MS1 level by m/z and RT"):
-            umetaflow.annotate_MS1()
+            if params["ms1_annotation_file"]:
+                DataFrames().annotate_ms1(
+                    os.path.join(results_dir, "FeatureMatrix.tsv"),
+                    params["ms1_annotation_file"],
+                    params["annotation_mz_window_ppm"],
+                    params["annoation_rt_window_sec"],
+                )
+                DataFrames().save_MS_ids(
+                    os.path.join(results_dir, "FeatureMatrix.tsv"),
+                    os.path.join(results_dir, "MS1-annotations"),
+                    "MS1 annotation",
+                )
 
     if params["annotate_ms2"]:
         with st.spinner(
             "Annotating features on MS2 level by fragmentation patterns..."
         ):
-            umetaflow.annotate_MS2()
+            if params["ms2_annotation_file"]:
+                output_mztab = os.path.join(interim, "mztab_ms2", "MS2.mzTab")
+                SpectralMatcher().run(
+                    params["ms2_annotation_file"], mgf_file, output_mztab
+                )
+                DataFrames().annotate_ms2(
+                    mgf_file,
+                    output_mztab,
+                    os.path.join(results_dir, "FeatureMatrix.tsv"),
+                    "MS2 annotation",
+                    overwrite_name=True,
+                )
+                DataFrames().save_MS_ids(
+                    os.path.join(results_dir, "FeatureMatrix.tsv"),
+                    os.path.join(results_dir, "MS2-annotations"),
+                    "MS2 annotation",
+                )
 
-    # make zip archives
-    umetaflow.make_zip_archives()
+    if params["use_sirius_manual"]:
+        shutil.make_archive(os.path.join(interim, "ExportSirius"), "zip", sirius_ms_dir)
+    if params["use_gnps"]:
+        shutil.make_archive(
+            os.path.join(interim, "ExportGNPS"),
+            "zip",
+            os.path.join(results_dir, "GNPS"),
+        )
 
-    # additional_data
-    umetaflow.additional_data_for_consensus_df()
-
+    DataFrames.consensus_df_additional_annotations(
+        Path(results_dir, "FeatureMatrix.tsv"),
+        Path(results_dir, "FeatureMatrix.ftr"),
+        Path(interim, "FeatureMatrix.consensusXML"),
+    )
     st.success("Complete!")
 
 elif run_button:
     st.warning("Upload or select some mzML files first!")
 
 if any(Path(results_dir).iterdir()):
-
-    df = pd.DataFrame()
-
-    if Path(results_dir, "FeatureMatrix.tsv").is_file():
-        df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
-
+    df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
     if not df.empty:
         st.markdown("***")
         st.markdown("#### Feature Matrix")
         st.markdown(f"**{df.shape[0]} rows, {df.shape[1]} columns**")
         st.dataframe(df)
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("number of features", df.shape[0])
-        col2.metric(
-            "number of samples", len([col for col in df.columns if "mzML" in col])
-        )
         if "missing_values_before" in st.session_state:
-            col3.metric("missing values", st.session_state.missing_values_before)
+            col1.metric("missing values", st.session_state.missing_values_before)
         if "missing_values_after" in st.session_state:
-            col4.metric(
+            col2.metric(
                 "missing values after re-quantification",
                 st.session_state.missing_values_after,
             )
+        col3.metric("number of features", df.shape[0])
+        col4.metric(
+            "number of samples", len([col for col in df.columns if "mzML" in col])
+        )
         st.markdown("***")
         st.markdown("#### Downloads")
         col1, col2, col3, col4 = st.columns(4)
@@ -465,11 +618,11 @@ if any(Path(results_dir).iterdir()):
     # display detailed results
     options = ["mzML files"]
     try:
-        path = Path(results_dir, "interim", "FFM_df")
+        path = Path(results_dir, "interim", "FFM_dfs")
         if path.exists():
             if any(path.iterdir()):
                 options.append("detected features")
-        path = Path(results_dir, "interim", "FFM_aligned_df")
+        path = Path(results_dir, "interim", "FFM_aligned_dfs")
         if path.exists():
             if any(path.iterdir()):
                 options.append("feature map alignment")
@@ -497,7 +650,7 @@ if any(Path(results_dir).iterdir()):
                 for file in Path(
                     results_dir,
                     "interim",
-                    "FFM_df",
+                    "FFM_dfs",
                 ).iterdir()
             },
             {
@@ -513,7 +666,7 @@ if any(Path(results_dir).iterdir()):
                 for file in Path(
                     results_dir,
                     "interim",
-                    "FFM_aligned_df",
+                    "FFM_aligned_dfs",
                 ).iterdir()
             }
         )

@@ -523,9 +523,11 @@ quality: %{customdata[5]}<br>
                     name=sample,
                     x=df.loc[df.index[0], "chrom_rts"],
                     y=df.loc[df.index[0], "chrom_intensities"],
+                    mode="lines",
                 )
             )
         fig.update_layout(
+            showlegend=True,
             title=title,
             xaxis_title="time",
             yaxis_title="intensity (counts per second)",

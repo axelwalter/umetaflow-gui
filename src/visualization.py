@@ -94,10 +94,10 @@ class Visualization:
             int_cutoff = (
                 st.number_input(
                     "show features with intensity above cutoff value x 10e6",
-                    0,
-                    int(max(df["intensity"]) / 1000000),
-                    0,
-                    1,
+                    0.0,
+                    max(df["intensity"]) / 1000000,
+                    0.0,
+                    0.1,
                 )
                 * 1000000
             )

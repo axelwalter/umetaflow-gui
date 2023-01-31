@@ -157,36 +157,16 @@ class UmetaFlow:
         FeatureMapHelper.FFMID_library_from_consensus_df(
             self.consensus_tsv, Path(self.interim, "FFMID.tsv")
         )
-        # FeatureMapHelper().split_consensus_map(
-        #     str(self.consensusXML),
-        #     str(Path(self.interim, "ConsensusComplete.consensusXML")),
-        #     str(Path(self.interim, "ConsensusMissing.consensusXML")),
-        # )
-        # FeatureMapHelper().FFMID_libraries_for_missing_features(
-        #     str(Path(self.interim, "ConsensusMissing.consensusXML")),
-        #     Path(self.interim, "FFMID_libraries"),
-        # )
         FeatureFinderMetaboIdent().run(
             self.mzML_dir,
             str(Path(self.interim, "FFMID")),
             Path(self.interim, "FFMID.tsv"),
             {
-                "detect:peak_width": self.params["ffm_peak_width"],
+                "detect:peak_width": self.params["ffm_peak_width"] * 2,
                 "extract:mz_window": self.params["ffm_mass_error"],
                 "extract:n_isotopes": 2,
-                # "extract:rt_window": self.params["ffm_peak_width"] * 4,
             },
         )
-        # FeatureMapHelper().consensus_to_feature_maps(
-        #     str(Path(self.interim, "ConsensusComplete.consensusXML")),
-        #     self.featureXML_dir,
-        #     Path(self.interim, "FeatureMapsComplete"),
-        # )
-        # FeatureMapHelper().merge_feature_maps(
-        #     Path(self.interim, "FFMID"),
-        #     Path(self.interim, "FeatureMapsComplete"),
-        #     Path(self.interim, "FFMID_tmp"),
-        # )
         self.consensusXML = Path(self.interim, "FeatureMatrixRequantified.consensusXML")
         self.consensus_tsv = Path(self.results_dir, "FeatureMatrixRequantified.tsv")
         self.featureXML_dir = Path(self.interim, "FFMID")

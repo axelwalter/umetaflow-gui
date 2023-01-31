@@ -25,7 +25,7 @@ try:
 
 We have developed a web app specifically for metabolomics data analyisis. 
 
-Visit [the GitHub repository](https://github.com/axelwalter/streamlit-metabolomics-statistics) or [**open the app**](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/) directly from here.
+Visit [the GitHub repository](https://github.com/axelwalter/streamlit-metabolomics-statistics) or [**open the app**](https://metabolomics-statistics.streamlit.app/) directly from here.
 
 #### What you need from this app
 

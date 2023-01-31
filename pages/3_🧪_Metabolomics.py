@@ -483,10 +483,14 @@ try:
                 feature_dir = Path(results_dir, "interim", "FFMID_df")
             else:
                 feature_dir = Path(results_dir, "interim", "FFM_df")
-            Visualization.display_consensus_map(
-                pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
-                {file.stem: pd.read_feather(file) for file in feature_dir.iterdir()},
-            )
+                Visualization.display_consensus_map(
+                    pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
+                    {
+                        file.stem: pd.read_feather(file)
+                        for file in feature_dir.iterdir()
+                    },
+                )
+
 
 except:
     st.warning("Something went wrong.")

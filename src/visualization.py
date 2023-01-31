@@ -91,16 +91,11 @@ class Visualization:
             c1.metric("number of features", df.shape[0])
             c2.metric("lowest intensity", int(min(df["intensity"])))
             c3.metric("highest intensity", int(max(df["intensity"])))
-            int_cutoff = (
-                st.number_input(
-                    "show features with intensity above cutoff value x 10e6",
-                    0.0,
-                    max(df["intensity"]) / 1000000,
-                    0.0,
-                    0.1,
-                )
-                * 1000000
+            int_cutoff = st.select_slider(
+                "show features with intensity above intensity",
+                range(0, int(max(df["intensity"])), 100000),
             )
+
             df = df[df["intensity"] > int_cutoff]
             df.sort_values(by=["intensity"], inplace=True)
             df.fillna(0, inplace=True)

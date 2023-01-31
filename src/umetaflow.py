@@ -52,19 +52,22 @@ class UmetaFlow:
         self.featureXML_dir = Path(self.interim, "FFM")
 
     def adduct_detection(self):
+        if self.params["ad_ion_mode"] == "negative":
+            negative_mode = "true"
+        else:
+            negative_mode = "false"
+        adducts = [line.encode() for line in self.params["ad_adducts"].split("\n")]
         MetaboliteAdductDecharger().run(
             self.featureXML_dir,
             Path(self.interim, "FFM_decharged"),
             {
-                "potential_adducts": [
-                    line.encode() for line in self.params["ad_adducts"].split("\n")
-                ],
+                "potential_adducts": adducts,
                 "charge_min": self.params["ad_charge_min"],
                 "charge_max": self.params["ad_charge_max"],
-                "max_neutrals": 2,
-                # "negative_mode": ad_negative_mode,
+                "charge_span_max": 1,
+                "max_neutrals": len(adducts) - 1,
+                "negative_mode": negative_mode,
                 "retention_max_diff": self.params["ad_rt_max_diff"],
-                "retention_max_diff_local": self.params["ad_rt_max_diff"],
             },
         )
         shutil.rmtree(self.featureXML_dir)

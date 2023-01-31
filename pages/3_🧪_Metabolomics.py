@@ -156,31 +156,50 @@ try:
         use_ad = True
     else:
         use_ad = False
-    params["use_ad"] = st.checkbox(
-        "**Adduct Detection**", use_ad, help="Available for positive mode right now."
-    )
+    params["use_ad"] = st.checkbox("**Adduct Detection**", use_ad)
     if params["use_ad"]:
-        col1, col2, col3 = st.columns(3)
-        # with col1:
-        # params["ad_ion_mode"] = st.radio("ionization mode", ["positive", "negative"])
-        # if params["ad_ion_mode"] == "positive":
-        #     ad_negative_mode = "false"
-        # else:
-        #     ad_negative_mode = "true"
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
+            params["ad_ion_mode"] = st.radio(
+                "ionization mode",
+                ["positive", "negative"],
+                help="Carefully adjust settings for each mode. Especially potential adducts and negative min/max charges for negative mode.",
+            )
+        with col2:
             params["ad_adducts"] = st.text_area(
                 "potential adducts",
                 params["ad_adducts"],
-                help="Specify adducts and neutral additions/losses. Format: adducts:charge:probability. The summed up probability for all charged entries needs to be 1.0.",
-            )
-        with col2:
-            params["ad_charge_min"] = st.number_input(
-                "charge min", 1, 10, params["ad_charge_min"]
-            )
-            params["ad_charge_max"] = st.number_input(
-                "charge max", 1, 10, params["ad_charge_max"]
+                help="""Specify adducts and neutral additions/losses.\n
+Format (each in a new line): adducts:charge:probability.\n
+The summed up probability for all charged entries needs to be 1.0.\n
+
+Good starting options for positive mode with sodium adduct and water loss:\n
+H:+:0.9\n
+Na:+:0.1\n
+H-2O-1:0:0.4
+
+Good starting options for negative mode with water loss and formic acid addition:\n
+H-1:-:1\n
+H-2O-1:0:0.5\n
+CH2O2:0:0.5
+""",
             )
         with col3:
+            params["ad_charge_min"] = st.number_input(
+                "charge min",
+                -3,
+                3,
+                params["ad_charge_min"],
+                help="e.g. for negative mode -3, for positive mode 1",
+            )
+            params["ad_charge_max"] = st.number_input(
+                "charge max",
+                -3,
+                3,
+                params["ad_charge_max"],
+                help="e.g. for negative mode -1, for positive mode 3",
+            )
+        with col4:
             params["ad_rt_max_diff"] = float(
                 st.number_input(
                     "RT max difference",

@@ -1,7 +1,7 @@
 {
     "ffm_mass_error": 10.0,
     "ffm_noise": 100.0,
-    "ffm_peak_width": 15.0,
+    "ffm_peak_width": 10.0,
     "ffm_single_traces": true,
     "ffm_min_fwhm": 1.0,
     "ffm_max_fwhm": 60.0, 

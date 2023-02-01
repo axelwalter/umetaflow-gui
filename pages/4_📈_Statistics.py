@@ -39,40 +39,55 @@ and add at least one more custom attribute column to where your samples differen
 
     st.radio(
         "choose data from workflow",
-        ["Extracted Ion Chromatograms", "Metabolomics"],
+        [
+            "Extracted Ion Chromatograms",
+            "Metabolomics",
+            "Metabolomics MS1 annotated features",
+            "Metabolomics MS2 annotated features",
+        ],
         key="stats-choice",
     )
 
     df = pd.DataFrame()
 
     if st.session_state["stats-choice"] == "Metabolomics":
-        if Path(
+        path = Path(
             st.session_state["workspace"], "results-metabolomics", "FeatureMatrix.tsv"
-        ).is_file():
-            df = pd.read_csv(
-                Path(
-                    st.session_state["workspace"],
-                    "results-metabolomics",
-                    "FeatureMatrix.tsv",
-                ),
-                sep="\t",
-            ).set_index("metabolite")
+        )
+        if path.is_file():
+            df = pd.read_csv(path, sep="\t").set_index("metabolite")
         else:
             st.warning("No metabolomics results found.")
+    elif st.session_state["stats-choice"] == "Metabolomics MS1 annotated features":
+        path = Path(
+            st.session_state["workspace"],
+            "results-metabolomics",
+            "MS1-annotations",
+            "MS1-annotation.tsv",
+        )
+        if path.is_file():
+            df = pd.read_csv(path, sep="\t").set_index("metabolite")
+        else:
+            st.warning("No metabolomics MS1 annotations found.")
+    elif st.session_state["stats-choice"] == "Metabolomics MS2 annotated features":
+        path = Path(
+            st.session_state["workspace"],
+            "results-metabolomics",
+            "MS2-annotations",
+            "MS2-annotation.tsv",
+        )
+        if path.is_file():
+            df = pd.read_csv(path, sep="\t").set_index("metabolite")
+        else:
+            st.warning("No metabolomics MS2 annotations found.")
     else:
-        if Path(
+        path = Path(
             st.session_state["workspace"],
             "results-extract-chromatograms",
             "summary.tsv",
-        ).is_file():
-            df = pd.read_csv(
-                Path(
-                    st.session_state["workspace"],
-                    "results-extract-chromatograms",
-                    "summary.tsv",
-                ),
-                sep="\t",
-            ).set_index("metabolite")
+        )
+        if path.is_file():
+            df = pd.read_csv(path, sep="\t").set_index("metabolite")
         else:
             st.warning("No chromatogram extraction results found.")
 

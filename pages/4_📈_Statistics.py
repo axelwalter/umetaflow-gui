@@ -157,8 +157,9 @@ and add at least one more custom attribute column to where your samples differen
             fig.layout.template = "plotly_white"
             st.plotly_chart(fig)
 
-            fig = px.bar(std, barmode="group")
+            fig = px.bar(change)
             fig.update_layout(
+                showlegend=False,
                 title="log 2 fold change",
                 yaxis=dict(title="log 2 fold change"),
                 plot_bgcolor="rgb(255,255,255)",

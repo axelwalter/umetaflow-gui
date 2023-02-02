@@ -85,6 +85,10 @@ try:
         with open("params/metabolomics_defaults.json") as f:
             params = json.loads(f.read())
 
+except:
+    st.error("Something went wrong.")
+
+try:
     st.markdown("#### 1. Pre-Processing")
     st.markdown("**Feature Detection**")
     col1, col2, col3, col4 = st.columns(4)
@@ -334,6 +338,10 @@ try:
 
     run_button = c4.button("**Run Workflow!**")
 
+except:
+    st.warning("Something went wrong during parameter input.")
+
+try:
     # check for mzML files
     mzML_files = [
         str(Path(st.session_state["mzML_files"], key))
@@ -351,7 +359,10 @@ try:
 
     elif run_button:
         st.warning("Upload or select some mzML files first!")
+except:
+    st.error("Something went wrong during workflow execution.")
 
+try:
     if any(Path(results_dir).iterdir()):
 
         df = pd.DataFrame()
@@ -503,14 +514,10 @@ try:
                 feature_dir = Path(results_dir, "interim", "FFMID_df")
             else:
                 feature_dir = Path(results_dir, "interim", "FFM_df")
-                Visualization.display_consensus_map(
-                    pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
-                    {
-                        file.stem: pd.read_feather(file)
-                        for file in feature_dir.iterdir()
-                    },
-                )
-
+            Visualization.display_consensus_map(
+                pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
+                {file.stem: pd.read_feather(file) for file in feature_dir.iterdir()},
+            )
 
 except:
-    st.warning("Something went wrong.")
+    st.error("Something went wrong during visualization of results.")

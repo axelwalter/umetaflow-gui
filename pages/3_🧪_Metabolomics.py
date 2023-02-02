@@ -163,6 +163,7 @@ try:
             params["ad_ion_mode"] = st.radio(
                 "ionization mode",
                 ["positive", "negative"],
+                ["positive", "negative"].index(params["ad_ion_mode"]),
                 help="Carefully adjust settings for each mode. Especially potential adducts and negative min/max charges for negative mode.",
             )
         with col2:
@@ -170,19 +171,19 @@ try:
                 "potential adducts",
                 params["ad_adducts"],
                 help="""Specify adducts and neutral additions/losses.\n
-Format (each in a new line): adducts:charge:probability.\n
-The summed up probability for all charged entries needs to be 1.0.\n
+    Format (each in a new line): adducts:charge:probability.\n
+    The summed up probability for all charged entries needs to be 1.0.\n
 
-Good starting options for positive mode with sodium adduct and water loss:\n
-H:+:0.9\n
-Na:+:0.1\n
-H-2O-1:0:0.4
+    Good starting options for positive mode with sodium adduct and water loss:\n
+    H:+:0.9\n
+    Na:+:0.1\n
+    H-2O-1:0:0.4
 
-Good starting options for negative mode with water loss and formic acid addition:\n
-H-1:-:1\n
-H-2O-1:0:0.5\n
-CH2O2:0:0.5
-""",
+    Good starting options for negative mode with water loss and formic acid addition:\n
+    H-1:-:1\n
+    H-2O-1:0:0.5\n
+    CH2O2:0:0.5
+    """,
             )
         with col3:
             params["ad_charge_min"] = st.number_input(

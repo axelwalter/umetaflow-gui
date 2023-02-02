@@ -68,6 +68,7 @@ class UmetaFlow:
                 "max_neutrals": len(adducts) - 1,
                 "negative_mode": negative_mode,
                 "retention_max_diff": self.params["ad_rt_max_diff"],
+                "retention_max_diff_local": self.params["ad_rt_max_diff"],
             },
         )
         shutil.rmtree(self.featureXML_dir)
@@ -337,6 +338,13 @@ def run(params, mzML_files, results_dir):
     with st.spinner("Detecting features..."):
         umetaflow.feature_detection()
 
+    # annotate only when necessary
+    if (
+        params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]
+    ) and not params["use_requant"]:
+        with st.spinner("Mapping MS2 data to features..."):
+            umetaflow.map_MS2()
+
     if params["use_ad"] and not params["use_requant"]:
         with st.spinner("Determining adducts..."):
             umetaflow.adduct_detection()
@@ -353,13 +361,6 @@ def run(params, mzML_files, results_dir):
             umetaflow.align_peak_maps()
             umetaflow.peak_maps_to_df()
 
-    # annotate only when necessary
-    if (
-        params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]
-    ) and not params["use_requant"]:
-        with st.spinner("Mapping MS2 data to features..."):
-            umetaflow.map_MS2()
-
     # export only sirius ms files to use in the GUI tool
     if params["use_sirius_manual"] and not params["use_requant"]:
         with st.spinner("Exporting files for Sirius..."):
@@ -374,17 +375,17 @@ def run(params, mzML_files, results_dir):
         with st.spinner("Re-quantification..."):
             umetaflow.requantify()
 
+        # annotate only when necessary
+        if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
+            with st.spinner("Mapping MS2 data to features..."):
+                umetaflow.map_MS2()
+
         if params["use_ad"]:
             with st.spinner("Determining adducts..."):
                 umetaflow.adduct_detection()
 
         with st.spinner("Exporting re-quantified feature maps for visualization..."):
             umetaflow.feature_maps_to_df(requant=True)
-
-        # annotate only when necessary
-        if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
-            with st.spinner("Mapping MS2 data to features..."):
-                umetaflow.map_MS2()
 
         if params["use_sirius_manual"]:
             with st.spinner("Exporting files for Sirius..."):
@@ -405,7 +406,9 @@ def run(params, mzML_files, results_dir):
         with st.spinner("Annotating features on MS1 level by m/z and RT"):
             umetaflow.annotate_MS1()
 
-    if params["annotate_ms2"]:
+    if (
+        params["annotate_ms2"] and params["ad_ion_mode"] == "positive"
+    ):  # fails with negative mode right now due to wrong charge annotation
         with st.spinner(
             "Annotating features on MS2 level by fragmentation patterns..."
         ):

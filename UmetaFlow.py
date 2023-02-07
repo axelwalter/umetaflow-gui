@@ -45,12 +45,12 @@ try:
             st.info(
                 f"""💡 Your workspace ID:
 
-    **{st.session_state['workspace']}**
+**{st.session_state['workspace']}**
 
-    You can share this unique workspace ID with other people.
+You can share this unique workspace ID with other people.
 
-    ⚠️ Anyone with this ID can access your data!
-    """
+⚠️ Anyone with this ID can access your data!
+"""
             )
         elif st.session_state["location"] == "local":
 

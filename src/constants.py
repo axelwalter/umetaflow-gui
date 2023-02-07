@@ -88,6 +88,9 @@ This workflow includes the core UmetaFlow pipeline which results in a table of m
 - The most important parameter are marked as **bold** text. Adjust them according to your instrument.
 - All the steps with checkboxes are optional.
 """,
+    "blank_removal": "Useful to filter out features which are present in blank sample/s or e.g. for differential feature detection to remove features which are present in control, but not in treatment samples.",
+    "blank_samples": "The selected samples will be used to calculate avarage feature blank intensities and will not be further processed.",
+    "blank_cutoff": "Features that have an intensity ratio below (avagera blank) to (average samples) will be removed. Set low for strict blank removal.",
     "potential_adducts": """
 Specify adducts and neutral additions/losses.\n
 Format (each in a new line): adducts:charge:probability.\n

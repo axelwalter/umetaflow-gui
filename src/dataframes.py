@@ -86,6 +86,8 @@ class DataFrames:
             axis=1,
         )
 
+        if "second-feature-map.mzML" in df.columns:
+            df = df.drop(columns=["second-feature-map.mzML"])
         if str(table_file).endswith("tsv"):
             df.to_csv(table_file, sep="\t")
         elif str(table_file).endswith("ftr"):

@@ -201,6 +201,10 @@ class FeatureLinker:
         consensus_map = ConsensusMap()
         file_descriptions = consensus_map.getColumnHeaders()
 
+        if len(feature_maps) == 1:
+            fm = FeatureMap()
+            fm.setMetaValue("spectra_data", [b"second-feature-map.mzML"])
+            feature_maps.append(fm)
         for i, feature_map in enumerate(feature_maps):
             file_description = file_descriptions.get(i, ColumnHeader())
             file_description.filename = os.path.basename(

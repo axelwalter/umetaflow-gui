@@ -4,6 +4,7 @@ from .sirius import Sirius
 from .gnps import GNPSExport
 from .helpers import *
 from .dataframes import DataFrames
+from .blankremoval import BlankRemoval
 import streamlit as st
 
 
@@ -50,6 +51,17 @@ class UmetaFlow:
             },
         )
         self.featureXML_dir = Path(self.interim, "FFM")
+
+    def remove_blanks(self):
+        blanks = [file + ".mzML" for file in self.params["blank_files"]]
+        BlankRemoval.run(
+            self.featureXML_dir,
+            blanks,
+            self.params["blank_cutoff"],
+        )
+        # remove blank mzML files
+        for file in blanks:
+            Path(self.mzML_dir, file).unlink()
 
     def adduct_detection(self):
         if self.params["ad_ion_mode"] == "negative":
@@ -338,6 +350,15 @@ def run(params, mzML_files, results_dir):
     with st.spinner("Detecting features..."):
         umetaflow.feature_detection()
 
+    if params["remove_blanks"] and len(params["blank_files"]) > 0:
+        with st.spinner("Removing blank features..."):
+            umetaflow.remove_blanks()
+            if not any(umetaflow.featureXML_dir.iterdir()):
+                st.warning(
+                    "No samples left after blank removal! Blank samples will not be further processed."
+                )
+                return
+
     # annotate only when necessary
     if (
         params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]
@@ -352,7 +373,7 @@ def run(params, mzML_files, results_dir):
     with st.spinner("Exporting feature maps for visualization..."):
         umetaflow.feature_maps_to_df()
 
-    if params["use_ma"]:
+    if params["use_ma"] and len(list(umetaflow.featureXML_dir.iterdir())) > 1:
         with st.spinner("Aligning feature maps..."):
             umetaflow.align_feature_maps()
             umetaflow.feature_maps_to_df()
@@ -375,6 +396,9 @@ def run(params, mzML_files, results_dir):
         with st.spinner("Re-quantification..."):
             umetaflow.requantify()
 
+        with st.spinner("Exporting re-quantified feature maps for visualization..."):
+            umetaflow.feature_maps_to_df(requant=True)
+
         # annotate only when necessary
         if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
             with st.spinner("Mapping MS2 data to features..."):
@@ -383,9 +407,6 @@ def run(params, mzML_files, results_dir):
         if params["use_ad"]:
             with st.spinner("Determining adducts..."):
                 umetaflow.adduct_detection()
-
-        with st.spinner("Exporting re-quantified feature maps for visualization..."):
-            umetaflow.feature_maps_to_df(requant=True)
 
         if params["use_sirius_manual"]:
             with st.spinner("Exporting files for Sirius..."):
@@ -415,3 +436,5 @@ def run(params, mzML_files, results_dir):
             umetaflow.annotate_MS2()
 
     umetaflow.additional_data_for_consensus_df()
+
+    st.success("Complete!")

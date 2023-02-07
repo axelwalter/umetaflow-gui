@@ -99,6 +99,33 @@ try:
     ):
         st.warning("Check your peak width settings.")
 
+    params["remove_blanks"] = st.checkbox(
+        "**Blank Removal**", params["remove_blanks"], help=METABO["blank_removal"]
+    )
+    if params["remove_blanks"]:
+        col1, col2 = st.columns(2)
+        with col1:
+            mzMLs = [
+                Path(st.session_state["mzML_files"], key).stem
+                for key, value in st.session_state.items()
+                if key.endswith("mzML") and value
+            ]
+            params["blank_files"] = st.multiselect(
+                "select blank samples",
+                mzMLs,
+                [file for file in params["blank_files"] if file in mzMLs],
+                help=METABO["blank_samples"],
+            )
+        with col2:
+            st.number_input(
+                "ratio blank/sample average intensity cutoff",
+                0.05,
+                0.9,
+                0.3,
+                0.05,
+                help=METABO["blank_cutoff"],
+            )
+
     params["use_ma"] = st.checkbox("**Map Alignment**", params["use_ma"])
     if params["use_ma"]:
         col1, col2, col3 = st.columns(3)
@@ -309,8 +336,6 @@ try:
         results_dir = Helper().reset_directory(results_dir)
 
         run(params, mzML_files, results_dir)
-
-        st.success("Complete!")
 
     elif run_button:
         st.warning(WARNINGS["missing-mzML"])

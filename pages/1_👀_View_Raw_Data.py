@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 from src.visualization import Visualization
+from src.constants import ERRORS
 
 
 st.set_page_config(
@@ -26,4 +27,4 @@ try:
     )
 
 except:
-    st.warning("Something went wrong.")
+    st.error(ERRORS["general"])

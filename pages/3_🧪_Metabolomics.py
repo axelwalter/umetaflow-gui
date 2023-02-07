@@ -3,10 +3,9 @@ import pandas as pd
 from src.core import *
 from src.helpers import *
 from src.dataframes import *
-from src.sirius import Sirius
-from src.gnps import GNPSExport
 from src.visualization import Visualization
-from src.umetaflow import UmetaFlow, run_alternative_requant, run
+from src.umetaflow import run
+from src.constants import METABO, WARNINGS, ERRORS
 from pathlib import Path
 from datetime import datetime
 import json
@@ -24,36 +23,12 @@ try:
     if "workspace" in st.session_state:
         results_dir = Path(str(st.session_state["workspace"]), "results-metabolomics")
     else:
-        st.warning(
-            "No online workspace ID found, please visit the start page first (UmetaFlow tab)."
-        )
+        st.warning(WARNINGS["no-workspace"])
         st.experimental_rerun()
     if not os.path.exists(results_dir):
         os.mkdir(results_dir)
 
     with st.sidebar:
-        # Removing files
-        st.markdown("### Remove Files")
-        c1, c2 = st.columns(2)
-        if c1.button("⚠️ **All**"):
-            try:
-                if any(st.session_state["mzML_files"].iterdir()):
-                    Helper().reset_directory(st.session_state["mzML_files"])
-                    st.experimental_rerun()
-            except:
-                pass
-        if c2.button("**Un**selected"):
-            try:
-                for file in [
-                    Path(st.session_state["mzML_files"], key)
-                    for key, value in st.session_state.items()
-                    if key.endswith("mzML") and not value
-                ]:
-                    file.unlink()
-                st.experimental_rerun()
-            except:
-                pass
-
         # show currently available mzML files
         st.markdown("### Uploaded Files")
         for f in sorted(st.session_state["mzML_files"].iterdir()):
@@ -69,14 +44,7 @@ try:
     st.title("Metabolomics")
 
     with st.expander("📖 **Help**"):
-        st.markdown(
-            """
-    This workflow includes the core UmetaFlow pipeline which results in a table of metabolic features.
-
-    - The most important parameter are marked as **bold** text. Adjust them according to your instrument.
-    - All the steps with checkboxes are optional.
-    """
-        )
+        st.markdown(METABO["main"])
 
     if Path(Path(st.session_state["workspace"], "metabolomics.json")).is_file():
         with open(Path(st.session_state["workspace"], "metabolomics.json")) as f:
@@ -86,7 +54,7 @@ try:
             params = json.loads(f.read())
 
 except:
-    st.error("Something went wrong.")
+    st.error(ERRORS["general"])
 
 try:
     st.markdown("#### 1. Pre-Processing")
@@ -168,26 +136,13 @@ try:
                 "ionization mode",
                 ["positive", "negative"],
                 ["positive", "negative"].index(params["ad_ion_mode"]),
-                help="Carefully adjust settings for each mode. Especially potential adducts and negative min/max charges for negative mode.",
+                help=METABO["ad_ion_mode"],
             )
         with col2:
             params["ad_adducts"] = st.text_area(
                 "potential adducts",
                 params["ad_adducts"],
-                help="""Specify adducts and neutral additions/losses.\n
-    Format (each in a new line): adducts:charge:probability.\n
-    The summed up probability for all charged entries needs to be 1.0.\n
-
-    Good starting options for positive mode with sodium adduct and water loss:\n
-    H:+:0.9\n
-    Na:+:0.1\n
-    H-2O-1:0:0.4
-
-    Good starting options for negative mode with water loss and formic acid addition:\n
-    H-1:-:1\n
-    H-2O-1:0:0.5\n
-    CH2O2:0:0.5
-    """,
+                help=METABO["potential_adducts"],
             )
         with col3:
             params["ad_charge_min"] = st.number_input(
@@ -195,14 +150,14 @@ try:
                 -3,
                 3,
                 params["ad_charge_min"],
-                help="e.g. for negative mode -3, for positive mode 1",
+                help=METABO["ad_charge_min"],
             )
             params["ad_charge_max"] = st.number_input(
                 "charge max",
                 -3,
                 3,
                 params["ad_charge_max"],
-                help="e.g. for negative mode -1, for positive mode 3",
+                help=METABO["ad_charge_min"],
             )
         with col4:
             params["ad_rt_max_diff"] = float(
@@ -211,7 +166,7 @@ try:
                     1,
                     60,
                     int(params["ad_rt_max_diff"]),
-                    help="Groups features with slightly different RT.",
+                    help=METABO["ad_rt_diff"],
                 )
             )
 
@@ -243,32 +198,32 @@ try:
     params["use_requant"] = st.checkbox(
         "**Re-Quantification**",
         params["use_requant"],
-        help="Go back into the raw data to re-quantify consensus features that have missing values.",
+        help=METABO["re-quant"],
     )
 
     st.markdown("#### 3. Export files for SIRIUS and GNPS")
     params["use_sirius_manual"] = st.checkbox(
         "**Export files for SIRIUS**",
         params["use_sirius_manual"],
-        help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.",
+        help=METABO["sirius"],
     )
     params["use_gnps"] = st.checkbox(
         "**Export files for GNPS**",
         params["use_gnps"],
-        help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.",
+        help=METABO["gnps"],
     )
     if params["use_gnps"]:
         params["annotate_gnps_library"] = st.checkbox(
             "annotate features with GNPS library",
             True,
-            help="UmetaFlow contains the complete GNPS library in mgf file format. Check to annotate.",
+            help=METABO["annotate_gnps"],
         )
 
     st.markdown("#### 4. Annotation via in-house library")
     params["annotate_ms1"] = st.checkbox(
         "**MS1 annotation by m/z and RT**",
         value=params["annotate_ms1"],
-        help="Annotate features on MS1 level with known m/z and retention times values.",
+        help=METABO["annotate_ms1"],
     )
     if params["annotate_ms1"]:
         ms1_annotation_file_upload = st.file_uploader(
@@ -295,7 +250,7 @@ try:
             240,
             60,
             10,
-            help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.",
+            help=METABO["annotate_ms1_rt"],
         )
         params["annotation_mz_window_ppm"] = c2.number_input(
             "mz window for annotation in ppm", 1, 100, 10, 1
@@ -304,7 +259,7 @@ try:
     params["annotate_ms2"] = st.checkbox(
         "**MS2 annotation via fragmentation patterns**",
         value=params["annotate_ms2"],
-        help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.",
+        help=METABO["annotate_ms2"],
     )
     if params["annotate_ms2"]:
         params["use_gnps"] = True
@@ -339,7 +294,7 @@ try:
     run_button = c4.button("**Run Workflow!**")
 
 except:
-    st.warning("Something went wrong during parameter input.")
+    st.warning(ERRORS["parameters"])
 
 try:
     # check for mzML files
@@ -358,9 +313,9 @@ try:
         st.success("Complete!")
 
     elif run_button:
-        st.warning("Upload or select some mzML files first!")
+        st.warning(WARNINGS["missing-mzML"])
 except:
-    st.error("Something went wrong during workflow execution.")
+    st.error(ERRORS["workflow"])
 
 try:
     if any(Path(results_dir).iterdir()):
@@ -520,4 +475,4 @@ try:
             )
 
 except:
-    st.error("Something went wrong during visualization of results.")
+    st.error(ERRORS["visualization"])

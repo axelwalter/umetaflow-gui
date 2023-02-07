@@ -6,6 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from src.dataframes import *
 from src.plotting import *
+from src.constants import STATISTICS, WARNINGS, ERRORS
 
 st.set_page_config(
     page_title="UmetaFlow",
@@ -20,19 +21,7 @@ try:
         st.image("resources/OpenMS.png", "powered by")
 
     st.title("Statistics")
-    st.info(
-        """#### 💡 Important
-
-We have developed a web app specifically for metabolomics data analyisis. 
-
-Visit [the GitHub repository](https://github.com/axelwalter/streamlit-metabolomics-statistics) or [**open the app**](https://metabolomics-statistics.streamlit.app/) directly from here.
-
-#### What you need from this app
-
-Both Workflows let you download a **Feature Matrix** and a **Meta Data** table in `tsv` format. Edit the meta data by defining sample types (e.g. Sample, Blank or Pool)
-and add at least one more custom attribute column to where your samples differentiate (e.g. ATTRIBUTE_Treatment: antibiotic and control).
-    """
-    )
+    st.info(STATISTICS["main"])
 
     st.markdown("##")
     st.markdown("### Basic Statistics")
@@ -183,4 +172,4 @@ and add at least one more custom attribute column to where your samples differen
             st.plotly_chart(Plot.heatmap(df_scaled))
 
 except:
-    st.warning("Something went wrong.")
+    st.error(ERRORS["general"])

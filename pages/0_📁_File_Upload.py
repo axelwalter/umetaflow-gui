@@ -1,6 +1,7 @@
 import streamlit as st
 from src.helpers import Helper
 from src.dataframes import *
+from src.constants import UPLOAD_INFO, ERRORS
 from pathlib import Path
 import os
 import shutil
@@ -27,16 +28,7 @@ try:
             shutil.copy(file, Path(st.session_state["mzML_files"]))
             DataFrames.mzML_to_ftr(file, st.session_state["mzML_dfs"])
 
-    st.info(
-        """
-        **💡 How to upload files**
-
-        1. Browse files on your computer
-        2. Click the **Add the uploaded mzML files** button to use them in the workflows
-
-        Select data for anaylsis from the uploaded files shown in the sidebar.
-        """
-    )
+    st.info(UPLOAD_INFO)
 
     accept_multiple = True
     if st.session_state.location == "online":
@@ -137,4 +129,4 @@ try:
         st.image("resources/OpenMS.png", "powered by")
 
 except:
-    st.warning("Something went wrong.")
+    st.error(ERRORS["general"])

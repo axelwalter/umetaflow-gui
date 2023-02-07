@@ -7,6 +7,7 @@ import pandas as pd
 import shutil
 from src.helpers import Helper
 from src.gnps import *
+from src.constants import EIC, WARNINGS
 from pathlib import Path
 from datetime import datetime
 import json
@@ -27,36 +28,12 @@ try:
             str(st.session_state["workspace"]), "results-extract-chromatograms"
         )
     else:
-        st.warning(
-            "No online workspace ID found, please visit the start page first (UmetaFlow tab)."
-        )
+        st.warning(WARNINGS["no-workspace"])
         st.experimental_rerun()
     if not os.path.exists(results_dir):
         os.mkdir(results_dir)
 
     with st.sidebar:
-        # Removing files
-        st.markdown("### Remove Files")
-        c1, c2 = st.columns(2)
-        if c1.button("⚠️ **All**"):
-            try:
-                if any(st.session_state["mzML_files"].iterdir()):
-                    Helper().reset_directory(st.session_state["mzML_files"])
-                    st.experimental_rerun()
-            except:
-                pass
-        if c2.button("**Un**selected"):
-            try:
-                for file in [
-                    Path(st.session_state["mzML_files"], key)
-                    for key, value in st.session_state.items()
-                    if key.endswith("mzML") and not value
-                ]:
-                    file.unlink()
-                st.experimental_rerun()
-            except:
-                pass
-
         # show currently available mzML files
         st.markdown("### Uploaded Files")
         for f in sorted(st.session_state["mzML_files"].iterdir()):
@@ -72,22 +49,7 @@ try:
     st.title("Extracted Ion Chromatograms (EIC/XIC)")
 
     with st.expander("📖 **Help**"):
-        st.markdown(
-            """
-    Here you can get extracted ion chromatograms `EIC` from mzML files. A base peak chromatogram `BPC`
-    will be automatically generated as well. Select the mass tolerance according to your data either as
-    absolute values `Da` or relative to the metabolite mass in parts per million `ppm`.
-
-    As input you can add `mzML` files and select which ones to use for the chromatogram extraction.
-    Download the results of selected samples and chromatograms as `tsv` files.
-
-    You can enter the exact masses of your metabolites each in a new line. Optionally you can label them separated by an equal sign e.g.
-    `222.0972=GlcNAc` or add RT limits with a further equal sign e.g. `222.0972=GlcNAc=2.4-2.6`. The specified time unit will be used for the RT limits. To store the list of metabolites for later use you can download them as a text file. Simply
-    copy and paste the content of that file into the input field.
-
-    The results will be displayed as a summary with all samples and EICs AUC values as well as the chromatograms as one graph per sample. Choose the samples and chromatograms to display.
-    """
-        )
+        st.markdown(EIC["main"])
 
     if Path(st.session_state["workspace"], "extract.json").is_file():
         with open(Path(st.session_state["workspace"], "extract.json")) as f:
@@ -103,7 +65,7 @@ try:
         "masses",
         params["masses_text"],
         height=380,
-        help="Add one mass per line and optionally label it with an equal sign e.g. 222.0972=GlcNAc.",
+        help=EIC["masses"],
     )
 
     # define mass tolerances and their units
@@ -138,7 +100,7 @@ try:
     params["combine"] = c2.checkbox(
         "combine variants of same metabolite",
         params["combine"],
-        help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)",
+        help=EIC["combine"],
     )
 
     st.markdown("##")

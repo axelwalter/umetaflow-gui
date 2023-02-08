@@ -117,11 +117,11 @@ try:
                 help=METABO["blank_samples"],
             )
         with col2:
-            st.number_input(
+            params["blank_cutoff"] = st.number_input(
                 "ratio blank/sample average intensity cutoff",
                 0.05,
                 0.9,
-                0.3,
+                params["blank_cutoff"],
                 0.05,
                 help=METABO["blank_cutoff"],
             )

@@ -4,14 +4,8 @@ from pathlib import Path
 
 class BlankRemoval:
     def run(featureXML_dir, blank_files, cutoff=0.3):
-        input_feature_files = Path(featureXML_dir).iterdir()
         # first we need to link the files (group)
         # 2nd export the dataframe with the individual feature IDs
-        feature_grouper = FeatureGroupingAlgorithmKD()
-
-        consensus_map = ConsensusMap()
-        file_descriptions = consensus_map.getColumnHeaders()
-
         feature_maps = []
         for file in Path(featureXML_dir).iterdir():
             feature_map = FeatureMap()
@@ -23,7 +17,10 @@ class BlankRemoval:
             fm.setMetaValue("spectra_data", [b"second-feature-map.mzML"])
             feature_maps.append(fm)
 
-        print(feature_maps)
+        feature_grouper = FeatureGroupingAlgorithmKD()
+
+        consensus_map = ConsensusMap()
+        file_descriptions = consensus_map.getColumnHeaders()
 
         for i, feature_map in enumerate(feature_maps):
             file_description = file_descriptions.get(i, ColumnHeader())

@@ -50,23 +50,22 @@ try:
 You can share this unique workspace ID with other people.
 
 ⚠️ Anyone with this ID can access your data!
-"""
+    """
             )
         elif st.session_state["location"] == "local":
 
             create_remove_workspace = st.text_input("create/remove workspace", "")
             if st.button("**Create Workspace**") and create_remove_workspace:
-                st.session_state["workspace"] = create_remove_workspace
-                st.experimental_rerun()
-
+                if not Path(create_remove_workspace).exists():
+                    os.mkdir(create_remove_workspace)
+                    st.session_state.workspace = create_remove_workspace
             if (
                 st.button("⚠️ Delete Workspace")
                 and create_remove_workspace
                 and Path(create_remove_workspace).exists()
             ):
-                shutil.rmtree(st.session_state["workspace"])
-                st.session_state["workspace"] = "default-workspace"
-                st.experimental_rerun()
+                shutil.rmtree(create_remove_workspace)
+                st.session_state.workspace = "default-workspace"
 
             options = [
                 file.name

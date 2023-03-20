@@ -1,7 +1,8 @@
---index-url https://pypi.cs.uni-tuebingen.de/simple/ pyopenms-nightly
 streamlit
 pandas
 numpy
 plotly
 pyteomics
 scikit-learn
+--index-url https://pypi.cs.uni-tuebingen.de/simple/
+pyopenms-nightly

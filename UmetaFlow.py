@@ -50,7 +50,7 @@ try:
 You can share this unique workspace ID with other people.
 
 ⚠️ Anyone with this ID can access your data!
-    """
+"""
             )
         elif st.session_state["location"] == "local":
 

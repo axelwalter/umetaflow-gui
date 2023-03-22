@@ -5,15 +5,6 @@ from pathlib import Path
 import plotly.graph_objects as go
 import plotly.express as px
 
-COLOR_SCALE = [
-    (0.00, "rgba(233, 233, 233, 1.0)"),
-    (0.01, "rgba(243, 236, 166, 1.0)"),
-    (0.1, "rgba(255, 168, 0, 1.0)"),
-    (0.2, "rgba(191, 0, 191, 1.0)"),
-    (0.4, "rgba(68, 0, 206, 1.0)"),
-    (1.0, "rgba(33, 0, 101, 1.0)"),
-]
-
 
 @st.cache_data
 def get_spectra_dict(mzML_df_files):
@@ -70,17 +61,29 @@ def plot_2D_map(df, cutoff):
     )
     fig.layout.template = "plotly_white"
 
+    color_scale = [
+        (0.00, "rgba(233, 233, 233, 1.0)"),
+        (0.01, "rgba(243, 236, 166, 1.0)"),
+        (0.1, "rgba(255, 168, 0, 1.0)"),
+        (0.2, "rgba(191, 0, 191, 1.0)"),
+        (0.4, "rgba(68, 0, 206, 1.0)"),
+        (1.0, "rgba(33, 0, 101, 1.0)"),
+    ]
+
     fig.update_traces(
-        marker_colorscale=COLOR_SCALE,
+        marker_colorscale=color_scale,
         hovertext=ints.round(),
         selector=dict(type="scattergl"),
     )
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
     return
 
 
 @st.cache_resource
 def plot_bpc(df, ms1_rt, ms2_rt=0):
+    import time
+
+    time.sleep(4)
     intensity = np.array([max(intensity_array) for intensity_array in df["intarray"]])
     fig = px.line(df, x="RT", y=intensity)
     fig.add_trace(
@@ -123,8 +126,7 @@ def plot_bpc(df, ms1_rt, ms2_rt=0):
         plot_bgcolor="rgb(255,255,255)",
     )
     fig.layout.template = "plotly_white"
-    st.plotly_chart(fig)
-    return
+    return fig
 
 
 @st.cache_resource
@@ -153,5 +155,5 @@ def plot_ms_spectrum(df_spectrum, title, color):
     )
     fig.layout.template = "plotly_white"
     fig.update_yaxes(fixedrange=True)
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
     return

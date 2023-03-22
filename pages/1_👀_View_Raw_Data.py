@@ -1,7 +1,5 @@
 import streamlit as st
-import pandas as pd
-from pathlib import Path
-from src.visualization import Visualization
+from src.view import *
 from src.constants import ERRORS
 
 
@@ -13,18 +11,82 @@ st.set_page_config(
     menu_items=None,
 )
 
-try:
+
+def content():
     with st.sidebar:
         st.image("resources/OpenMS.png", "powered by")
-
     st.title("View raw MS data")
 
-    Visualization.display_MS_data(
-        {
-            file.stem: pd.read_feather(file)
-            for file in Path(st.session_state["mzML_dfs"]).iterdir()
-        }
+    st.session_state.view_spectra_dict = get_spectra_dict(st.session_state["mzML_dfs"])
+
+    c1, c2 = st.columns(2)
+    st.session_state.view_file = c1.selectbox(
+        "choose file",
+        st.session_state.view_spectra_dict.keys(),
     )
 
-except:
-    st.error(ERRORS["general"])
+    st.session_state.view_df1, st.session_state.view_df2 = get_dfs(
+        st.session_state.view_spectra_dict, st.session_state.view_file
+    )
+
+    c1.select_slider(
+        "MS1 spectrum (RT) 💡 Scroll with the arrow keys!",
+        st.session_state.view_df1["RT"].round(2),
+        key="ms1_RT",
+    )
+    c2.number_input(
+        "2D map intensity cutoff",
+        1000,
+        1000000000,
+        5000,
+        1000,
+        key="cutoff",
+    )
+    c2.selectbox(
+        "MS2 spectrum",
+        sorted(
+            [
+                f"{mz} m/z @ {rt} s"
+                for mz, rt in zip(
+                    st.session_state.view_df2["precursormz"].round(4),
+                    st.session_state.view_df2["RT"].round(2),
+                )
+            ]
+        ),
+        key="ms2_spec",
+    )
+
+    if not st.session_state.view_df2.empty:
+        ms2_precmz = float(st.session_state.ms2_spec.split(" m/z")[0])
+        ms2_RT = st.session_state.view_df2[
+            st.session_state.view_df2["precursormz"].round(4) == ms2_precmz
+        ]["RT"].tolist()[0]
+    else:
+        ms2_precmz = 0
+        ms2_RT = 0
+
+    if not st.session_state.view_df1.empty:
+        plot_2D_map(st.session_state.view_df1, st.session_state.cutoff)
+        plot_bpc(st.session_state.view_df1, st.session_state.ms1_RT, ms2_RT)
+        plot_ms_spectrum(
+            st.session_state.view_df1[
+                st.session_state.view_df1["RT"].round(2) == st.session_state.ms1_RT
+            ],
+            f"MS1 spectrum @RT {st.session_state.ms1_RT}",
+            "#EF553B",
+        )
+        if not st.session_state.view_df2.empty:
+            plot_ms_spectrum(
+                st.session_state.view_df2[
+                    st.session_state.view_df2["precursormz"].round(4) == ms2_precmz
+                ],
+                f"MS2 spectrum @precursor m/z {ms2_precmz} @RT {round(ms2_RT, 2)}",
+                "#00CC96",
+            )
+
+
+if __name__ == "__main__":
+    try:
+        content()
+    except:
+        st.warning(ERRORS["visualization"])

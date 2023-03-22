@@ -3,7 +3,7 @@ import pandas as pd
 from src.core import *
 from src.helpers import *
 from src.dataframes import *
-from src.visualization import Visualization
+from src.visualization import *
 from src.umetaflow import run
 from src.constants import METABO, WARNINGS, ERRORS
 from pathlib import Path
@@ -414,7 +414,7 @@ try:
         st.markdown("***")
         st.markdown("#### Inspect Details")
         # display detailed results
-        options = ["mzML files"]
+        options = []
         try:
             path = Path(results_dir, "interim", "FFM_df")
             if path.exists():
@@ -435,17 +435,8 @@ try:
 
         choice = st.radio("choose to view", options)
 
-        # ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
-        if choice == "mzML files":
-            Visualization.display_MS_data(
-                {
-                    file.stem: pd.read_feather(file)
-                    for file in Path(st.session_state["mzML_dfs"]).iterdir()
-                }
-            )
-
-        elif choice == "detected features":
-            Visualization.display_feature_data(
+        if choice == "detected features":
+            display_feature_data(
                 {
                     file.stem: pd.read_feather(file)
                     for file in Path(
@@ -461,7 +452,7 @@ try:
             )
 
         elif choice == "feature map alignment":
-            Visualization.display_map_alignemnt(
+            display_map_alignemnt(
                 {
                     file.stem: pd.read_feather(file)[["mz", "RT", "original_rt"]]
                     for file in Path(
@@ -477,7 +468,7 @@ try:
                 mzML_dir = Path(results_dir, "interim", "mzML_aligned_df")
             else:
                 mzML_dir = Path(st.session_state["mzML_dfs"])
-            Visualization.display_feature_data(
+            display_feature_data(
                 {
                     file.stem: pd.read_feather(file)
                     for file in Path(
@@ -494,7 +485,7 @@ try:
                 feature_dir = Path(results_dir, "interim", "FFMID_df")
             else:
                 feature_dir = Path(results_dir, "interim", "FFM_df")
-            Visualization.display_consensus_map(
+            display_consensus_map(
                 pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
                 {file.stem: pd.read_feather(file) for file in feature_dir.iterdir()},
             )

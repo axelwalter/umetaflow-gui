@@ -5,7 +5,7 @@ from src.helpers import *
 from src.dataframes import *
 from src.sirius import Sirius
 from src.gnps import GNPSExport
-from src.visualization import Visualization
+from src.visualization import *
 from pathlib import Path
 from datetime import datetime
 import json
@@ -636,7 +636,7 @@ if any(Path(results_dir).iterdir()):
 
     # ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
     if choice == "mzML files":
-        Visualization.display_MS_data(
+        display_MS_data(
             {
                 file.stem: pd.read_feather(file)
                 for file in Path(st.session_state["mzML_dfs"]).iterdir()
@@ -644,7 +644,7 @@ if any(Path(results_dir).iterdir()):
         )
 
     elif choice == "detected features":
-        Visualization.display_FFM_data(
+        display_FFM_data(
             {
                 file.stem: pd.read_feather(file)
                 for file in Path(
@@ -660,7 +660,7 @@ if any(Path(results_dir).iterdir()):
         )
 
     elif choice == "feature map alignment":
-        Visualization.display_map_alignemnt(
+        display_map_alignemnt(
             {
                 file.stem: pd.read_feather(file)[["mz", "RT", "original_rt"]]
                 for file in Path(
@@ -672,7 +672,7 @@ if any(Path(results_dir).iterdir()):
         )
 
     elif choice == "consensus features":
-        Visualization.display_consensus_map(
+        display_consensus_map(
             pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
             {
                 file.stem: pd.read_feather(file)

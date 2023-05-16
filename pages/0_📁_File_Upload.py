@@ -1,132 +1,71 @@
-import streamlit as st
-from src.helpers import Helper
-from src.dataframes import *
-from src.constants import UPLOAD_INFO, ERRORS
 from pathlib import Path
-import os
-import shutil
 
-st.set_page_config(
-    page_title="UmetaFlow",
-    page_icon="resources/icon.png",
-    layout="wide",
-    initial_sidebar_state="auto",
-    menu_items=None,
-)
+import streamlit as st
+import pandas as pd
 
-try:
-    # define directory to store mzML files
-    if not os.path.isdir(st.session_state["mzML_files"]):
-        os.mkdir(st.session_state["mzML_files"])
+from src.common import *
+from src.fileupload import *
 
-    c1, c2 = st.columns([0.8, 0.2])
-    c1.title("File Upload")
-    c2.markdown("##")
-    if c2.button("Load Example Data"):
-        example_mzML_dir = Path("example_data", "mzML")
-        for file in example_mzML_dir.glob("*.mzML"):
-            shutil.copy(file, Path(st.session_state["mzML_files"]))
-            DataFrames.mzML_to_ftr(file, st.session_state["mzML_dfs"])
+params = page_setup()
 
-    st.info(UPLOAD_INFO)
+# Make sure "selected-mzML-files" is in session state
+if "selected-mzML-files" not in st.session_state:
+    st.session_state["selected-mzML-files"] = params["selected-mzML-files"]
 
-    accept_multiple = True
-    if st.session_state.location == "online":
-        accept_multiple = False
+st.title("File Upload")
 
-    st.markdown("**Upload files**")
-    with st.form("my-form", clear_on_submit=True):
-        uploaded_mzML = st.file_uploader(
-            "mzML files", accept_multiple_files=accept_multiple
-        )
-        _, c2, _ = st.columns(3)
-        submitted = c2.form_submit_button("Add the uploaded mzML files")
+tabs = ["File Upload", "Example Data"]
+if st.session_state.location == "local":
+    tabs.append("Files from local folder")
 
-    # we need to have a list of uploaded files to copy to the mzML dir, in case of online only a single item is return, so we put it in the list
-    if st.session_state.location == "online":
-        uploaded_mzML = [uploaded_mzML]
+tabs = st.tabs(tabs)
 
-    # option for local installation: upload files via directory path
-    if st.session_state.location == "local":
-        st.markdown("**OR specify the path to a folder containing your mzML files**")
-        c1, c2 = st.columns([0.8, 0.2])
-        upload_dir = c1.text_input("path to folder with mzML files")
-        upload_dir = r"{}".format(upload_dir)
-        c2.markdown("##")
-        if c2.button("Upload"):
-            with st.spinner("Uploading files..."):
-                for file in Path(upload_dir).iterdir():
-                    if file.name not in st.session_state[
-                        "mzML_files"
-                    ].iterdir() and file.name.endswith("mzML"):
-                        shutil.copy(file, st.session_state["mzML_files"])
-                        DataFrames.mzML_to_ftr(file, st.session_state["mzML_dfs"])
-                st.success("Successfully added uploaded files!")
+with tabs[0]:
+    with st.form("mzML-upload", clear_on_submit=True):
+        files = st.file_uploader(
+            "mzML files", accept_multiple_files=(st.session_state.location == "local"))
+        cols = st.columns(3)
+        if cols[1].form_submit_button("Add files to workspace", type="primary"):
+            save_uploaded_mzML(files)
 
-    # upload mzML files
-    if submitted:
-        if uploaded_mzML:
-            if uploaded_mzML[
-                0
-            ]:  # opening file dialog and closing without choosing a file results in None upload
-                for file in uploaded_mzML:
-                    if file.name not in st.session_state[
-                        "mzML_files"
-                    ].iterdir() and file.name.endswith("mzML"):
-                        with open(
-                            Path(st.session_state["mzML_files"], file.name), "wb"
-                        ) as f:
-                            f.write(file.getbuffer())
-                        DataFrames.mzML_to_ftr(
-                            Path(st.session_state["mzML_files"], file.name),
-                            st.session_state["mzML_dfs"],
-                        )
-                st.success("Successfully added uploaded files!")
-        else:
-            st.warning("Upload some files before adding them.")
+# Example mzML files
+with tabs[1]:
+    st.markdown("Short information text about the example data.")
+    cols = st.columns(3)
+    if cols[1].button("Load Example Data", type="primary"):
+        load_example_mzML_files()
 
-    with st.sidebar:
-        # Removing files
-        st.markdown("### Remove Files")
+# Local file upload option: via directory path
+if st.session_state.location == "local":
+    with tabs[2]:
+        # with st.form("local-file-upload"):
+        local_mzML_dir = st.text_input(
+            "path to folder with mzML files")
+        # raw string for file paths
+        local_mzML_dir = r"{}".format(local_mzML_dir)
+        cols = st.columns(3)
+        if cols[1].button("Copy files to workspace", type="primary", disabled=(local_mzML_dir == "")):
+            copy_local_mzML_files_from_directory(local_mzML_dir)
+
+if any(Path(mzML_dir).iterdir()):
+    v_space(2)
+    # Display all mzML files currently in workspace
+    df = pd.DataFrame(
+        {"file name": [f.name for f in Path(mzML_dir).iterdir()]})
+    st.markdown("##### mzML files in current workspace:")
+    show_table(df)
+    v_space(1)
+    # Remove files
+    with st.expander("🗑️ Remove mzML files"):
+        to_remove = st.multiselect("select mzML files",
+                                   options=[f.stem for f in sorted(mzML_dir.iterdir())])
         c1, c2 = st.columns(2)
-        if c1.button("⚠️ **All**"):
-            try:
-                if any(st.session_state["mzML_files"].iterdir()):
-                    Helper().reset_directory(st.session_state["mzML_files"])
-                if any(st.session_state["mzML_dfs"].iterdir()):
-                    Helper().reset_directory(st.session_state["mzML_dfs"])
-                    st.experimental_rerun()
-            except:
-                pass
-        if c2.button("**Un**selected"):
-            try:
-                for file in [
-                    Path(st.session_state["mzML_files"], key)
-                    for key, value in st.session_state.items()
-                    if key.endswith("mzML") and not value
-                ]:
-                    file.unlink()
-                for file in [
-                    Path(st.session_state["mzML_dfs"], key[:-4] + "pkl")
-                    for key, value in st.session_state.items()
-                    if key.endswith("mzML") and not value
-                ]:
-                    file.unlink()
-                st.experimental_rerun()
-            except:
-                pass
+        if c2.button("Remove **selected**", type="primary", disabled=not any(to_remove)):
+            remove_selected_mzML_files(to_remove)
+            st.experimental_rerun()
 
-        # show currently available mzML files
-        st.markdown("### Uploaded Files")
-        for f in sorted(st.session_state["mzML_files"].iterdir()):
-            if f.name in st.session_state:
-                checked = st.session_state[f.name]
-            else:
-                checked = True
-            st.checkbox(f.name[:-5], checked, key=f.name)
+        if c1.button("⚠️ Remove **all**", disabled=not any(mzML_dir.iterdir())):
+            remove_all_mzML_files()
+            st.experimental_rerun()
 
-        st.markdown("***")
-        st.image("resources/OpenMS.png", "powered by")
-
-except:
-    st.error(ERRORS["general"])
+save_params(params)

@@ -1,0 +1,16 @@
+{
+    "selected-mzML-files": [],
+    "image-format": "svg",
+    "2D-map-intensity-cutoff": 5000,
+
+    "eic_mz_unit": "ppm",
+    "eic_tolerance_ppm": 10,
+    "eic_tolerance_da": 0.2,
+    "eic_time_unit": "seconds",
+    "eic_baseline": 1000,
+    "eic_combine": false,
+    "eic_peak_width": 20,
+
+    "example-x-dimension": 5,
+    "example-y-dimension": 6
+}

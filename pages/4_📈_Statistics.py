@@ -83,7 +83,8 @@ try:
     if not df.empty:
         st.dataframe(df)
         samples = set(
-            [col[:-5].split("#")[0] for col in df.columns if col.endswith(".mzML")]
+            [col[:-5].split("#")[0]
+             for col in df.columns if col.endswith(".mzML")]
         )
 
         st.markdown("##### Choose samples for comparison")
@@ -137,7 +138,8 @@ try:
                         )
                     )
                 else:
-                    fig.add_trace(go.Bar(x=samples, y=mean.loc[feature], name=feature))
+                    fig.add_trace(
+                        go.Bar(x=samples, y=mean.loc[feature], name=feature))
             fig.update_layout(
                 title="Metabolite Intensities",
                 yaxis=dict(title="mean intensity"),

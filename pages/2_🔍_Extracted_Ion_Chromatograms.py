@@ -123,7 +123,7 @@ save_params(params)
 
 # Display summary table
 path = Path(results_dir, "summary.tsv")
-if path.exists:
+if path.exists():
     tabs = st.tabs(["📊 Summary", "📈 Samples", "📈 Metabolites",
                     "📁 Chromatogram data", "📁 Meta data"])
     df_auc = pd.read_csv(Path(results_dir, "summary.tsv"), sep="\t").set_index(

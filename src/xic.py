@@ -21,7 +21,6 @@ This page allows you to extract chromatograms from mzML files and perform variou
 - To download the modified table, click on the "Download" button.
 - When executing the workflow the current table will be saved to your workspace, no need to always download and re-upload it!
 
-
 ##### 2. Calculate Mass and Add to Table
 - In the "Settings" section, you can calculate the mass of a compound using its sum formula and add it to the table.
 - Enter the compound name (optional), sum formula, and select the desired adduct.
@@ -75,9 +74,15 @@ def upload_xic_table(df):
 
 
 def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz_da, time_unit, default_peak_width, baseline, combine):
+
     with st.spinner("Extracting chromatograms..."):
         # Save edited xic input table to tsv file
         df_input.to_csv(path, sep="\t", index=False)
+
+        # Check for unique index
+        if not df_input["name"].is_unique:
+            st.error("Please enter unique metabolite names!")
+            return
 
         # Drop all rows without mz value
         df_input = df_input[df_input['mz'].notna()]

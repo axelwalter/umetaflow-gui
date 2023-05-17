@@ -7,8 +7,6 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-from datetime import datetime
-
 params = page_setup(page="workflow")
 
 st.title("Extracted Ion Chromatograms (EIC/XIC)")
@@ -103,7 +101,7 @@ with st.expander("Settings", expanded=True):
                        "extracted-ion-chromatograms")
 
     v_space(1)
-    c1, c2, c3 = st.columns(3)
+    _, c2, _ = st.columns(3)
     if c2.button("Extract chromatograms", type="primary"):
         if not mzML_files:
             st.warning("Upload/select some mzML files first!")
@@ -181,7 +179,7 @@ if path.exists():
             btn = st.download_button(
                 label="Download chromatogram data",
                 data=fp,
-                file_name=f"chromatograms-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
+                file_name=f"chromatogram-data.zip",
                 mime="application/zip",
             )
 

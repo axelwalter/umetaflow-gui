@@ -349,6 +349,7 @@ def reset_directory(path: Path) -> None:
     Returns:
         None
     """
+    path = Path(path)
     if path.exists():
         shutil.rmtree(path)
     path.mkdir(parents=True, exist_ok=True)

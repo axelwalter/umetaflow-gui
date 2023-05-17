@@ -17,17 +17,17 @@ result_files = {
         "summary.tsv",
     ),
     "Metabolomics": Path(
-        st.session_state.workspace, "metabolomics", "FeatureMatrix.tsv"
+        st.session_state.workspace, "umetaflow-results", "FeatureMatrix.tsv"
     ),
     "Metabolomics MS1 annotated features": Path(
         st.session_state.workspace,
-        "metabolomics",
+        "umetaflow-results",
         "MS1-annotations",
         "MS1-annotation.tsv",
     ),
     "Metabolomics MS2 annotated features": Path(
         st.session_state.workspace,
-        "results-metabolomics",
+        "umetaflow",
         "MS2-annotations",
         "MS2-annotation.tsv",
     )}

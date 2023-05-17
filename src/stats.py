@@ -37,7 +37,7 @@ def heatmap(df):
         df,
         y=list(df.index),
         x=list(df.columns),
-        text_auto=True,
+        # text_auto=True,
         aspect="auto",
         color_continuous_scale="RdBu_r",
         range_color=[-3, 3],

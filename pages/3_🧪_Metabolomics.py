@@ -1,6 +1,7 @@
 import streamlit as st
 from src.common import *
 from src.umetaflow import run_umetaflow, HELP
+from src.metabolomicsvisualizations import *
 from pathlib import Path
 
 
@@ -263,6 +264,7 @@ CH2O2:0:0.5
     _, c2, _ = st.columns(3)
     run_button = c2.button("Run UmetaFlow", type="primary")
 
+results_dir = Path(st.session_state.workspace, "umetaflow-results")
 if run_button:
     save_params(params)
     umetaflow_params = load_params()
@@ -272,7 +274,156 @@ if run_button:
     mzML_files = [str(Path(st.session_state.workspace,
                            "mzML-files", f+".mzML")) for f in st.session_state["selected-mzML-files"]]
 
-    results_dir = Path(st.session_state.workspace, "umetaflow-results")
     run_umetaflow(umetaflow_params, mzML_files, results_dir)
 
-save_params(params)
+if any(Path(results_dir).iterdir()):
+
+    df = pd.DataFrame()
+
+    if Path(results_dir, "FeatureMatrix.tsv").is_file():
+        df = pd.read_csv(Path(results_dir, "FeatureMatrix.tsv"), sep="\t")
+        st.session_state["missing_values_before"] = sum(
+            [(df[col] == 0).sum() for col in df.columns]
+        )
+    if Path(results_dir, "FeatureMatrixRequantified.tsv").is_file():
+        df = pd.read_csv(
+            Path(results_dir, "FeatureMatrixRequantified.tsv"), sep="\t"
+        )
+        st.session_state["missing_values_after"] = sum(
+            [(df[col] == 0).sum() for col in df.columns]
+        )
+
+    if not df.empty:
+        v_space(1)
+        tabs = st.tabs(["📁 Feature matrix", "📁 Download results"])
+        with tabs[0]:
+            st.dataframe(df)
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("number of features", df.shape[0])
+            col2.metric(
+                "number of samples", len(
+                    [col for col in df.columns if "mzML" in col])
+            )
+            if "missing_values_before" in st.session_state:
+                col3.metric("missing values",
+                            st.session_state.missing_values_before)
+            if "missing_values_after" in st.session_state:
+                col4.metric(
+                    "missing values after re-quantification",
+                    st.session_state.missing_values_after,
+                )
+        with tabs[1]:
+            col1, col2, col3, col4 = st.columns(4)
+            col1.download_button(
+                "Feature Matrix",
+                df.to_csv(sep="\t", index=False),
+                f"FeatureMatrix.tsv",
+            )
+            df_md = pd.read_csv(os.path.join(
+                results_dir, "MetaData.tsv"), sep="\t")
+            col2.download_button(
+                "Meta Data",
+                df_md.to_csv(sep="\t", index=False),
+                f"MetaData-.tsv",
+            )
+            if Path(results_dir, "ExportSirius.zip").is_file():
+                with open(
+                    os.path.join(results_dir, "interim",
+                                 "ExportSirius.zip"), "rb"
+                ) as fp:
+                    btn = col3.download_button(
+                        label="Files for Sirius",
+                        data=fp,
+                        file_name=f"ExportSirius.zip",
+                        mime="application/zip",
+                    )
+            if Path(results_dir, "ExportGNPS.zip").is_file():
+                with open(
+                    os.path.join(results_dir, "interim",
+                                 "ExportGNPS.zip"), "rb"
+                ) as fp:
+                    btn = col4.download_button(
+                        label="Files for GNPS",
+                        data=fp,
+                        file_name=f"ExportGNPS.zip",
+                        mime="application/zip",
+                    )
+
+    v_space(1)
+    st.markdown("#### Inspect Details")
+    # display detailed results
+    options = []
+    path = Path(results_dir, "interim", "FFM_df")
+    if path.exists():
+        if any(path.iterdir()):
+            options.append("detected features")
+    path = Path(results_dir, "interim", "FFM_aligned_df")
+    if path.exists():
+        if any(path.iterdir()):
+            options.append("feature map alignment")
+    path = Path(results_dir, "interim", "FFMID_df")
+    if path.exists():
+        options.append("feature re-quantification")
+    # path = Path(results_dir, "FeatureMatrix.ftr")
+    # if path.exists():
+    #     options.append("consensus features")
+
+    choice = st.radio("choose to view", options)
+
+    if choice == "detected features":
+        display_feature_data(
+            {
+                file.stem: pd.read_feather(file)
+                for file in Path(
+                    results_dir,
+                    "interim",
+                    "FFM_df",
+                ).iterdir()
+            },
+            {
+                file.stem: pd.read_feather(file)
+                for file in Path(st.session_state["mzML_dfs"]).iterdir()
+            },
+        )
+
+    elif choice == "feature map alignment":
+        display_map_alignement(
+            {
+                file.stem: pd.read_feather(file)[["mz", "RT", "original_rt"]]
+                for file in Path(
+                    results_dir,
+                    "interim",
+                    "FFM_aligned_df",
+                ).iterdir()
+            }
+        )
+
+    elif choice == "feature re-quantification":
+        if params["use_ma"]:
+            mzML_dir = Path(results_dir, "interim", "mzML_aligned_df")
+        else:
+            mzML_dir = Path(st.session_state["mzML_dfs"])
+        display_feature_data(
+            {
+                file.stem: pd.read_feather(file)
+                for file in Path(
+                    results_dir,
+                    "interim",
+                    "FFMID_df",
+                ).iterdir()
+            },
+            {file.stem: pd.read_feather(file) for file in mzML_dir.iterdir()},
+        )
+
+    elif choice == "consensus features":
+        if params["use_requant"]:
+            feature_dir = Path(results_dir, "interim", "FFMID_df")
+        else:
+            feature_dir = Path(results_dir, "interim", "FFM_df")
+        display_consensus_map(
+            pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
+            {file.stem: pd.read_feather(file)
+             for file in feature_dir.iterdir()},
+        )
+
+# save_params(params)

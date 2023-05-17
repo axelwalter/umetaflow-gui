@@ -251,15 +251,17 @@ class UmetaFlow:
             )
 
     def make_zip_archives(self):
-        if self.params["use_sirius_manual"]:
+        path = Path(self.sirius_ms_dir)
+        if path.exists():
             shutil.make_archive(
-                Path(self.interim, "ExportSirius"), "zip", self.sirius_ms_dir
+                Path(self.results_dir, "ExportSIRIUS"), "zip", path
             )
-        if self.params["use_gnps"]:
+        path = Path(self.results_dir, "GNPS")
+        if path.exists():
             shutil.make_archive(
-                Path(self.interim, "ExportGNPS"),
+                Path(self.results_dir, "ExportGNPS"),
                 "zip",
-                Path(self.results_dir, "GNPS"),
+                path,
             )
 
     def additional_data_for_consensus_df(self):

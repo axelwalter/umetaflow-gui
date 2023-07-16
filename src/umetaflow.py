@@ -162,7 +162,7 @@ class UmetaFlow:
             {"-preprocessing:feature_only": "true"},
         )
         self.sirius_ms_dir = os.path.join(
-            self.results_dir, "SIRIUS", "sirius_files")
+            self.results_dir, "SIRIUS")
 
     def requantify_alternative(self):
         Requantifier().run(
@@ -254,8 +254,7 @@ class UmetaFlow:
         path = Path(self.sirius_ms_dir)
         if path.exists():
             shutil.make_archive(
-                Path(self.results_dir, "ExportSIRIUS"), "zip", path
-            )
+                Path(self.results_dir, "ExportSIRIUS"), "zip", path)
         path = Path(self.results_dir, "GNPS")
         if path.exists():
             shutil.make_archive(
@@ -270,82 +269,6 @@ class UmetaFlow:
             Path(self.results_dir, "FeatureMatrix.ftr"),
             self.consensusXML,
         )
-
-
-def run_alternative_requant(params, mzML_files, results_dir):
-    umetaflow = UmetaFlow(params, mzML_files, results_dir)
-    # if not params["use_requant"]:
-    with st.spinner("Fetching raw data..."):
-        umetaflow.fetch_raw_data()
-
-    with st.spinner("Detecting features..."):
-        umetaflow.feature_detection()
-
-    if params["use_ad"]:
-        with st.spinner("Determining adducts..."):
-            umetaflow.adduct_detection()
-
-    with st.spinner("Exporting feature maps for visualization..."):
-        umetaflow.feature_maps_to_df()
-
-    if params["use_ma"]:
-        with st.spinner("Aligning feature maps..."):
-            umetaflow.align_feature_maps()
-            umetaflow.feature_maps_to_df()
-
-        with st.spinner("Aligning mzML files..."):
-            umetaflow.align_peak_maps()
-
-    # annotate only when necessary
-    if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
-        with st.spinner("Mapping MS2 data to features..."):
-            umetaflow.map_MS2()
-
-    # export only sirius ms files to use in the GUI tool
-    if params["use_sirius_manual"]:
-        with st.spinner("Exporting files for Sirius..."):
-            umetaflow.sirius()
-
-    with st.spinner("Linking features..."):
-        umetaflow.link_feature_maps()
-        umetaflow.consensus_df()
-
-    df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
-    st.session_state.missing_values_before = sum(
-        [(df[col] == 0).sum() for col in df.columns]
-    )
-
-    if params["use_requant"]:
-        with st.spinner("Re-quantification..."):
-            umetaflow.requantify_alternative()
-
-    df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
-    st.session_state.missing_values_after = sum(
-        [(df[col] == 0).sum() for col in df.columns]
-    )
-
-    # export metadata
-    umetaflow.export_metadata()
-
-    if params["use_gnps"]:
-        with st.spinner("Exporting files for GNPS..."):
-            umetaflow.gnps()
-
-    if params["annotate_ms1"]:
-        with st.spinner("Annotating feautures on MS1 level by m/z and RT"):
-            umetaflow.annotate_MS1()
-
-    if params["annotate_ms2"]:
-        with st.spinner(
-            "Annotating features on MS2 level by fragmentation patterns..."
-        ):
-            umetaflow.annotate_MS2()
-
-    # make zip archives
-    umetaflow.make_zip_archives()
-
-    # additional_data
-    umetaflow.additional_data_for_consensus_df()
 
 
 def run_umetaflow(params, mzML_files, results_dir):
@@ -377,9 +300,6 @@ def run_umetaflow(params, mzML_files, results_dir):
         with st.spinner("Determining adducts..."):
             umetaflow.adduct_detection()
 
-    with st.spinner("Exporting feature maps for visualization..."):
-        umetaflow.feature_maps_to_df()
-
     if params["use_ma"] and len(list(umetaflow.featureXML_dir.iterdir())) > 1:
         with st.spinner("Aligning feature maps..."):
             umetaflow.align_feature_maps()
@@ -388,6 +308,9 @@ def run_umetaflow(params, mzML_files, results_dir):
         with st.spinner("Aligning mzML files..."):
             umetaflow.align_peak_maps()
             umetaflow.peak_maps_to_df()
+    else:
+        umetaflow.feature_maps_to_df()
+        umetaflow.peak_maps_to_df()
 
     # export only sirius ms files to use in the GUI tool
     if params["use_sirius_manual"] and not params["use_requant"]:
@@ -443,6 +366,9 @@ def run_umetaflow(params, mzML_files, results_dir):
             umetaflow.annotate_MS2()
 
     umetaflow.additional_data_for_consensus_df()
+
+    # Export files
+    umetaflow.make_zip_archives()
 
     st.success("Complete!")
 

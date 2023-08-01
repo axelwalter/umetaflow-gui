@@ -4,7 +4,6 @@ import numpy as np
 import os
 from pathlib import Path
 from .common import reset_directory
-import pyteomics
 from pyteomics import mztab, mgf
 
 
@@ -245,7 +244,7 @@ class DataFrames:
         overwrite_name=False,
     ):
         # clean up the mzTab to a dataframe:
-        matches = pyteomics.mztab.MzTab(
+        matches = mztab.MzTab(
             output_mztab, encoding="UTF8", table_format="df"
         ).small_molecule_table
         if matches.empty:

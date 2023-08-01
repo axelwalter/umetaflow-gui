@@ -63,7 +63,7 @@ def upload_xic_table(df):
             try:
                 df_tmp["name"] = df_tmp["name"].astype(str)
                 df_tmp["mz"] = df_tmp["mz"].astype(float)
-                df_tmp["RT"] = df_tmp["RT"].astype(float)
+                df_tmp["RT (seconds)"] = df_tmp["RT (seconds)"].astype(float)
                 df_tmp["peak width"] = df_tmp["peak width"].astype(float)
                 df_tmp.to_csv(path, sep="\t", index=False)
                 tmp_path.unlink()
@@ -73,7 +73,7 @@ def upload_xic_table(df):
                     "Check your XIC table format. Columns **mz**, **RT** and **peak width** have to be numeric.")
 
 
-def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz_da, time_unit, default_peak_width, baseline, combine):
+def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz_da, time_unit, default_peak_width, baseline):
 
     with st.spinner("Extracting chromatograms..."):
         # Save edited xic input table to tsv file
@@ -89,7 +89,7 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
 
         # Get RT times in seconds for extraction
         if time_unit == "minutes":
-            df_input["RT"] = df_input["RT"]*60
+            df_input["RT (seconds)"] = df_input["RT (seconds)"]*60
 
         # Delete and re-create results directory
         reset_directory(Path(results_dir))
@@ -131,8 +131,8 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
             # get EICs
             for mass, name, rt, peak_width in zip(df_input["mz"],
                                                   df_input["name"],
-                                                  df_input["RT"],
-                                                  df_input["peak width"]):
+                                                  df_input["RT (seconds)"],
+                                                  df_input["peak width (seconds)"]):
                 if name:
                     metabolite_name = name
                 else:
@@ -207,28 +207,31 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
         shutil.rmtree(tsv_dir)
 
         # save summary of AUC values to tsv file
-        if combine:
-            # sum intensities of variants of the same metabolite
-            combined = {}
-            metabolite_names = list(
-                set([c.split("#")[0] for c in df_auc.index]))
-            for filename in df_auc.columns:
-                aucs = []
-                for a in metabolite_names:
-                    auc = 0
-                    for b in [
-                        b
-                        for b in df_auc.index
-                        if ((a + "#" in b and b.startswith(a)) or a == b)
-                    ]:
-                        auc += df_auc.loc[b, filename]
-                    aucs.append(auc)
-                combined[filename] = aucs
-            df_auc = pd.DataFrame(combined)
-            df_auc.set_index(pd.Index(metabolite_names), inplace=True)
         df_auc.index.name = "metabolite"
         df_auc = df_auc.reindex(sorted(df_auc.columns), axis=1)
         df_auc.to_csv(Path(results_dir, "summary.tsv"), sep="\t")
+
+        # sum intensities of variants of the same metabolite
+        combined = {}
+        metabolite_names = list(
+            set([c.split("#")[0] for c in df_auc.index]))
+        for filename in df_auc.columns:
+            aucs = []
+            for a in metabolite_names:
+                auc = 0
+                for b in [
+                    b
+                    for b in df_auc.index
+                    if ((a + "#" in b and b.startswith(a)) or a == b)
+                ]:
+                    auc += df_auc.loc[b, filename]
+                aucs.append(auc)
+            combined[filename] = aucs
+        df_auc_combined = pd.DataFrame(combined)
+        df_auc_combined.set_index(pd.Index(metabolite_names), inplace=True)
+        df_auc_combined.index.name = "metabolite"
+        df_auc_combined = df_auc_combined.reindex(sorted(df_auc_combined.columns), axis=1)
+        df_auc_combined.to_csv(Path(results_dir, "summary-combined.tsv"), sep="\t")
 
         # Save AUC to text file
         with open(Path(results_dir, "run-params.txt"), "w") as f:

@@ -20,7 +20,7 @@ if path.exists():
 else:
     # Load a default example df
     df = pd.DataFrame(
-        {"name": ["UDP-GlcNAc", ""], "mz": ["608.08", np.nan], "RT": [np.nan, np.nan], "peak width": [np.nan, np.nan]})
+        {"name": ["UDP-GlcNAc", ""], "mz": ["608.0889", np.nan], "RT (seconds)": [np.nan, np.nan], "peak width (seconds)": [np.nan, np.nan]})
 
 with st.expander("Settings", expanded=True):
     st.markdown("**Table with metabolites for chromatogram extraction**")
@@ -29,8 +29,8 @@ with st.expander("Settings", expanded=True):
     c1.file_uploader("Upload XIC input table", type="tsv", label_visibility="collapsed",
                      key="xic-table-uploader", accept_multiple_files=False, on_change=upload_xic_table, args=[df])
 
-    edited = st.experimental_data_editor(
-        df, use_container_width=True, num_rows="dynamic")
+    # def update_mass_table()
+    edited = st.data_editor(df, use_container_width=True, num_rows="dynamic")
 
     v_space(1, c2)
     c2.download_button(
@@ -67,9 +67,9 @@ with st.expander("Settings", expanded=True):
     st.markdown("**Parameters for chromatogram extraction**")
     c1, c2, c3 = st.columns(3)
     c1.radio(
-        "time unit", ["seconds", "minutes"], index=["seconds", "minutes"].index(params["eic_time_unit"]), key="eic_time_unit", help="Retention time unit."
+        "time unit for display", ["seconds", "minutes"], index=["seconds", "minutes"].index(params["eic_time_unit"]), key="eic_time_unit", help="Retention time unit for figures and downloadable tables. Rentention time settings have to be specified in seconds."
     )
-    c2.number_input("default peak width", 1, 600,
+    c2.number_input("default peak width (seconds)", 1, 600,
                     params["eic_peak_width"], 5, key="eic_peak_width", help="Default value for peak width. Used when a retention time is given without peak width. Adding a peak width in the table will override this setting.")
     # Mass tolerance settings
     c1, c2, c3 = st.columns(3)
@@ -85,13 +85,6 @@ with st.expander("Settings", expanded=True):
     c1, c2, c3 = st.columns(3)
     c1.number_input(
         "noise threshold", 0, 1000000, params["eic_baseline"], 100, key="eic_baseline", help="Peaks below the treshold intensity will not be extracted."
-    )
-    v_space(1, c2)
-    c2.checkbox(
-        "combine variants",
-        params["eic_combine"],
-        help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)",
-        key="eic_combine"
     )
 
     mzML_files = [str(Path(st.session_state.workspace,
@@ -117,21 +110,31 @@ with st.expander("Settings", expanded=True):
                                   st.session_state["eic_baseline"],
                                   st.session_state["eic_combine"])
 
-save_params(params)
 
 # Display summary table
 path = Path(results_dir, "summary.tsv")
 if path.exists():
     tabs = st.tabs(["📊 Summary", "📈 Samples", "📈 Metabolites",
                     "📁 Chromatogram data", "📁 Meta data"])
-    df_auc = pd.read_csv(Path(results_dir, "summary.tsv"), sep="\t").set_index(
-        "metabolite"
-    )
     with open(Path(results_dir, "run-params.txt"), "r") as f:
         baseline = int(f.readline())
         time_unit = f.readline()
 
     with tabs[0]:
+        st.checkbox(
+            "combine variants",
+            params["eic_combine"],
+            help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)",
+            key="eic_combine"
+        )
+        if st.session_state["eic_combine"]:
+            file_name = "summary-combined.tsv"
+        else:
+            file_name = "summary.tsv"
+
+        df_auc = pd.read_csv(Path(results_dir, file_name), sep="\t").set_index(
+            "metabolite"
+        )
         # display the feature matrix and it's bar plot
         fig = get_auc_fig(df_auc)
         show_fig(fig, "xic-summary")
@@ -190,10 +193,12 @@ if path.exists():
                 "ATTRIBUTE_Sample_Type": ["Sample"] * df_auc.shape[1],
             }
         ).set_index("filename")
-        data = st.experimental_data_editor(
+        data = st.data_editor(
             md.T, num_rows="dynamic", use_container_width=True)
         st.download_button(
             "Download Table",
             data.T.to_csv(sep="\t").encode("utf-8"),
             "xic-meta-data.tsv",
         )
+
+save_params(params)

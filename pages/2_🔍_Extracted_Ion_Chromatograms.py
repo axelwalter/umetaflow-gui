@@ -107,8 +107,7 @@ with st.expander("Settings", expanded=True):
                                   st.session_state["eic_tolerance_da"],
                                   st.session_state["eic_time_unit"],
                                   st.session_state["eic_peak_width"],
-                                  st.session_state["eic_baseline"],
-                                  st.session_state["eic_combine"])
+                                  st.session_state["eic_baseline"])
 
 
 # Display summary table

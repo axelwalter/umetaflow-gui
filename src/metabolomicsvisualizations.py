@@ -37,24 +37,38 @@ def display_feature_data(feature_maps, spectra):
         # get start and end RT/mz values to filter peak map
         bb = feature[["RTstart", "RTend", "MZstart", "MZend"]]
 
-        # filter df by retention time...
+        # Define the values for mzmin and mzmax
+        mzmin = bb.loc[bb.index[0], "MZstart"]
+        mzmax = bb.loc[bb.index[0], "MZend"]
+
+        # # filter df by retention time...
         df_peaks = spectra[name][
             (spectra[name]["RT"] > bb.loc[bb.index[0], "RTstart"])
             & (spectra[name]["RT"] < (bb.loc[bb.index[0], "RTend"]))
         ]
 
-        # and by mz...
-        def filter_arrays(row):
-            filter = (row["mzarray"] > bb.loc[bb.index[0], "MZstart"]) & (
-                row["mzarray"] < bb.loc[bb.index[0], "MZend"]
-            )
-            row["mzarray"] = row["mzarray"][filter]
-            row["intarray"] = row["intarray"][filter]
-            return row
+        # Create a function to filter the entries based on the condition
+        def filter_entries(row):
+            mz_array = row['mzarray']
+            int_array = row['intarray']
+            filtered_indices = np.where((mz_array > mzmin) & (mz_array < mzmax))
+            filtered_mz = mz_array[filtered_indices]
+            filtered_int = int_array[filtered_indices]
+            return filtered_mz, filtered_int
 
-        df_peaks[["mzarray", "intarray"]] = df_peaks[["mzarray", "intarray"]].apply(
-            filter_arrays, axis=1
-        )
+        # Apply the filter_entries function to the DataFrame and create new columns with the filtered results
+        df_peaks[['filtered_mzarray', 'filtered_intarray']] = df_peaks.apply(filter_entries, axis=1, result_type='expand')
+
+        # If you only want the entries that have some values in both 'mzarray' and 'intarray'
+        # you can drop rows with empty arrays in the filtered columns
+        df_peaks = df_peaks.dropna(subset=['filtered_mzarray', 'filtered_intarray'])
+
+        # Drop the original 'mzarray' and 'intarray' columns if needed
+        df_peaks = df_peaks.drop(columns=['mzarray', 'intarray'])
+
+        # Rename to original name
+        df_peaks = df_peaks.rename(columns={"filtered_mzarray": "mzarray", "filtered_intarray": "intarray"})
+
 
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("m/z", feature["mz"].round(5))

@@ -295,6 +295,9 @@ if any(Path(results_dir).iterdir()):
         )
 
     if not df.empty:
+        # id number integers too large for st dataframe, convert to string
+        if "id" in df.columns:
+            df['id'] = df['id'].astype(str)
 
         if st.session_state["use_ma"]:
             ffm_path = Path(results_dir, "interim", "FFM_aligned_df")
@@ -307,7 +310,7 @@ if any(Path(results_dir).iterdir()):
         if ffm_path.exists():
             tab_options.append("📈 Feature Detection")
         if Path(results_dir, "interim", "FFM_aligned_df").exists():
-            tab_options.append("📈 Map alignemnt")
+            tab_options.append("📈 Map alignement")
         if Path(results_dir, "interim", "FFMID_df").exists():
             tab_options.append("📈 Re-quantification")
         tab_options.append("📁 Download results")

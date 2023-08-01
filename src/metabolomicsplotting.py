@@ -306,6 +306,7 @@ def plot_bpc(df, ms1_rt, ms2_rt=0):
 @st.cache_resource
 def plot_peak_map_2D(df, cutoff):
     fig = go.Figure()
+
     ints = np.concatenate([df.loc[index, "intarray"] for index in df.index])
     int_filter = ints > cutoff  # show only ints over threshold
     ints = ints[int_filter]
@@ -347,6 +348,7 @@ def plot_peak_map_2D(df, cutoff):
         hovertext=ints.round(),
         selector=dict(type="scattergl"),
     )
+
     return fig
 
 

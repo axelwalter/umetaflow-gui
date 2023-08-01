@@ -237,11 +237,8 @@ You can share this unique workspace ID with other people.
             st.markdown("📁 **mzML files**")
             st.multiselect("mzML files",  options=[Path(f).stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
                            default=params["selected-mzML-files"], key="selected-mzML-files", label_visibility="collapsed")
-            st.markdown("---")
 
         # All pages have logo and settings
-        st.image("assets/OpenMS.png", "powered by")
-        st.markdown("---")
         with st.expander("⚙️ **Settings**"):
             img_formats = ["svg", "png", "jpeg", "webp"]
             st.selectbox(
@@ -257,6 +254,9 @@ You can share this unique workspace ID with other people.
         if page != "main":
             st.info(
                 f"**{Path(st.session_state['workspace']).stem}**")
+        
+        # Logo
+        st.image("assets/pyopenms_transparent_background.png", "powered by")
 
         return params
 

@@ -30,7 +30,7 @@ with tabs[0]:
 
 # Example mzML files
 with tabs[1]:
-    st.markdown("Short information text about the example data.")
+    st.markdown("Example data set of bacterial cytosolic fractions. Bacillus subtilis cultures were treated with the antibiotic fosfomycin, which inhibits a step in the biosynthesis of petidoglycan (bacterial cell wall). The major accumulation product is UDP-GlcNAc.")
     cols = st.columns(3)
     if cols[1].button("Load Example Data", type="primary"):
         load_example_mzML_files()

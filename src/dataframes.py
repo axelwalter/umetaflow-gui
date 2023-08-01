@@ -53,6 +53,7 @@ class DataFrames:
         )
         # annotate original feature Ids which are in the Sirius .ms files
         if sirius_ms_dir:
+            print(sirius_ms_dir)
             ms_files = [Path(sirius_ms_dir, file)
                         for file in os.listdir(sirius_ms_dir)]
             map = {

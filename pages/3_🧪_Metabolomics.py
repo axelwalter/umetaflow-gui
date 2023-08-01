@@ -186,7 +186,7 @@ CH2O2:0:0.5
         "**Export files for SIRIUS**",
         params["use_sirius_manual"],
         key="use_sirius_manual",
-        help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.",
+        help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS.",
     )
     st.checkbox(
         "**Export files for GNPS**",
@@ -274,6 +274,7 @@ if run_button:
     mzML_files = [str(Path(st.session_state.workspace,
                            "mzML-files", f+".mzML")) for f in st.session_state["selected-mzML-files"]]
 
+    reset_directory(results_dir)
     run_umetaflow(umetaflow_params, mzML_files, results_dir)
 
 if any(Path(results_dir).iterdir()):
@@ -299,14 +300,14 @@ if any(Path(results_dir).iterdir()):
         if "id" in df.columns:
             df['id'] = df['id'].astype(str)
 
-        if st.session_state["use_ma"]:
+        if Path(results_dir, "interim", "FFM_aligned_df").exists():
             ffm_path = Path(results_dir, "interim", "FFM_aligned_df")
             mzML_path = Path(results_dir, "interim", "mzML_aligned_df")
         else:
             ffm_path = Path(results_dir, "interim", "FFM_df")
             mzML_path = Path(results_dir, "interim", "mzML_original_df")
 
-        tab_options = ["📁 Feature matrix"]
+        tab_options = ["📁 Feature matrix", "📈 Consensus Features"]
         if ffm_path.exists():
             tab_options.append("📈 Feature Detection")
         if Path(results_dir, "interim", "FFM_aligned_df").exists():
@@ -335,6 +336,20 @@ if any(Path(results_dir).iterdir()):
                     st.session_state.missing_values_after,
                 )
 
+        with tabs[1]:
+            if Path(results_dir, "interim", "FFMID_df").exists():
+                feature_dir = Path(results_dir, "interim", "FFMID_df")
+            else:
+                if Path(results_dir, "interim", "FFM_df").exists():
+                    feature_dir = Path(results_dir, "interim", "FFM_df")
+                else:
+                    feature_dir = Path(results_dir, "interim", "FFM_aligned_df")
+            display_consensus_map(
+                pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
+                {file.stem: pd.read_feather(file)
+                 for file in feature_dir.iterdir()},
+            )
+
         with tabs[tab_options.index("📈 Feature Detection")]:
             display_feature_data(
                 {
@@ -347,39 +362,31 @@ if any(Path(results_dir).iterdir()):
                 },
             )
 
-        # with tabs[1]:
-        #     display_map_alignement(
-        #         {f.stem: pd.read_feather(
-        #             f)[["mz", "RT", "original_rt"]]for f in Path(results_dir, "interim", "FFM_aligned_df").iterdir()}
-        #     )
+        if Path(results_dir, "interim", "FFM_aligned_df").exists():
+            with tabs[tab_options.index("📈 Map alignement")]:
+                display_map_alignement(
+                    {f.stem: pd.read_feather(
+                        f)[["mz", "RT", "original_rt"]]for f in Path(results_dir, "interim", "FFM_aligned_df").iterdir()}
+                )
 
-    # elif choice == "feature re-quantification":
-    #     if params["use_ma"]:
-    #         mzML_dir = Path(results_dir, "interim", "mzML_aligned_df")
-    #     else:
-    #         mzML_dir = Path(st.session_state["mzML_dfs"])
-    #     display_feature_data(
-    #         {
-    #             file.stem: pd.read_feather(file)
-    #             for file in Path(
-    #                 results_dir,
-    #                 "interim",
-    #                 "FFMID_df",
-    #             ).iterdir()
-    #         },
-    #         {file.stem: pd.read_feather(file) for file in mzML_dir.iterdir()},
-    #     )
-
-    # elif choice == "consensus features":
-    #     if params["use_requant"]:
-    #         feature_dir = Path(results_dir, "interim", "FFMID_df")
-    #     else:
-    #         feature_dir = Path(results_dir, "interim", "FFM_df")
-    #     display_consensus_map(
-    #         pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
-    #         {file.stem: pd.read_feather(file)
-    #          for file in feature_dir.iterdir()},
-    #     )
+        if Path(results_dir, "interim", "FFMID_df").exists():
+            if Path(results_dir, "interim", "mzML_aligned_df").exists():
+                mzML_dir = Path(results_dir, "interim", "mzML_aligned_df")
+            else:
+                mzML_dir = Path(results_dir, "interim", "mzML_original_df")
+            with tabs[tab_options.index("📈 Re-quantification")]:
+                display_feature_data(
+                    {
+                        file.stem: pd.read_feather(file)
+                        for file in Path(
+                            results_dir,
+                            "interim",
+                            "FFMID_df",
+                        ).iterdir()
+                    },
+                    {file.stem: pd.read_feather(file) for file in mzML_dir.iterdir()},
+                    "FFMID"
+                )
 
         with tabs[-1]:
             c1, c2 = st.columns([0.2, 0.8])
@@ -411,7 +418,7 @@ if any(Path(results_dir).iterdir()):
                 results_dir, "MetaData.tsv"), sep="\t")
             c2.markdown(
                 "**Add new attributes to meta data** (hover on bottom border to add more rows)")
-            md = c2.experimental_data_editor(
+            md = c2.data_editor(
                 df_md.T, use_container_width=True, num_rows="dynamic")
             c1.download_button(
                 "Meta Data",

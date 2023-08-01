@@ -9,10 +9,10 @@ Contains all visualization blocks as modules with streamlit components.
 """
 
 
-def display_feature_data(feature_maps, spectra):
+def display_feature_data(feature_maps, spectra, feature_detection_method="FFM"):
     c1, c2 = st.columns(2)
     name = c1.selectbox("choose feature map", [
-                        key for key in feature_maps.keys()])
+                        key for key in feature_maps.keys()], key=feature_detection_method)
     if name:
         df = feature_maps[name]
         c1, c2, c3 = st.columns(3)
@@ -83,6 +83,7 @@ def display_feature_data(feature_maps, spectra):
         c3.metric("FWHM", feature["fwhm"].round(2))
         if "snr" in feature.columns:
             c4.metric("S/N", feature["snr"].round(2))
+
         # chromatogram monoisotopic mass
         fig = plot_feature_chromatogram(
             df[df["metabolite"] == selected_feature])
@@ -125,8 +126,9 @@ def display_consensus_map(df: pd.DataFrame, feature_maps: dict):
             axis=1)
     )
 
-    c1, c2 = st.columns(2)
+
     # select a sample or all for mean intensities
+    c1, _ = st.columns(2)
     sample = c1.selectbox(
         "choose sample to highlight",
         ["Show mean intensities"]
@@ -140,14 +142,15 @@ def display_consensus_map(df: pd.DataFrame, feature_maps: dict):
     # sort df by sample value to plot high intensities on top
     df.sort_values(by=[sample], inplace=True)
 
+    fig = plot_consensus_map(df, sample)
+    st.plotly_chart(fig)
+
     # chose a feature for comparison chromatogram plot
-    feature = c2.selectbox(
+    c1, _ = st.columns(2)
+    feature = c1.selectbox(
         "choose metabolite for intensity comparison",
         [m for m in df["metabolite"]],
     )
-
-    fig = plot_consensus_map(df, sample)
-    st.plotly_chart(fig)
 
     # determine which features in which samples to plot as chromatogram
     to_plot = {

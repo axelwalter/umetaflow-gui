@@ -161,8 +161,7 @@ class UmetaFlow:
             True,
             {"-preprocessing:feature_only": "true"},
         )
-        self.sirius_ms_dir = os.path.join(
-            self.results_dir, "SIRIUS")
+        self.sirius_ms_dir = Path(self.results_dir, "SIRIUS", "sirius_files")
 
     def requantify_alternative(self):
         Requantifier().run(
@@ -251,10 +250,11 @@ class UmetaFlow:
             )
 
     def make_zip_archives(self):
-        path = Path(self.sirius_ms_dir)
-        if path.exists():
-            shutil.make_archive(
-                Path(self.results_dir, "ExportSIRIUS"), "zip", path)
+        if self.sirius_ms_dir:
+            path = Path(self.sirius_ms_dir)
+            if path.exists():
+                shutil.make_archive(
+                    Path(self.results_dir, "ExportSIRIUS"), "zip", path)
         path = Path(self.results_dir, "GNPS")
         if path.exists():
             shutil.make_archive(
@@ -289,16 +289,18 @@ def run_umetaflow(params, mzML_files, results_dir):
                 )
                 return
 
+    if params["use_ad"] and not params["use_requant"]:
+        with st.spinner("Determining adducts..."):
+            umetaflow.adduct_detection()
+
     # annotate only when necessary
     if (
         params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]
     ) and not params["use_requant"]:
+        umetaflow.feature_maps_to_df()
         with st.spinner("Mapping MS2 data to features..."):
             umetaflow.map_MS2()
 
-    if params["use_ad"] and not params["use_requant"]:
-        with st.spinner("Determining adducts..."):
-            umetaflow.adduct_detection()
 
     if params["use_ma"] and len(list(umetaflow.featureXML_dir.iterdir())) > 1:
         with st.spinner("Aligning feature maps..."):
@@ -349,7 +351,7 @@ def run_umetaflow(params, mzML_files, results_dir):
     # export metadata
     umetaflow.export_metadata()
 
-    if params["use_gnps"]:
+    if params["use_gnps"] or params["annotate_ms2"]:
         with st.spinner("Exporting files for GNPS..."):
             umetaflow.gnps()
 

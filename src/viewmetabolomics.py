@@ -346,8 +346,7 @@ def display_feature_data(feature_maps, spectra, feature_detection_method="FFM"):
 
 
 def display_map_alignement(feature_maps: dict):
-    c1, c2, c3 = st.columns(3)
-    name = c1.selectbox(
+    name = st.selectbox(
         "choose feature map",
         [
             key
@@ -357,7 +356,8 @@ def display_map_alignement(feature_maps: dict):
     )
     if name:
         df = feature_maps[name]
-        c2.metric(
+        c1, c2 = st.columns(2)
+        c1.metric(
             "reference map (contains most features)",
             [
                 key
@@ -365,7 +365,7 @@ def display_map_alignement(feature_maps: dict):
                 if value["original_rt"].isnull().any()
             ][0],
         )
-        c3.metric("mean RT deviation", np.mean(
+        c2.metric("mean RT deviation", np.mean(
             df["RT"] - df["original_rt"]).round(2))
         fig = plot_feature_map_alignment(df)
         show_fig(fig, "map-alignment")

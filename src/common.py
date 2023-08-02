@@ -115,7 +115,9 @@ def page_setup(page: str = "") -> dict[str, Any]:
             st.session_state.location = "local"
         else:
             st.session_state.location = "online"
-
+        # if we run the packaged windows version, we start within the Python directory -> need to change working directory to ..\umetaflow-gui-main
+        if "windows" in sys.argv:
+            os.chdir("../umetaflow-gui-main")
         # Define the directory where all workspaces will be stored
         if st.session_state.location == "online":
             workspaces_dir = Path("workspaces-"+REPOSITORY_NAME)

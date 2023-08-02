@@ -1,7 +1,7 @@
 import streamlit as st
 from src.common import *
 from src.umetaflow import run_umetaflow, HELP
-from src.metabolomicsvisualizations import *
+from src.viewmetabolomics import *
 from pathlib import Path
 
 

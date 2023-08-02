@@ -271,7 +271,7 @@ def display_feature_data(feature_maps, spectra, feature_detection_method="FFM"):
         c2.metric("lowest intensity", int(min(df["intensity"])))
         c3.metric("highest intensity", int(max(df["intensity"])))
 
-        percentile = st.slider("show top intensity features (%)", 10, 100, 50, 10, key=feature_detection_method+"percentile")
+        percentile = st.slider("show top intensity features (%)", 10, 100, 10, 10, key=feature_detection_method+"percentile")
         index = int((percentile/10) * (df["intensity"].size/10) - 1)
         int_cutoff = df["intensity"].sort_values(ascending=False).iloc[index]
 
@@ -390,8 +390,14 @@ def display_consensus_map(df: pd.DataFrame, feature_maps: dict):
     if sample == "Show mean intensities":
         sample = "means"
 
+    percentile = st.slider("show top intensity features (%)", 10, 100, 10, 10, key="consensus-map-percentile")
+    top_n = int((percentile/10) * (df[sample].size/10) - 1)
+
     # sort df by sample value to plot high intensities on top
     df.sort_values(by=[sample], inplace=True)
+
+    # from the sorted dataframe, get only the last n rows from the top n feature intensities
+    df = df.tail(top_n)
 
     fig = plot_consensus_map(df, sample)
     show_fig(fig, "consensus-map")

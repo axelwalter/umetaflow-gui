@@ -414,8 +414,44 @@ CH2O2:0:0.5
 }
 
 HELP = """
-This workflow includes the core UmetaFlow pipeline which results in a table of metabolic features.
+### UmetaFlow
 
-- The most important parameter are marked as **bold** text. Adjust them according to your instrument.
-- All the steps with checkboxes are optional.
+It is designed to help you analyze mass spectrometry data for untargeted metabolomics.
+
+Below are the main steps and options available in the tool:
+
+#### 1. Pre-Processing
+
+This step focuses on feature detection and data filtering.
+
+**Feature Detection**
+
+The most important parameters should be set according to your data:
+
+*Mass Error ppm*: Specify the allowed mass error in parts per million (ppm).
+
+*Noise Threshold*: Set the noise threshold to filter out low-intensity signals.
+
+**Blank Removal**
+
+You can optionally perform blank removal to filter out features that are present in blank samples. Set the blank/sample intensity ratio cutoff for filtering.
+
+**Map Alignment**
+
+If needed, you can perform map alignment to correct retention time differences between samples.
+
+**Adduct Detection**
+
+Optionally, you can perform adduct detection to identify potential ionization adducts and charge states for features.
+
+#### 2. Re-Quantification
+In this step, you have the option to re-quantify consensus features with missing values in the raw data.
+
+#### 3. Export Files for SIRIUS and GNPS
+You can export files for SIRIUS, which is a tool for formula and structure predictions. Additionally, you can export files for GNPS, a feature-based molecular networking and ion identity molecular networking tool. Optionally, you can annotate features using the GNPS library.
+
+#### 4. Annotation via In-House Library
+You can perform MS1 annotation by m/z and retention time. Select a library in TSV format for annotation, and specify the retention time window and m/z window for matching. Optionally, you can perform MS2 annotation via fragmentation patterns. Select an MGF format library for MS2 annotation.
+
+Please use the checkboxes and input fields to customize the parameters according to your specific dataset and analysis needs. Remember to check the information and help provided for each option to understand its impact on your data analysis.
 """

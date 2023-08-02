@@ -39,15 +39,14 @@ with st.expander("Settings", expanded=True):
         "XIC-input-table.tsv",
     )
     st.markdown("**Calculate mass and add to table**")
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     name = c1.text_input(
         "compound name (optional)", "")
     formula = c2.text_input(
         "sum formula", "", help="Enter a neutral sum formula for a new compound in the table.")
     adduct = c3.selectbox(
         "adduct", ["[M+H]+", "[M+Na]+", "[M+2H]2+", "[M-H2O+H]+", "[M-H]-", "[M-2H]2-", "[M-H2O-H]-"], help="Specify the adduct.")
-    v_space(1, c4)
-    if c4.button("Add to table", disabled=not formula, help="Calculate mass from formula with given adduct and add to table."):
+    if c3.button("Add new compound to table", disabled=not formula, help="Calculate mass from formula with given adduct and add to table."):
         mz = get_mass(formula, adduct)
         if mz:
             if name:
@@ -71,20 +70,18 @@ with st.expander("Settings", expanded=True):
     )
     c2.number_input("default peak width (seconds)", 1, 600,
                     params["eic_peak_width"], 5, key="eic_peak_width", help="Default value for peak width. Used when a retention time is given without peak width. Adding a peak width in the table will override this setting.")
+    c3.number_input(
+        "**noise threshold**", 0, 1000000, params["eic_baseline"], 100, key="eic_baseline", help="Peaks below the treshold intensity will not be extracted."
+    )
     # Mass tolerance settings
     c1, c2, c3 = st.columns(3)
     c1.radio(
         "mass tolerance unit", ["ppm", "Da"], index=["ppm", "Da"].index(params["eic_mz_unit"]), key="eic_mz_unit"
     )
-    c2.number_input("mass tolerance ppm", 1, 100,
+    c2.number_input("**mass tolerance ppm**", 1, 100,
                     params["eic_tolerance_ppm"], step=5, key="eic_tolerance_ppm")
     c3.number_input(
         "mass tolerance Da", 0.01, 10.0, params["eic_tolerance_da"], 0.05, key="eic_tolerance_da"
-    )
-    # Intensity processing settings
-    c1, c2, c3 = st.columns(3)
-    c1.number_input(
-        "noise threshold", 0, 1000000, params["eic_baseline"], 100, key="eic_baseline", help="Peaks below the treshold intensity will not be extracted."
     )
 
     mzML_files = [str(Path(st.session_state.workspace,

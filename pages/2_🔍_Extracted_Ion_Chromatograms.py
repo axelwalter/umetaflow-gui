@@ -20,7 +20,7 @@ if path.exists():
 else:
     # Load a default example df
     df = pd.DataFrame(
-        {"name": ["UDP-GlcNAc", ""], "mz": ["608.0889", np.nan], "RT (seconds)": [np.nan, np.nan], "peak width (seconds)": [np.nan, np.nan]})
+        {"name": [""], "mz": [np.nan], "RT (seconds)": [np.nan], "peak width (seconds)": [np.nan]})
 
 with st.expander("Settings", expanded=True):
     st.markdown("**Table with metabolites for chromatogram extraction**")

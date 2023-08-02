@@ -277,7 +277,7 @@ if run_button:
     reset_directory(results_dir)
     run_umetaflow(umetaflow_params, mzML_files, results_dir)
 
-if any(Path(results_dir).iterdir()):
+if results_dir.exists():
     v_space(1)
     df = pd.DataFrame()
 

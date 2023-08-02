@@ -270,10 +270,10 @@ def display_feature_data(feature_maps, spectra, feature_detection_method="FFM"):
         c1.metric("number of features", df.shape[0])
         c2.metric("lowest intensity", int(min(df["intensity"])))
         c3.metric("highest intensity", int(max(df["intensity"])))
-        int_cutoff = st.select_slider(
-            "show features with intensity above intensity",
-            range(0, int(max(df["intensity"])), 100000),
-        )
+
+        percentile = st.slider("show top intensity features (%)", 10, 100, 50, 10, key=feature_detection_method+"percentile")
+        index = int((percentile/10) * (df["intensity"].size/10) - 1)
+        int_cutoff = df["intensity"].sort_values(ascending=False).iloc[index]
 
         df = df[df["intensity"] > int_cutoff]
         df.sort_values(by=["intensity"], inplace=True)

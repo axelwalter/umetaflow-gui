@@ -1,76 +1,77 @@
-# OpenMS streamlit template [![Open Template!](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://openms-template.streamlit.app/)
+# UmetaFlow GUI [![Open UmetaFlow!](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://umetaflow.streamlit.app/)
+**powered by:**
 
-This is a template app for pyOpenMS workflows in a web application.
+<img src="assets/pyopenms_transparent_background.png" width=20%>
 
-## Template specific concepts
+This app is based on the [UmetaFlow](https://chemrxiv.org/engage/chemrxiv/article-details/634fb68fdfbd2b6abc5c5fcd) workflow for LC-MS data analysis. UmetaFlow is implemented as a [snakemake pipeline](https://github.com/NBChub/snakemake-UmetaFlow) and as a Python version in [Jupyter notebooks](https://github.com/eeko-kon/pyOpenMS_UmetaFlow) based on [pyOpenMS](https://pyopenms.readthedocs.io/en/latest/index.html).
 
-- **Workspaces:** Directories outside the repository where all data generated and uploaded can be stored as well as a workspace specific parameter file.
-- **Run the app local and online (default):** Launching the app with the local argument let's the user create/remove workspaces. The online version is for hosting where the user gets a workspace with a specific ID.
+Here, we take the powerful UmetFlow algorithms in a simple and easy graphical user interface. In contrast to the pipeline for automatic data processing,
+this app is tweaked a bit to be used with smaller to medium sample sets and some manual data interpretation. For example the automatic annotation of features via SIRIUS is omitted.
+Instead we export all the files necessary to run in the SIRIUS GUI tool and manually annotate the result tables via a unique identifier. This method of curated annotation can be interesting if you really want to be confident in your annotations.
+The same applies for GNPS, here you can export all the files required for Feature Based Molecular Networking and Ion Identity Networking.
 
-run locally:
+Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find additional tabs for **Extracted Ion Chromatograms** and **Statistics**. The data produced here is fully compatible with the web app for [statistical analyis of metabolomics](https://github.com/axelwalter/streamlit-metabolomics-statistics) data.
 
-`streamlit run Template.py local`
+## Installation
+1. Clone this repository
 
-- **Parameters:** Streamlit offers statefulness via the st.session_state object. However, we want to define default parameters (in `assets/default-params.json`) and store changing parameters for each workspace. Parameters are loaded via the mandatory page_setup function at the start of each page. To track a widget variable via parameters simply give them a key and add a matching entry in the default parameters file. Initialize a widget value from the params dictionary. You can access the value in two was as shown in the workflow example. Re-run the app when changing default parameters.
+`git clone https://github.com/axelwalter/umetaflow-gui.git`
 
-```python
-params = page_setup()
+2. Change into the `umetaflow-gui` folder
 
-st.number_input(label="x dimension", min_value=1, max_value=20,
-value=params["example-y-dimension"], step=1, key="example-y-dimension")
+`cd umetaflow-gui`
 
-save_params()
-```
+3. Install all other Python modules specified in the requirements file with pip
 
+`pip install -r requirements.txt`
 
-## Code structure
+4. Launch the streamlit app locally in your browser
 
-- **Pages** must be placed in the `pages` directory.
-- It is recommended to use a separate file for defining functions per page in the `src` directory.
-- The `src/common.py` file contains a set of useful functions for common use (e.g. rendering a table with download button).
+`streamlit run UmetaFlow.py local`
 
-## Layout of the template app
+### Windows
+1. Download and extract the [UmetaFlow.zip](https://github.com/axelwalter/umetaflow-gui/releases/download/v1.0.0/UmetaFlow.zip) file
+2. Run the `Update` script (also from time to time to get latest changes).
+> The command prompt will close once the update is done.
+3. Run the app by executing` UmetaFlow`
 
-The main page contains explanatory text on how to use the app.
+## Quickstart
 
-The sidebar always contains the OpenMS logo, settings panel and a workspace indicator. The main page contains a workspace selector as well.
-Workflow pages contain a selector for all available mzML files, which have been uploaded.
+### Workspaces
+On the left side of this page you can define a workspace where all your data including uploaded `mzML` files will be stored. Entering a workspace will switch to an existing one or create a new one if it does not exist yet. In the web app, you can share your results via the unique workspace ID. Be careful with sensitive data, anyone with access to this ID can view your data.
 
-### Pages:
+### 📁 File Handling
+Upload `mzML` files via the **File Upload** tab. The data will be stored in your workspace. With the web app you can upload only one file at a time.
+Locally there is no limit in files. However, it is recommended to upload large number of files by specifying the path to a directory containing the files.
 
-- **File Upload:** Upload files (online one at a time, local multiple), load example data or copy mzML files from directory (local only). Also show all files in the workspace and options to remove them.
-- **View Raw Data:** An example page to check out mzML files in detail.
-- **Workflow:** Example for a workflow page which has two inputs and a time consuming cached function. The following example code shows a minimal setup for a page and two options how to access widget values for function calls.
+Your uploaded files will be shown in the sidebar of all tabs dealing with the files, e.g. the **Metabolomics** tab. Checked file names will be used for analysis.
 
-```python
-import streamlit as st
+Result files are available via specified download buttons or, if run locally, within the workspace directory.
+### Workflows
 
-from src.common import *
-from src.workflow import *
+#### 🔍 Extracted Ion Chromatograms
 
-# Page name "workflow" will show mzML file selector in sidebar
-params = page_setup(page="workflow")
+Simple workflow for the extraction of chromatograms by `m/z` (and optionally `RT` range) value. Produces a **Feature Matrix** file with area under the curve intensities as well as a **Meta Data** template and the chromatogram data for each file.
 
-st.title("Workflow")
+Area intensities of different variants (e.g. adducts or neutral losses) of a metabolite can be combined. Put a `#` with the name first and variant second (e.g. `glucose` and `glucose#[M+Na]+`).  
 
-# Define two widgets with values from parameter file
-# To save them as parameters use the same key as in the json file
+#### 🧪 Metabolomics (UmetaFlow)
 
-# We access the x-dimension via local variable
-xdimension = st.number_input(
-    label="x dimension", min_value=1, max_value=20, value=params["example-x-dimension"], step=1, key="example-x-dimension")
+The core UmetaFlow pipeline with some tweaks.
 
-st.number_input(label="x dimension", min_value=1, max_value=20,
-                value=params["example-y-dimension"], step=1, key="example-y-dimension")
+1. **Pre-Processing**
+Converting your raw data to a table of metabolic features with a series of algorithms. Produces a table of consensus metabolite intensities across your samples.
 
-# Get a dataframe with x and y dimensions via time consuming (sleep) cached function
-# If the input has been given before, the function does not run again
-# Input x from local variable, input y from session state via key
-df = generate_random_table(xdimension, st.session_state["example-y-dimension"])
+2. **Re-Quantification**
+One of the unique and great features of UmetaFlow. For missing value imputation go back into the raw data and double check. Never miss a feature any more! 
 
-# Display dataframe via custom show_table function, which
-show_table(df, download_name="random-table")
+3. **GNPS and SIRIUS**
+Export all files required to run GNPS Feature Based Molecular Networking and SIRIUS externally. Also offers the possibility to annotate from the complete GNPS library. For manual annotation of SIRIUS results a unique ID is provied in the **Feature Matrix**.
 
-# At the end of each page, always save parameters (including any changes via widgets with key)
-save_params(params)
-```
+4. **Annotation via in-house libraries**
+Load your in-house data for MS1 (`tsv` file with metabolite `m/z` and `RT` values) and MS2 (`mgf` file) annotations.
+
+#### 📈 Statistics
+Here, you can do basic statistics right away such as calculating mean intensities, fold changes, clustering and heatmaps all with nice visualizations.
+
+For an advanced and complete workflow visit the [app for statistical analysis of metabolomics data](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/).

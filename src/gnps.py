@@ -1,5 +1,5 @@
 from pyopenms import *
-from .helpers import Helper
+from .common import reset_directory
 from pathlib import Path
 import pandas as pd
 import os
@@ -7,7 +7,7 @@ import os
 
 class GNPSExport:
     def run(self, consensusXML_file, aligned_mzML_dir, gnps_dir):
-        Helper().reset_directory(gnps_dir)
+        reset_directory(gnps_dir)
         all_mzML_files = [
             str(f)
             for f in Path(aligned_mzML_dir).iterdir()
@@ -39,7 +39,8 @@ class GNPSExport:
             String(os.path.join(gnps_dir, "MS2.mgf")),
         )
         GNPSQuantificationFile().store(
-            consensus_map, os.path.join(gnps_dir, "FeatureQantificationTable.txt")
+            consensus_map, os.path.join(
+                gnps_dir, "FeatureQantificationTable.txt")
         )
         GNPSMetaValueFile().store(
             consensus_map, os.path.join(gnps_dir, "MetaValueTable.tsv")

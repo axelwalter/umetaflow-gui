@@ -1,7 +1,7 @@
 import os
 import shutil
 from pyopenms import *
-from .helpers import Helper
+from .common import reset_directory
 from pathlib import Path
 
 
@@ -29,19 +29,19 @@ class Sirius:
             only_export_ms_file (bool): Do only pre-processing and export SIRIUS .ms files without running SIRIUS.
             params (dict, optional): Optional dict with SiriusAdapter parameters. Defaults to {}.
         """
-        Helper().reset_directory(sirius_dir)
+        reset_directory(sirius_dir)
 
         feature_files = sorted(os.listdir(featureXML_dir))
         mzml_files = sorted(os.listdir(mzML_dir))
-        no_convex_hulls_dir = Helper().reset_directory(
-            os.path.join(sirius_dir, "no_convex_hulls")
-        )
+        no_convex_hulls_dir = Path(sirius_dir, "no_convex_hulls")
+        reset_directory(no_convex_hulls_dir)
         if not only_export_ms_file:
-            formula_dir = Helper().reset_directory(os.path.join(sirius_dir, "formulas"))
-            structure_dir = Helper().reset_directory(
-                os.path.join(sirius_dir, "structures")
-            )
-        ms_dir = Helper().reset_directory(os.path.join(sirius_dir, "sirius_files"))
+            formula_dir = Path(sirius_dir, "formulas")
+            reset_directory(formula_dir)
+            structure_dir = Path(sirius_dir, "structures")
+            reset_directory(structure_dir)
+        ms_dir = Path(sirius_dir, "sirius_files")
+        reset_directory(ms_dir)
 
         for mzML_file in mzml_files:
             exp = MSExperiment()
@@ -82,7 +82,8 @@ class Sirius:
                         sirius_feature_path, mapping, exp
                     )
                     msfile = SiriusMSFile()
-                    sirius_tmp = SiriusTemporaryFileSystemObjects(3)  # debug level
+                    sirius_tmp = SiriusTemporaryFileSystemObjects(
+                        3)  # debug level
                     msfile.store(
                         exp,
                         String(sirius_tmp.getTmpMsFile()),
@@ -124,7 +125,8 @@ class Sirius:
                         sirius_result,
                     )
 
-                    sirius_file = os.path.join(formula_dir, mzML_file[:-5] + ".mzTab")
+                    sirius_file = os.path.join(
+                        formula_dir, mzML_file[:-5] + ".mzTab")
                     MzTabFile().store(sirius_file, sirius_result)
 
         # finally delete the temporary FeatureXML file without convex hulls

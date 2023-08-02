@@ -1,9 +1,0 @@
-{
-    "masses_text": "608.0889=UDP-GlcNAc\n680.11=UDP-MurNAc",
-    "mz_unit": "ppm",
-    "tolerance_ppm": 10,
-    "tolerance_da": 0.2,
-    "time_unit": "seconds",
-    "baseline": 1000,
-    "combine": false
-}

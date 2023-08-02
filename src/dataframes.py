@@ -3,10 +3,8 @@ import pandas as pd
 import numpy as np
 import os
 from pathlib import Path
-from .helpers import Helper
-import pyteomics
+from .common import reset_directory
 from pyteomics import mztab, mgf
-from sklearn.preprocessing import StandardScaler
 
 
 class DataFrames:
@@ -17,7 +15,8 @@ class DataFrames:
         for cf in consensus_map:
             if cf.metaValueExists("best ion"):
                 df.insert(
-                    4, "adduct", [cf.getMetaValue("best ion") for cf in consensus_map]
+                    4, "adduct", [cf.getMetaValue(
+                        "best ion") for cf in consensus_map]
                 )
                 break
         for cf in consensus_map:
@@ -54,7 +53,9 @@ class DataFrames:
         )
         # annotate original feature Ids which are in the Sirius .ms files
         if sirius_ms_dir:
-            ms_files = [Path(sirius_ms_dir, file) for file in os.listdir(sirius_ms_dir)]
+            print(sirius_ms_dir)
+            ms_files = [Path(sirius_ms_dir, file)
+                        for file in os.listdir(sirius_ms_dir)]
             map = {
                 Path(value.filename).stem: key
                 for key, value in consensus_map.getColumnHeaders().items()
@@ -82,7 +83,8 @@ class DataFrames:
         df_mzML = df[[col for col in df.columns if col.endswith("mzML")]]
         df_mzML = df_mzML.reindex(sorted(df_mzML.columns), axis=1)
         df = pd.concat(
-            [df[[col for col in df.columns if not col.endswith("mzML")]], df_mzML],
+            [df[[col for col in df.columns if not col.endswith(
+                "mzML")]], df_mzML],
             axis=1,
         )
 
@@ -110,7 +112,8 @@ class DataFrames:
                 chroms[name + "_RT"] = [
                     x[0] / time_factor for x in sub.getConvexHulls()[0].getHullPoints()
                 ]
-        df = pd.DataFrame({key: pd.Series(value) for key, value in chroms.items()})
+        df = pd.DataFrame({key: pd.Series(value)
+                          for key, value in chroms.items()})
         if table_file.endswith("tsv"):
             df.reset_index().to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
@@ -122,7 +125,8 @@ class DataFrames:
         aucs = {}
         for f in fm:
             aucs[f.getMetaValue("label")] = [int(f.getIntensity())]
-        df = pd.DataFrame({key: pd.Series(value) for key, value in aucs.items()})
+        df = pd.DataFrame({key: pd.Series(value)
+                          for key, value in aucs.items()})
         if table_file.endswith("tsv"):
             df.reset_index().to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
@@ -207,7 +211,8 @@ class DataFrames:
                             ";" + std["name"]
                         )
                     else:
-                        df.loc[df["id"] == row["id"], "MS1 annotation"] += std["name"]
+                        df.loc[df["id"] == row["id"],
+                               "MS1 annotation"] += std["name"]
 
         # replace generic metabolite name with actual MS1 annotation
         metabolites = []
@@ -222,13 +227,14 @@ class DataFrames:
         df.to_csv(df_file, sep="\t", index=False)
 
     def save_MS_ids(self, df_file, ms_dir, column_name):
-        Helper().reset_directory(ms_dir)
         df = pd.read_csv(df_file, sep="\t")
         if column_name not in df.columns:
             return
         df = df[df[column_name].notna()]
         filename = column_name.replace(" ", "-") + ".tsv"
-        df.to_csv(os.path.join(ms_dir, filename), sep="\t", index=False)
+        if not df.empty:
+            reset_directory(ms_dir)
+            df.to_csv(os.path.join(ms_dir, filename), sep="\t", index=False)
 
     def annotate_ms2(
         self,
@@ -239,7 +245,7 @@ class DataFrames:
         overwrite_name=False,
     ):
         # clean up the mzTab to a dataframe:
-        matches = pyteomics.mztab.MzTab(
+        matches = mztab.MzTab(
             output_mztab, encoding="UTF8", table_format="df"
         ).small_molecule_table
         if matches.empty:
@@ -303,11 +309,6 @@ class DataFrames:
             features["metabolite"] = metabolites
         features.to_csv(feature_matrix_df_file, sep="\t", index=False)
 
-    def scale_df(df):
-        scaled = pd.DataFrame(StandardScaler().fit_transform(df)).set_index(df.index)
-        scaled.columns = df.columns
-        return scaled
-
     def mzML_to_ftr(mzML_file_path, ftr_dir):
         exp = MSExperiment()
         MzMLFile().load(str(mzML_file_path), exp)
@@ -358,7 +359,8 @@ class DataFrames:
 
         else:
             df["chrom_rts"] = [
-                np.array(f.getMetaValue("chrom_rts").split(",")).astype(np.float64)
+                np.array(f.getMetaValue("chrom_rts").split(
+                    ",")).astype(np.float64)
                 for f in fm
             ]
             df["chrom_intensities"] = [

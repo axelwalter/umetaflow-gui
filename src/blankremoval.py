@@ -38,7 +38,8 @@ class BlankRemoval:
         df = consensus_map.get_df()
         for cf in consensus_map:
             if cf.metaValueExists("best ion"):
-                df["adduct"] = [cf.getMetaValue("best ion") for cf in consensus_map]
+                df["adduct"] = [cf.getMetaValue(
+                    "best ion") for cf in consensus_map]
                 break
         df["feature_ids"] = [
             [handle.getUniqueId() for handle in cf.getFeatureList()]
@@ -59,8 +60,7 @@ class BlankRemoval:
         avg_blank = blanks.mean(
             axis=1, skipna=False
         )  # set skipna = False do not exclude NA/null values when computing the result.
-        # avg_samples= samples.set_index("feature_ids")
-        avg_samples = samples.mean(axis=1, skipna=False)
+        avg_samples = samples.drop(columns=["feature_ids"]).mean(axis=1, skipna=False)
         # Getting the ratio of blank vs samples
         ratio_blank_samples = (avg_blank + 1) / (avg_samples + 1)
 

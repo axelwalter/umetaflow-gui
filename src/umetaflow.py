@@ -1,11 +1,12 @@
+import streamlit as st
+import shutil
 from pathlib import Path
+from .common import reset_directory
 from .core import *
 from .sirius import Sirius
 from .gnps import GNPSExport
-from .helpers import *
 from .dataframes import DataFrames
 from .blankremoval import BlankRemoval
-import streamlit as st
 
 
 class UmetaFlow:
@@ -17,7 +18,8 @@ class UmetaFlow:
         self.params = params
         self.mzML_files = mzML_files
         self.results_dir = results_dir
-        self.interim = Helper().reset_directory(Path(results_dir, "interim"))
+        self.interim = Path(results_dir, "interim")
+        reset_directory(self.interim)
         self.mzML_dir = Path(self.interim, "mzML_original")
         self.featureXML_dir = Path(self.interim, "FFM")
         self.sirius_ms_dir = ""
@@ -26,7 +28,7 @@ class UmetaFlow:
         self.mgf_file = str(Path(self.results_dir, "GNPS", "MS2.mgf"))
 
     def fetch_raw_data(self):
-        Helper().reset_directory(self.mzML_dir)
+        reset_directory(self.mzML_dir)
         for file in self.mzML_files:
             shutil.copy(file, self.mzML_dir)
 
@@ -68,7 +70,8 @@ class UmetaFlow:
             negative_mode = "true"
         else:
             negative_mode = "false"
-        adducts = [line.encode() for line in self.params["ad_adducts"].split("\n")]
+        adducts = [line.encode()
+                   for line in self.params["ad_adducts"].split("\n")]
         MetaboliteAdductDecharger().run(
             self.featureXML_dir,
             Path(self.interim, "FFM_decharged"),
@@ -103,7 +106,7 @@ class UmetaFlow:
 
     def feature_maps_to_df(self, requant=False):
         df_path = Path(self.featureXML_dir).name + "_df"
-        Helper().reset_directory(Path(self.interim, df_path))
+        reset_directory(Path(self.interim, df_path))
         for file in Path(self.featureXML_dir).iterdir():
             DataFrames.featureXML_to_ftr(
                 file, Path(self.interim, df_path), requant=requant
@@ -119,7 +122,7 @@ class UmetaFlow:
 
     def peak_maps_to_df(self):
         df_path = Path(self.mzML_dir).name + "_df"
-        Helper().reset_directory(Path(self.interim, df_path))
+        reset_directory(Path(self.interim, df_path))
         for file in Path(self.mzML_dir).iterdir():
             DataFrames.mzML_to_ftr(file, Path(self.interim, df_path))
 
@@ -158,7 +161,7 @@ class UmetaFlow:
             True,
             {"-preprocessing:feature_only": "true"},
         )
-        self.sirius_ms_dir = os.path.join(self.results_dir, "SIRIUS", "sirius_files")
+        self.sirius_ms_dir = Path(self.results_dir, "SIRIUS", "sirius_files")
 
     def requantify_alternative(self):
         Requantifier().run(
@@ -183,8 +186,10 @@ class UmetaFlow:
                 "extract:n_isotopes": 2,
             },
         )
-        self.consensusXML = Path(self.interim, "FeatureMatrixRequantified.consensusXML")
-        self.consensus_tsv = Path(self.results_dir, "FeatureMatrixRequantified.tsv")
+        self.consensusXML = Path(
+            self.interim, "FeatureMatrixRequantified.consensusXML")
+        self.consensus_tsv = Path(
+            self.results_dir, "FeatureMatrixRequantified.tsv")
         self.featureXML_dir = Path(self.interim, "FFMID")
 
     def export_metadata(self):
@@ -195,14 +200,14 @@ class UmetaFlow:
 
     def gnps(self):
         # create interim directory for MS2 ids later (they are based on the GNPS mgf file)
-        Helper().reset_directory(Path(self.interim, "mztab_ms2"))
+        reset_directory(Path(self.interim, "mztab_ms2"))
         GNPSExport().run(
             str(self.consensusXML),
             self.mzML_dir,
             Path(self.results_dir, "GNPS"),
         )
         output_mztab = str(Path(self.interim, "mztab_ms2", "GNPS.mzTab"))
-        database = "example_data/ms2-libraries/GNPS-LIBRARY.mgf"
+        database = "example-data/ms2-libraries/GNPS-LIBRARY.mgf"
         SpectralMatcher().run(database, self.mgf_file, output_mztab)
         DataFrames().annotate_ms2(
             self.mgf_file,
@@ -245,15 +250,17 @@ class UmetaFlow:
             )
 
     def make_zip_archives(self):
-        if self.params["use_sirius_manual"]:
+        if self.sirius_ms_dir:
+            path = Path(self.sirius_ms_dir)
+            if path.exists():
+                shutil.make_archive(
+                    Path(self.results_dir, "ExportSIRIUS"), "zip", path)
+        path = Path(self.results_dir, "GNPS")
+        if path.exists():
             shutil.make_archive(
-                Path(self.interim, "ExportSirius"), "zip", self.sirius_ms_dir
-            )
-        if self.params["use_gnps"]:
-            shutil.make_archive(
-                Path(self.interim, "ExportGNPS"),
+                Path(self.results_dir, "ExportGNPS"),
                 "zip",
-                Path(self.results_dir, "GNPS"),
+                path,
             )
 
     def additional_data_for_consensus_df(self):
@@ -264,86 +271,9 @@ class UmetaFlow:
         )
 
 
-def run_alternative_requant(params, mzML_files, results_dir):
-    umetaflow = UmetaFlow(params, mzML_files, results_dir)
-    # if not params["use_requant"]:
-    with st.spinner("Fetching raw data..."):
-        umetaflow.fetch_raw_data()
-
-    with st.spinner("Detecting features..."):
-        umetaflow.feature_detection()
-
-    if params["use_ad"]:
-        with st.spinner("Determining adducts..."):
-            umetaflow.adduct_detection()
-
-    with st.spinner("Exporting feature maps for visualization..."):
-        umetaflow.feature_maps_to_df()
-
-    if params["use_ma"]:
-        with st.spinner("Aligning feature maps..."):
-            umetaflow.align_feature_maps()
-            umetaflow.feature_maps_to_df()
-
-        with st.spinner("Aligning mzML files..."):
-            umetaflow.align_peak_maps()
-
-    # annotate only when necessary
-    if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
-        with st.spinner("Mapping MS2 data to features..."):
-            umetaflow.map_MS2()
-
-    # export only sirius ms files to use in the GUI tool
-    if params["use_sirius_manual"]:
-        with st.spinner("Exporting files for Sirius..."):
-            umetaflow.sirius()
-
-    with st.spinner("Linking features..."):
-        umetaflow.link_feature_maps()
-        umetaflow.consensus_df()
-
-    df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
-    st.session_state.missing_values_before = sum(
-        [(df[col] == 0).sum() for col in df.columns]
-    )
-
-    if params["use_requant"]:
-        with st.spinner("Re-quantification..."):
-            umetaflow.requantify_alternative()
-
-    df = pd.read_csv(os.path.join(results_dir, "FeatureMatrix.tsv"), sep="\t")
-    st.session_state.missing_values_after = sum(
-        [(df[col] == 0).sum() for col in df.columns]
-    )
-
-    # export metadata
-    umetaflow.export_metadata()
-
-    if params["use_gnps"]:
-        with st.spinner("Exporting files for GNPS..."):
-            umetaflow.gnps()
-
-    if params["annotate_ms1"]:
-        with st.spinner("Annotating feautures on MS1 level by m/z and RT"):
-            umetaflow.annotate_MS1()
-
-    if params["annotate_ms2"]:
-        with st.spinner(
-            "Annotating features on MS2 level by fragmentation patterns..."
-        ):
-            umetaflow.annotate_MS2()
-
-    # make zip archives
-    umetaflow.make_zip_archives()
-
-    # additional_data
-    umetaflow.additional_data_for_consensus_df()
-
-
-def run(params, mzML_files, results_dir):
+def run_umetaflow(params, mzML_files, results_dir):
     umetaflow = UmetaFlow(params, mzML_files, results_dir)
 
-    # if not params["use_requant"]:
     with st.spinner("Fetching raw data..."):
         umetaflow.fetch_raw_data()
 
@@ -359,19 +289,18 @@ def run(params, mzML_files, results_dir):
                 )
                 return
 
-    # annotate only when necessary
-    if (
-        params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]
-    ) and not params["use_requant"]:
-        with st.spinner("Mapping MS2 data to features..."):
-            umetaflow.map_MS2()
-
     if params["use_ad"] and not params["use_requant"]:
         with st.spinner("Determining adducts..."):
             umetaflow.adduct_detection()
 
-    with st.spinner("Exporting feature maps for visualization..."):
+    # annotate only when necessary
+    if (
+        params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]
+    ) and not params["use_requant"]:
         umetaflow.feature_maps_to_df()
+        with st.spinner("Mapping MS2 data to features..."):
+            umetaflow.map_MS2()
+
 
     if params["use_ma"] and len(list(umetaflow.featureXML_dir.iterdir())) > 1:
         with st.spinner("Aligning feature maps..."):
@@ -381,6 +310,9 @@ def run(params, mzML_files, results_dir):
         with st.spinner("Aligning mzML files..."):
             umetaflow.align_peak_maps()
             umetaflow.peak_maps_to_df()
+    else:
+        umetaflow.feature_maps_to_df()
+        umetaflow.peak_maps_to_df()
 
     # export only sirius ms files to use in the GUI tool
     if params["use_sirius_manual"] and not params["use_requant"]:
@@ -419,7 +351,7 @@ def run(params, mzML_files, results_dir):
     # export metadata
     umetaflow.export_metadata()
 
-    if params["use_gnps"]:
+    if params["use_gnps"] or params["annotate_ms2"]:
         with st.spinner("Exporting files for GNPS..."):
             umetaflow.gnps()
 
@@ -437,4 +369,89 @@ def run(params, mzML_files, results_dir):
 
     umetaflow.additional_data_for_consensus_df()
 
+    # Export files
+    umetaflow.make_zip_archives()
+
     st.success("Complete!")
+
+
+METABO = {
+    "main": """
+This workflow includes the core UmetaFlow pipeline which results in a table of metabolic features.
+
+- The most important parameter are marked as **bold** text. Adjust them according to your instrument.
+- All the steps with checkboxes are optional.
+""",
+    "blank_removal": "Useful to filter out features which are present in blank sample/s or e.g. for differential feature detection to remove features which are present in control, but not in treatment samples.",
+    "blank_samples": "The selected samples will be used to calculate avarage feature blank intensities and will not be further processed.",
+    "blank_cutoff": "Features that have an intensity ratio below (avagera blank) to (average samples) will be removed. Set low for strict blank removal.",
+    "potential_adducts": """
+Specify adducts and neutral additions/losses.\n
+Format (each in a new line): adducts:charge:probability.\n
+The summed up probability for all charged entries needs to be 1.0.\n
+
+Good starting options for positive mode with sodium adduct and water loss:\n
+H:+:0.9\n
+Na:+:0.1\n
+H-2O-1:0:0.4
+
+Good starting options for negative mode with water loss and formic acid addition:\n
+H-1:-:1\n
+H-2O-1:0:0.5\n
+CH2O2:0:0.5
+    """,
+    "ad_ion_mode": "Carefully adjust settings for each mode. Especially potential adducts and negative min/max charges for negative mode.",
+    "ad_charge_min": "e.g. for negative mode -3, for positive mode 1",
+    "ad_charge_max": "e.g. for negative mode -1, for positive mode 3",
+    "ad_rt_diff": "Groups features with slightly different RT.",
+    "re-quant": "Go back into the raw data to re-quantify consensus features that have missing values.",
+    "sirius": "Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS -> sirius_files.",
+    "gnps": "Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.",
+    "annotate_gnps": "UmetaFlow contains the complete GNPS library in mgf file format. Check to annotate.",
+    "annotate_ms1": "Annotate features on MS1 level with known m/z and retention times values.",
+    "annotate_ms1_rt": "Checks around peak apex, e.g. window of 60 s will check left and right 30 s.",
+    "annotate_ms2": "Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.",
+}
+
+HELP = """
+### UmetaFlow
+
+It is designed to help you analyze mass spectrometry data for untargeted metabolomics.
+
+Below are the main steps and options available in the tool:
+
+#### 1. Pre-Processing
+
+This step focuses on feature detection and data filtering.
+
+**Feature Detection**
+
+The most important parameters should be set according to your data:
+
+*Mass Error ppm*: Specify the allowed mass error in parts per million (ppm).
+
+*Noise Threshold*: Set the noise threshold to filter out low-intensity signals.
+
+**Blank Removal**
+
+You can optionally perform blank removal to filter out features that are present in blank samples. Set the blank/sample intensity ratio cutoff for filtering.
+
+**Map Alignment**
+
+If needed, you can perform map alignment to correct retention time differences between samples.
+
+**Adduct Detection**
+
+Optionally, you can perform adduct detection to identify potential ionization adducts and charge states for features.
+
+#### 2. Re-Quantification
+In this step, you have the option to re-quantify consensus features with missing values in the raw data.
+
+#### 3. Export Files for SIRIUS and GNPS
+You can export files for SIRIUS, which is a tool for formula and structure predictions. Additionally, you can export files for GNPS, a feature-based molecular networking and ion identity molecular networking tool. Optionally, you can annotate features using the GNPS library.
+
+#### 4. Annotation via In-House Library
+You can perform MS1 annotation by m/z and retention time. Select a library in TSV format for annotation, and specify the retention time window and m/z window for matching. Optionally, you can perform MS2 annotation via fragmentation patterns. Select an MGF format library for MS2 annotation.
+
+Please use the checkboxes and input fields to customize the parameters according to your specific dataset and analysis needs. Remember to check the information and help provided for each option to understand its impact on your data analysis.
+"""

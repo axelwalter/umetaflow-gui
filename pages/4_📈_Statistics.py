@@ -1,175 +1,91 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
-from src.dataframes import *
-from src.plotting import *
-from src.constants import STATISTICS, WARNINGS, ERRORS
+from src.common import *
+from src.stats import *
 
-st.set_page_config(
-    page_title="UmetaFlow",
-    page_icon="resources/icon.png",
-    layout="wide",
-    initial_sidebar_state="auto",
-    menu_items=None,
-)
+params = page_setup(page="workflow")
 
-try:
-    with st.sidebar:
-        st.image("resources/OpenMS.png", "powered by")
 
-    st.title("Statistics")
-    st.info(STATISTICS["main"])
+st.title("Statistics")
+st.info(INFO)
 
-    st.markdown("##")
-    st.markdown("### Basic Statistics")
+result_files = {
+    "Extracted Ion Chromatograms": Path(
+        st.session_state.workspace,
+        "extracted-ion-chromatograms",
+        "summary.tsv",
+    ),
+    "Metabolomics": Path(
+        st.session_state.workspace, "umetaflow-results", "FeatureMatrix.tsv"
+    ),
+    "Metabolomics MS1 annotated features": Path(
+        st.session_state.workspace,
+        "umetaflow-results",
+        "MS1-annotations",
+        "MS1-annotation.tsv",
+    ),
+    "Metabolomics MS2 annotated features": Path(
+        st.session_state.workspace,
+        "umetaflow",
+        "MS2-annotations",
+        "MS2-annotation.tsv",
+    )}
 
-    st.radio(
-        "choose data from workflow",
-        [
-            "Extracted Ion Chromatograms",
-            "Metabolomics",
-            "Metabolomics MS1 annotated features",
-            "Metabolomics MS2 annotated features",
-        ],
-        key="stats-choice",
+options = []
+for name, path in result_files.items():
+    if path.exists():
+        options.append(name)
+
+cols = st.columns(2)
+experiment = cols[0].selectbox("choose data set", options)
+
+if experiment:
+    df = pd.read_csv(result_files[experiment],
+                     sep="\t").set_index("metabolite")
+
+    samples = set(
+        [col[:-5].split("#")[0]
+            for col in df.columns if col.endswith(".mzML")]
     )
 
-    df = pd.DataFrame()
-
-    if st.session_state["stats-choice"] == "Metabolomics":
-        path = Path(
-            st.session_state["workspace"], "results-metabolomics", "FeatureMatrix.tsv"
-        )
-        if path.is_file():
-            df = pd.read_csv(path, sep="\t").set_index("metabolite")
-        else:
-            st.warning("No metabolomics results found.")
-    elif st.session_state["stats-choice"] == "Metabolomics MS1 annotated features":
-        path = Path(
-            st.session_state["workspace"],
-            "results-metabolomics",
-            "MS1-annotations",
-            "MS1-annotation.tsv",
-        )
-        if path.is_file():
-            df = pd.read_csv(path, sep="\t").set_index("metabolite")
-        else:
-            st.warning("No metabolomics MS1 annotations found.")
-    elif st.session_state["stats-choice"] == "Metabolomics MS2 annotated features":
-        path = Path(
-            st.session_state["workspace"],
-            "results-metabolomics",
-            "MS2-annotations",
-            "MS2-annotation.tsv",
-        )
-        if path.is_file():
-            df = pd.read_csv(path, sep="\t").set_index("metabolite")
-        else:
-            st.warning("No metabolomics MS2 annotations found.")
-    else:
-        path = Path(
-            st.session_state["workspace"],
-            "results-extract-chromatograms",
-            "summary.tsv",
-        )
-        if path.is_file():
-            df = pd.read_csv(path, sep="\t").set_index("metabolite")
-        else:
-            st.warning("No chromatogram extraction results found.")
-
-    if not df.empty:
-        st.dataframe(df)
-        samples = set(
-            [col[:-5].split("#")[0] for col in df.columns if col.endswith(".mzML")]
-        )
-
-        st.markdown("##### Choose samples for comparison")
-        st.info(
-            "💡 Samples with equal names before a `#` symbol (replicates) will be grouped together."
-        )
+    tabs = st.tabs(
+        ["📊 Sample comparison", "🔥 Clustering & Heatmap", "📁 Feature Matrix"])
+    with tabs[0]:
+        help = "💡 Samples with equal names before a `#` symbol (replicates) will be grouped together."
         c1, c2 = st.columns(2)
-        a = c1.selectbox("samples A", samples)
-        b = c2.selectbox("samples B", samples)
+        a = c1.selectbox("samples A", samples, help=help)
+        samples.remove(a)
+        b = c2.selectbox("samples B", samples, help=help)
 
         if a != b:
-            mean = pd.concat(
-                [
-                    df[[col for col in df.columns if a in col]].mean(axis=1),
-                    df[[col for col in df.columns if b in col]].mean(axis=1),
-                ],
-                axis=1,
-            ).rename(columns={0: a, 1: b})
-            change = pd.DataFrame(np.log2(mean[a] / mean[b])).rename(
-                columns={0: "log2 fold change"}
-            )
-            std = pd.concat(
-                [
-                    df[[col for col in df.columns if a in col]].std(axis=1),
-                    df[[col for col in df.columns if b in col]].std(axis=1),
-                ],
-                axis=1,
-            ).rename(columns={0: a, 1: b})
+            mean, change, std = get_mean_change_std(df, a, b)
+
             with st.expander("intermediate results"):
                 st.markdown("**Mean intensities**")
-                st.dataframe(mean)
+                show_table(mean, "mean-intensities")
                 st.markdown("**Standard deviations**")
-                st.dataframe(std)
+                show_table(std, "standard-deviations")
                 st.markdown("**Fold Changes**")
-                st.dataframe(change)
+                show_table(change, "fold-changes")
 
             # show plots
             samples = mean.columns.tolist()
             features = mean.index.tolist()
-            fig = go.Figure()
-            for feature in features:
-                if not std.empty:
-                    fig.add_trace(
-                        go.Bar(
-                            x=samples,
-                            y=mean.loc[feature],
-                            name=feature,
-                            error_y=dict(
-                                type="data", array=std.loc[feature], visible=True
-                            ),
-                        )
-                    )
-                else:
-                    fig.add_trace(go.Bar(x=samples, y=mean.loc[feature], name=feature))
-            fig.update_layout(
-                title="Metabolite Intensities",
-                yaxis=dict(title="mean intensity"),
-                plot_bgcolor="rgb(255,255,255)",
-            )
-            fig.layout.template = "plotly_white"
-            st.plotly_chart(fig)
+            fig = mean_intensity_plot(samples, features, mean, std)
+            show_fig(fig, "metabolite-intensities")
 
-            fig = px.bar(change)
-            fig.update_layout(
-                showlegend=False,
-                title="log 2 fold change",
-                yaxis=dict(title="log 2 fold change"),
-                plot_bgcolor="rgb(255,255,255)",
-            )
-            fig.layout.template = "plotly_white"
-            st.plotly_chart(fig)
+            fig = fold_change_plot(change)
+            show_fig(fig, "fold-changes")
 
-        else:
-            st.warning("Choose different samples for comparison.")
+    with tabs[1]:
+        df = scale_df(
+            df[[col for col in df.columns if col.endswith(".mzML")]]
+        )
+        fig = dendrogram(df.T)
+        show_fig(fig, "dendrogram")
 
-        st.markdown("### Clustering and Heatmap")
-        if st.button("**🔥 Generate Heatmap**"):
-            df_scaled = DataFrames.scale_df(
-                df[[col for col in df.columns if col.endswith(".mzML")]]
-            )
-            st.markdown("##### Clustering")
-            st.plotly_chart(Plot.dendrogram(df_scaled.T))
-
-            # Heatmap
-            st.markdown("##### Heatmap")
-            st.plotly_chart(Plot.heatmap(df_scaled))
-
-except:
-    st.error(ERRORS["general"])
+        fig = heatmap(df)
+        show_fig(fig, "heatmap")
+    with tabs[2]:
+        show_table(df, "feature-matrix")

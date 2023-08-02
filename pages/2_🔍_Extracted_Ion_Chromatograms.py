@@ -1,372 +1,203 @@
 import streamlit as st
-import plotly.express as px
-import plotly.graph_objects as go
-from pyopenms import *
-import os
-import pandas as pd
-import shutil
-from src.helpers import Helper
-from src.gnps import *
-from src.constants import EIC, WARNINGS
+from src.common import *
+from src.xic import *
+from src.masscalculator import get_mass
+
 from pathlib import Path
-from datetime import datetime
-import json
-import time
+import pandas as pd
+import numpy as np
 
-st.set_page_config(
-    page_title="UmetaFlow",
-    page_icon="resources/icon.png",
-    layout="wide",
-    initial_sidebar_state="auto",
-    menu_items=None,
-)
+params = page_setup(page="workflow")
 
-try:
-    # create result dir if it does not exist already
-    if "workspace" in st.session_state:
-        results_dir = Path(
-            str(st.session_state["workspace"]), "results-extract-chromatograms"
-        )
-    else:
-        st.warning(WARNINGS["no-workspace"])
-        st.experimental_rerun()
-    if not os.path.exists(results_dir):
-        os.mkdir(results_dir)
+st.title("Extracted Ion Chromatograms (EIC/XIC)")
 
-    with st.sidebar:
-        # show currently available mzML files
-        st.markdown("### Uploaded Files")
-        for f in sorted(st.session_state["mzML_files"].iterdir()):
-            if f.name in st.session_state:
-                checked = st.session_state[f.name]
-            else:
-                checked = True
-            st.checkbox(f.name[:-5], checked, key=f.name)
+with st.expander("📖 Help"):
+    st.markdown(HELP)
 
-        st.markdown("***")
-        st.image("resources/OpenMS.png", "powered by")
+if path.exists():
+    # Read dataframe from path (defined in src.eic)
+    df = pd.read_csv(path, sep="\t")
+else:
+    # Load a default example df
+    df = pd.DataFrame(
+        {"name": [""], "mz": [np.nan], "RT (seconds)": [np.nan], "peak width (seconds)": [np.nan]})
 
-    st.title("Extracted Ion Chromatograms (EIC/XIC)")
-
-    with st.expander("📖 **Help**"):
-        st.markdown(EIC["main"])
-
-    if Path(st.session_state["workspace"], "extract.json").is_file():
-        with open(Path(st.session_state["workspace"], "extract.json")) as f:
-            params = json.loads(f.read())
-    else:
-        with open("params/extract_defaults.json") as f:
-            params = json.loads(f.read())
-
-    # parameters
+with st.expander("Settings", expanded=True):
+    st.markdown("**Table with metabolites for chromatogram extraction**")
     c1, c2 = st.columns(2)
-    # text area to define masses in with name, mass and optionl RT boundaries
-    params["masses_text"] = c1.text_area(
-        "masses",
-        params["masses_text"],
-        height=380,
-        help=EIC["masses"],
+    # Uploader for XIC input table
+    c1.file_uploader("Upload XIC input table", type="tsv", label_visibility="collapsed",
+                     key="xic-table-uploader", accept_multiple_files=False, on_change=upload_xic_table, args=[df])
+
+    # def update_mass_table()
+    edited = st.data_editor(df, use_container_width=True, num_rows="dynamic")
+
+    v_space(1, c2)
+    c2.download_button(
+        "Download",
+        edited.to_csv(sep="\t", index=False).encode("utf-8"),
+        "XIC-input-table.tsv",
+    )
+    st.markdown("**Calculate mass and add to table**")
+    c1, c2, c3, c4 = st.columns(4)
+    name = c1.text_input(
+        "compound name (optional)", "")
+    formula = c2.text_input(
+        "sum formula", "", help="Enter a neutral sum formula for a new compound in the table.")
+    adduct = c3.selectbox(
+        "adduct", ["[M+H]+", "[M+Na]+", "[M+2H]2+", "[M-H2O+H]+", "[M-H]-", "[M-2H]2-", "[M-H2O-H]-"], help="Specify the adduct.")
+    v_space(1, c4)
+    if c4.button("Add to table", disabled=not formula, help="Calculate mass from formula with given adduct and add to table."):
+        mz = get_mass(formula, adduct)
+        if mz:
+            if name:
+                compound_name = f"{name}#{adduct}"
+            else:
+                compound_name = f"{formula}#{adduct}"
+            new_row = pd.DataFrame({"name": [compound_name], "mz": [mz], "RT": [
+                np.nan], "peak width": [np.nan]})
+            edited.append(new_row, ignore_index=True).to_csv(
+                path, sep="\t", index=False)
+            st.experimental_rerun()
+        else:
+            st.warning(
+                "Can not calculate mz of this formula/adduct combination.")
+
+    # Retention time settings
+    st.markdown("**Parameters for chromatogram extraction**")
+    c1, c2, c3 = st.columns(3)
+    c1.radio(
+        "time unit for display", ["seconds", "minutes"], index=["seconds", "minutes"].index(params["eic_time_unit"]), key="eic_time_unit", help="Retention time unit for figures and downloadable tables. Rentention time settings have to be specified in seconds."
+    )
+    c2.number_input("default peak width (seconds)", 1, 600,
+                    params["eic_peak_width"], 5, key="eic_peak_width", help="Default value for peak width. Used when a retention time is given without peak width. Adding a peak width in the table will override this setting.")
+    # Mass tolerance settings
+    c1, c2, c3 = st.columns(3)
+    c1.radio(
+        "mass tolerance unit", ["ppm", "Da"], index=["ppm", "Da"].index(params["eic_mz_unit"]), key="eic_mz_unit"
+    )
+    c2.number_input("mass tolerance ppm", 1, 100,
+                    params["eic_tolerance_ppm"], step=5, key="eic_tolerance_ppm")
+    c3.number_input(
+        "mass tolerance Da", 0.01, 10.0, params["eic_tolerance_da"], 0.05, key="eic_tolerance_da"
+    )
+    # Intensity processing settings
+    c1, c2, c3 = st.columns(3)
+    c1.number_input(
+        "noise threshold", 0, 1000000, params["eic_baseline"], 100, key="eic_baseline", help="Peaks below the treshold intensity will not be extracted."
     )
 
-    # define mass tolerances and their units
-    params["mz_unit"] = c2.radio(
-        "mass tolerance unit",
-        ["ppm", "Da"],
-        index=["ppm", "Da"].index(params["mz_unit"]),
-    )
+    mzML_files = [str(Path(st.session_state.workspace,
+                           "mzML-files", f+".mzML")) for f in st.session_state["selected-mzML-files"]]
 
-    if params["mz_unit"] == "ppm":
-        params["tolerance_ppm"] = c2.number_input(
-            "mass tolerance", 1, 100, params["tolerance_ppm"]
-        )
-    else:
-        params["tolerance_da"] = c2.number_input(
-            "mass tolerance", 0.01, 10.0, params["tolerance_da"]
-        )
+    results_dir = Path(st.session_state.workspace,
+                       "extracted-ion-chromatograms")
 
-    # time unit either seconds or minutes
-    params["time_unit"] = c2.radio(
-        "time unit",
-        ["seconds", "minutes"],
-        index=["seconds", "minutes"].index(params["time_unit"]),
-    )
-
-    # we need an AUC intensity cutoff value
-    params["baseline"] = c2.number_input(
-        "AUC baseline", 0, 1000000, params["baseline"], 100
-    )
-
-    # combine variants of the same metabolite
-    params["combine"] = c2.checkbox(
-        "combine variants of same metabolite",
-        params["combine"],
-        help=EIC["combine"],
-    )
-
-    st.markdown("##")
-    # run the workflow...
-    c1, c2, _, c4 = st.columns(4)
-    if c1.button("Load defaults"):
-        if Path(st.session_state["workspace"], "extract.json").is_file():
-            Path(st.session_state["workspace"], "extract.json").unlink()
-
-    if c2.button("**Save parameters**"):
-        with open(Path(st.session_state["workspace"], "extract.json"), "w") as f:
-            f.write(json.dumps(params, indent=4))
-
-    if c4.button(label="**Extract Chromatograms!**"):
-
-        mzML_files = [
-            Path(st.session_state["mzML_files"], key)
-            for key, value in st.session_state.items()
-            if key.endswith("mzML") and value
-        ]
-
+    v_space(1)
+    _, c2, _ = st.columns(3)
+    if c2.button("Extract chromatograms", type="primary"):
         if not mzML_files:
-            st.warning("Upload or select some mzML files first!")
+            st.warning("Upload/select some mzML files first!")
+        else:
+            extract_chromatograms(results_dir,
+                                  mzML_files,
+                                  edited,
+                                  st.session_state["eic_mz_unit"],
+                                  st.session_state["eic_tolerance_ppm"],
+                                  st.session_state["eic_tolerance_da"],
+                                  st.session_state["eic_time_unit"],
+                                  st.session_state["eic_peak_width"],
+                                  st.session_state["eic_baseline"])
 
-        Helper().reset_directory(results_dir)
 
-        # to make a zip file with tables in tsv format later create a directory
-        tsv_dir = os.path.join(results_dir, "tsv-tables")
-        Helper().reset_directory(tsv_dir)
+# Display summary table
+path = Path(results_dir, "summary.tsv")
+if path.exists():
+    tabs = st.tabs(["📊 Summary", "📈 Samples", "📈 Metabolites",
+                    "📁 Chromatogram data", "📁 Meta data"])
+    with open(Path(results_dir, "run-params.txt"), "r") as f:
+        baseline = int(f.readline())
+        time_unit = f.readline()
 
-        # extract compound massses, names and time points for chromatogram extraction
-        masses = []
-        names = []
-        times = []
-        for line in [line for line in params["masses_text"].split("\n") if line != ""]:
-            if len(line.split("=")) == 3:
-                mass, name, time = line.split("=")
-            elif len(line.split("=")) == 2:
-                mass, name = line.split("=")
-                time = "all"
-            else:
-                mass = line
-                name = ""
-                time = "all"
-            masses.append(float(mass.strip()))
-            names.append(name.strip())
-            time_factor = 1.0
-            if params["time_unit"] == "minutes":
-                time_factor = 60.0
-            if "-" in time:
-                times.append(
-                    [
-                        float(time.split("-")[0].strip()) * time_factor,
-                        float(time.split("-")[1].strip()) * time_factor,
-                    ]
-                )
-            else:
-                times.append([0, 0])
-
-        # create an empty df for AUCs with filenames as columns and mass names as indexes
-        df_auc = pd.DataFrame(
-            columns=[Path(file).name for file in mzML_files], index=names
+    with tabs[0]:
+        st.checkbox(
+            "combine variants",
+            params["eic_combine"],
+            help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)",
+            key="eic_combine"
         )
+        if st.session_state["eic_combine"]:
+            file_name = "summary-combined.tsv"
+        else:
+            file_name = "summary.tsv"
 
-        # iterate over the files and extract chromatograms in a single dataframe per file
-        for file in mzML_files:
-            with st.spinner("Extracting from: " + str(file)):
-                # load mzML file into exp
-                exp = MSExperiment()
-                MzMLFile().load(str(file), exp)
-
-                # create an empty dataframe to collect chromatogram data in
-                df = pd.DataFrame()
-
-                # get BPC and time always for each file
-                time = []
-                intensity = []
-                for spec in exp:
-                    if spec.getMSLevel() == 2:
-                        continue
-                    _, intensities = spec.get_peaks()
-                    rt = spec.getRT()
-                    if params["time_unit"] == "minutes":
-                        rt = rt / 60
-                    time.append(rt)
-                    i = int(max(intensities))
-                    intensity.append(i)
-                df["time"] = time
-                df["BPC"] = intensity
-
-                # get EICs
-                for mass, name, time in zip(masses, names, times):
-                    intensity = []
-                    for spec in exp:
-                        if spec.getMSLevel() == 2:
-                            continue
-                        if (time == [0, 0]) or (
-                            time[0] < spec.getRT() and time[1] > spec.getRT()
-                        ):
-                            _, intensities = spec.get_peaks()
-                            if params["mz_unit"] == "Da":
-                                index_highest_peak_within_window = (
-                                    spec.findHighestInWindow(
-                                        mass,
-                                        params["tolerance_da"],
-                                        params["tolerance_da"],
-                                    )
-                                )
-                            else:
-                                index_highest_peak_within_window = (
-                                    spec.findHighestInWindow(
-                                        mass,
-                                        float(
-                                            (params["tolerance_ppm"] / 1000000) * mass
-                                        ),
-                                        float(
-                                            (params["tolerance_ppm"] / 1000000) * mass
-                                        ),
-                                    )
-                                )
-                            # get peak intensity at highest peak index
-                            peak_intensity = 0
-                            if index_highest_peak_within_window > -1:
-                                peak_intensity = int(
-                                    spec[
-                                        index_highest_peak_within_window
-                                    ].getIntensity()
-                                )
-                            # check if highet then baseline
-                            if peak_intensity > params["baseline"]:
-                                intensity.append(peak_intensity)
-                            else:
-                                intensity.append(0)
-                        else:
-                            intensity.append(0)
-                    # add intensity values to df
-                    df[str(mass) + "_" + name] = intensity
-                    # also insert the AUC in the auc dataframe
-                    df_auc.loc[name, Path(file).name] = sum(intensity)
-
-                # save to feather dataframe for quick access
-                df.to_feather(Path(results_dir, Path(file).stem + ".ftr"))
-                # save as tsv for download option
-                df.to_csv(
-                    Path(tsv_dir, Path(file).stem + ".tsv"), sep="\t", index=False
-                )
-
-        # once all files are processed, zip the tsv files and delete their directory
-        shutil.make_archive(os.path.join(results_dir, "chromatograms"), "zip", tsv_dir)
-        shutil.rmtree(tsv_dir)
-
-        # save summary of AUC values to tsv file
-        if params["combine"]:
-            # sum intensities of variants of the same metabolite
-            combined = {}
-            metabolite_names = list(set([c.split("#")[0] for c in df_auc.index]))
-            for filename in df_auc.columns:
-                aucs = []
-                for a in metabolite_names:
-                    auc = 0
-                    for b in [
-                        b
-                        for b in df_auc.index
-                        if ((a + "#" in b and b.startswith(a)) or a == b)
-                    ]:
-                        auc += df_auc.loc[b, filename]
-                    aucs.append(auc)
-                combined[filename] = aucs
-            df_auc = pd.DataFrame(combined)
-            df_auc.set_index(pd.Index(metabolite_names), inplace=True)
-        df_auc.index.name = "metabolite"
-        df_auc = df_auc.reindex(sorted(df_auc.columns), axis=1)
-        df_auc.to_csv(Path(results_dir, "summary.tsv"), sep="\t")
-
-    if any(Path(results_dir).glob("*.ftr")):
-        # add separator for results
-        st.markdown("***")
-        df_auc = pd.read_csv(Path(results_dir, "summary.tsv"), sep="\t").set_index(
+        df_auc = pd.read_csv(Path(results_dir, file_name), sep="\t").set_index(
             "metabolite"
         )
-        # download everything required
-        st.markdown("#### Downloads")
-        c1, c2, c3 = st.columns(3)
-        c1.download_button(
-            "FeatureMatrix",
-            df_auc.to_csv(sep="\t"),
-            f"FeatureMatrix-EIC-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv",
-        )
-        c2.download_button(
-            "MetaData",
-            pd.DataFrame(
-                {
-                    "filename": df_auc.columns,
-                    "ATTRIBUTE_Sample_Type": ["Sample"] * df_auc.shape[1],
-                }
-            ).to_csv(sep="\t", index=False),
-            f"MetaData-EIC-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.tsv",
-        )
-        with open(os.path.join(results_dir, "chromatograms.zip"), "rb") as fp:
-            btn = c3.download_button(
-                label="Chromatograms",
-                data=fp,
-                file_name=f"chromatograms-{datetime.now().strftime('%d%m%Y-%H-%M-%S')}.zip",
-                mime="application/zip",
-            )
         # display the feature matrix and it's bar plot
-        st.markdown("#### Feature Matrix")
-        st.markdown(f"**{df_auc.shape[0]} rows, {df_auc.shape[1]} columns**")
-        st.dataframe(df_auc)
-        fig = px.bar(df_auc.T, barmode="group")
-        fig.update_layout(
-            xaxis_title="",
-            yaxis_title="area under curve",
-            legend_title="metabolite",
-            plot_bgcolor="rgb(255,255,255)",
-        )
-        fig.layout.template = "plotly_white"
-        st.plotly_chart(fig)
+        fig = get_auc_fig(df_auc)
+        show_fig(fig, "xic-summary")
+        show_table(df_auc, "feature-matrix-xic")
 
+    with tabs[1]:
         # compare two files side by side
-        st.markdown("#### File Comparison")
         c1, c2 = st.columns(2)
         show_bpc = c1.checkbox("show base peak chromatogram", False)
-        show_baseline = c2.checkbox("show baseline for AUC calculation", False)
-        for i, c in enumerate([c1, c2]):
-            file = c.selectbox(f"select file {i+1}", df_auc.columns)
-            df = pd.read_feather(Path(results_dir, file[:-4] + "ftr"))
+        show_baseline = c2.checkbox(
+            "show baseline for AUC calculation", False)
+        file1 = c1.selectbox(f"select file 1", df_auc.columns)
+
+        df = pd.read_feather(Path(results_dir, file1[:-4] + "ftr"))
+        if show_baseline:
+            df["AUC baseline"] = [baseline] * df.shape[0]
+        if not show_bpc:
+            df.drop(columns=["BPC"], inplace=True)
+        fig = get_sample_plot(df, file1, time_unit)
+        with c1:
+            show_fig(fig, file1)
+
+        if df_auc.shape[1] > 1:
+            file2_options = df_auc.columns.tolist()
+            file2_options.remove(file1)
+            file2 = c2.selectbox(
+                f"select file 2", file2_options)
+            df = pd.read_feather(Path(results_dir, file2[:-4] + "ftr"))
             if show_baseline:
-                df["AUC baseline"] = [params["baseline"]] * df.shape[0]
+                df["AUC baseline"] = [baseline] * df.shape[0]
             if not show_bpc:
                 df.drop(columns=["BPC"], inplace=True)
-            fig = px.line(df, x="time", y=df.columns)
-            fig.update_layout(
-                title=file[:-5],
-                xaxis_title=f"time (" + params["time_unit"] + ")",
-                yaxis_title="intensity (counts per second)",
-                legend_title="metabolite",
-                plot_bgcolor="rgb(255,255,255)",
-            )
-            fig.layout.template = "plotly_white"
-            c.plotly_chart(fig)
+            fig = get_sample_plot(df, file2, time_unit)
+            with c2:
+                show_fig(fig, file2)
 
+    with tabs[2]:
         # overlayed EICs for each sample
-        metabolite = c1.selectbox("select metabolite", df_auc.index)
-        # create figure and add traces for each sample
-        fig = go.Figure()
-        for sample in df_auc.columns:
-            df = pd.read_feather(Path(results_dir, sample[:-4] + "ftr"))
-            fig.add_trace(
-                go.Scattergl(
-                    name=sample[:-5],
-                    x=df["time"],
-                    y=df[[col for col in df if metabolite in col][0]],
-                )
-            )
-        fig.update_layout(
-            title=metabolite,
-            xaxis_title=f"time (" + params["time_unit"] + ")",
-            yaxis_title="intensity (counts per second)",
-            legend_title="sample",
-            plot_bgcolor="rgb(255,255,255)",
-        )
-        fig.layout.template = "plotly_white"
-        st.plotly_chart(fig)
+        metabolite = st.selectbox("select metabolite", df_auc.index)
+        fig = get_metabolite_fig(df_auc, metabolite, time_unit)
+        show_fig(fig, f"xic-{metabolite}")
 
-except:
-    st.warning(
-        "Something went wrong. Please check your input table and use unique metabolite names!"
-    )
+    with tabs[3]:
+        with open(os.path.join(results_dir, "chromatograms.zip"), "rb") as fp:
+            btn = st.download_button(
+                label="Download chromatogram data",
+                data=fp,
+                file_name=f"chromatogram-data.zip",
+                mime="application/zip",
+            )
+
+    with tabs[4]:
+        md = pd.DataFrame(
+            {
+                "filename": df_auc.columns,
+                "ATTRIBUTE_Sample_Type": ["Sample"] * df_auc.shape[1],
+            }
+        ).set_index("filename")
+        data = st.data_editor(
+            md.T, num_rows="dynamic", use_container_width=True)
+        st.download_button(
+            "Download Table",
+            data.T.to_csv(sep="\t").encode("utf-8"),
+            "xic-meta-data.tsv",
+        )
+
+save_params(params)

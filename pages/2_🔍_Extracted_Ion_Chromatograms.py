@@ -55,7 +55,7 @@ with st.expander("Settings", expanded=True):
                 compound_name = f"{formula}#{adduct}"
             new_row = pd.DataFrame({"name": [compound_name], "mz": [mz], "RT": [
                 np.nan], "peak width": [np.nan]})
-            edited.append(new_row, ignore_index=True).to_csv(
+            edited = pd.concat([edited, new_row], ignore_index=True).to_csv(
                 path, sep="\t", index=False)
             st.experimental_rerun()
         else:

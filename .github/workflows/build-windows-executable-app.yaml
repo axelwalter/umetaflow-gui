@@ -56,8 +56,6 @@ jobs:
         cp -r src dist/src
         cp -r assets dist/assets
         cp -r example-data dist/example-data
-        cp -r openms-bin dist/bin
-        cp -r share dist/share
         cp UmetaFlow.py dist/
     
     - name: Modify .spec file

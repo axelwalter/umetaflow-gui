@@ -56,7 +56,7 @@ jobs:
         cp -r src dist/src
         cp -r assets dist/assets
         cp -r example-data dist/example-data
-        cp UmetaFlow.py dist/
+        cp app.py dist/
     
     - name: Modify .spec file
       shell: bash

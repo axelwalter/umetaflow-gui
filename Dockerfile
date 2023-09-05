@@ -51,7 +51,7 @@ RUN python -m pip install -r requirements.txt
 # create workdir and copy over all streamlit related files/folders
 WORKDIR /app
 # note: specifying folder with slash as suffix and repeating the folder name seems important to preserve directory structure
-COPY UmetaFlow.py /app/UmetaFlow.py 
+COPY app.py /app/app.py 
 COPY src/ /app/src
 COPY assets/ /app/assets
 COPY example-data/ /app/example-data
@@ -69,4 +69,4 @@ RUN WORKFLOW_ID=$(curl -s "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REP
 # make sure that mamba environment is used
 SHELL ["mamba", "run", "-n", "streamlit-env", "/bin/bash", "-c"]
 EXPOSE $PORT
-ENTRYPOINT ["mamba", "run", "--no-capture-output", "-n", "streamlit-env", "streamlit", "run", "UmetaFlow.py"]
+ENTRYPOINT ["mamba", "run", "--no-capture-output", "-n", "streamlit-env", "streamlit", "run", "app.py"]

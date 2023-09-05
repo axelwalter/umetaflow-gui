@@ -1,11 +1,11 @@
 import streamlit as st
-
 from src.common import *
+from src.captcha import *
 
 params = page_setup(page="main")
 
-
-st.markdown(
+def main():
+    st.markdown(
     """
 # UmetaFlow
 ## A universal metabolomics tool
@@ -18,7 +18,27 @@ Instead we export all the files necessary to run in the SIRIUS GUI tool and manu
 The same applies for GNPS, here you can export all the files required for Feature Based Molecular Networking and Ion Identity Networking.
 
 Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find additional tabs for **Extracted Ion Chromatograms** and **Statistics**. The data produced here is fully compatible with the web app for [statistical analyis of metabolomics](https://github.com/axelwalter/streamlit-metabolomics-statistics) data.
+    """)
 
+    if Path("OpenMS-App.zip").exists():
+        st.markdown(
+            """
+## Installation
+
+### Download for Windows
+
+Simply download and extract the zip file. The folder contains an executable UmetaFlow file. No need to install anything.
+        """)
+        with open("OpenMS-App.zip", "rb") as file:
+            st.download_button(
+                    label="Download for Windows",
+                    data=file,
+                    file_name="UmetaFlow-App.zip",
+                    mime="archive/zip",
+                )
+
+    st.markdown(
+    """
 ## Quickstart
 
 ### Workspaces
@@ -59,7 +79,25 @@ Load your in-house data for MS1 (`tsv` file with metabolite `m/z` and `RT` value
 Here, you can do basic statistics right away such as calculating mean intensities, fold changes, clustering and heatmaps all with nice visualizations.
 
 For an advanced and complete workflow visit the [app for statistical analysis of metabolomics data](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/).
-"""
-)
+    """)
+
+if st.session_state["location"] == "local":
+    main()
+else:
+    # WORK LIKE MULTIPAGE APP         
+    if 'controllo' not in st.session_state or st.session_state['controllo'] == False:
+        delete_page("app", "File_Upload")
+        delete_page("app", "View_Raw_Data")
+        delete_page("app", "Extracted_Ion_Chromatograms")
+        delete_page("app", "Untargeted_Metabolomics")
+        delete_page("app", "Statistics")
+        captcha_control()
+    else:
+        main()
+        add_page("app", "File_Upload")
+        add_page("app", "View_Raw_Data")
+        add_page("app", "Extracted_Ion_Chromatograms")
+        add_page("app", "Untargeted_Metabolomics")
+        add_page("app", "Statistics")
 
 save_params(params)

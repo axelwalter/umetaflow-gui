@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['runUmetaFlow.py'],
+    ['run_app.py'],
     pathex=[],
     binaries=[],
     datas=[
@@ -36,7 +36,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='run_app',
+    name='UmetaFlow',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

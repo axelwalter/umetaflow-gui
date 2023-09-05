@@ -27,7 +27,7 @@ Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find
 
 4. Launch the streamlit app locally in your browser
 
-`streamlit run UmetaFlow.py local`
+`streamlit run app.py local`
 
 ### Windows
 1. Download and extract the [UmetaFlow.zip](https://github.com/axelwalter/umetaflow-gui/releases/download/v1.0.0/UmetaFlow.zip) file

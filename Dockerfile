@@ -36,7 +36,7 @@ RUN wget -q \
 RUN mamba --version
 
 # Activate and configure the mamba environment
-RUN mamba update -n base -c conda-forge mamba && mamba info && mamba create -n streamlit-env python=3.10
+RUN mamba update -n base -c conda-forge mamba && mamba info && mamba create -n streamlit-env python=3.11
 # note: activation of mamba needs to go to bashrc because every RUN command spawns new bash
 SHELL ["mamba", "run", "-n", "streamlit-env", "/bin/bash", "-c"]
 RUN echo "source activate streamlit-env" > ~/.bashrc

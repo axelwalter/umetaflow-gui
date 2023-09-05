@@ -69,6 +69,11 @@ jobs:
         call myenv\Scripts\activate.bat
         pyinstaller run_app.spec --clean
 
+    - name: Remove run_app.exe file
+      shell: bash
+      run: |
+        rm dist/run_app.exe
+
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:

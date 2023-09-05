@@ -46,7 +46,7 @@ jobs:
       shell: cmd
       run: |
         call myenv\Scripts\activate.bat 
-        pyinstaller --onefile --additional-hooks-dir ./hooks run_app.py --clean
+        pyinstaller --onefile --additional-hooks-dir ./hooks runUmetaFlow.py --clean
 
 
     - name: Copy everything to dist directory
@@ -72,5 +72,5 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: OpenMS-App
+        name: UmetaFlow-App
         path: dist

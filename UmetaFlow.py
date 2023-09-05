@@ -20,7 +20,7 @@ The same applies for GNPS, here you can export all the files required for Featur
 Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find additional tabs for **Extracted Ion Chromatograms** and **Statistics**. The data produced here is fully compatible with the web app for [statistical analyis of metabolomics](https://github.com/axelwalter/streamlit-metabolomics-statistics) data.
     """)
 
-    if Path("OpenMS-App.zip").exists():
+    if Path("UmetaFlow-App.zip").exists():
         st.markdown(
             """
 ## Installation
@@ -29,7 +29,7 @@ Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find
 
 Simply download and extract the zip file. The folder contains an executable UmetaFlow file. No need to install anything.
         """)
-        with open("OpenMS-App.zip", "rb") as file:
+        with open("UmetaFlow-App.zip", "rb") as file:
             st.download_button(
                     label="Download for Windows",
                     data=file,

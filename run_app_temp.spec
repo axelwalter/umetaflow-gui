@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['run_app.py'],
+    ['runUmetaFlow.py'],
     pathex=[],
     binaries=[],
     datas=[

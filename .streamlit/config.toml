@@ -19,5 +19,9 @@
 # backgroundColor="#ffffff"
 # secondaryBackgroundColor="#c8cdf2"
 
+[global]
+developmentMode = false
+
 [server]
+port = 8502
 maxUploadSize=512

@@ -1,6 +1,6 @@
 import streamlit as st
 from src.common import *
-# from src.captcha import *
+from src.captcha import *
 
 params = page_setup(page="main")
 
@@ -81,23 +81,23 @@ Here, you can do basic statistics right away such as calculating mean intensitie
 For an advanced and complete workflow visit the [app for statistical analysis of metabolomics data](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/).
     """)
 
-# if st.session_state["location"] == "local":
-main()
-# else:
-#     # WORK LIKE MULTIPAGE APP         
-#     if 'controllo' not in st.session_state or st.session_state['controllo'] == False:
-#         delete_page("app", "File_Upload")
-#         delete_page("app", "View_Raw_Data")
-#         delete_page("app", "Extracted_Ion_Chromatograms")
-#         delete_page("app", "Untargeted_Metabolomics")
-#         delete_page("app", "Statistics")
-#         captcha_control()
-#     else:
-#         main()
-#         add_page("app", "File_Upload")
-#         add_page("app", "View_Raw_Data")
-#         add_page("app", "Extracted_Ion_Chromatograms")
-#         add_page("app", "Untargeted_Metabolomics")
-#         add_page("app", "Statistics")
+if st.session_state["location"] == "local":
+    main()
+else:
+    # WORK LIKE MULTIPAGE APP         
+    if 'controllo' not in st.session_state or st.session_state['controllo'] == False:
+        delete_page("app", "File_Upload")
+        delete_page("app", "View_Raw_Data")
+        delete_page("app", "Extracted_Ion_Chromatograms")
+        delete_page("app", "Untargeted_Metabolomics")
+        delete_page("app", "Statistics")
+        captcha_control()
+    else:
+        main()
+        add_page("app", "File_Upload")
+        add_page("app", "View_Raw_Data")
+        add_page("app", "Extracted_Ion_Chromatograms")
+        add_page("app", "Untargeted_Metabolomics")
+        add_page("app", "Statistics")
 
 save_params(params)

@@ -21,9 +21,15 @@ Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find
 
 `cd umetaflow-gui`
 
-3. Install all other Python modules specified in the requirements file with pip
+3. Install all Python modules specified in the requirements file with pip
 
 `pip install -r requirements.txt`
+
+**or** create a conda environment and activate it
+
+`conda env create -f environment.yml`
+
+`conda activate umetaflow-gui`
 
 4. Launch the streamlit app locally in your browser
 

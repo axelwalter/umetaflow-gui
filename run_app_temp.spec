@@ -18,6 +18,7 @@ a = Analysis(
         ("./myenv/Lib/site-packages/pyarrow", "./pyarrow/"),
         ("./myenv/Lib/site-packages/plotly", "./plotly/"),
         ("./myenv/Lib/site-packages/sklearn", "./sklearn/"),
+        ("./myenv/Lib/site-packages/joblib", "./joblib/"),
         ("./myenv/Lib/site-packages/pyteomics", "./pyteomics/"),
 
 

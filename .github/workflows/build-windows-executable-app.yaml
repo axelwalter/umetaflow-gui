@@ -46,7 +46,7 @@ jobs:
       shell: cmd
       run: |
         call myenv\Scripts\activate.bat 
-        pyinstaller --additional-hooks-dir ./hooks run_app.py --clean
+        pyinstaller --onefile --additional-hooks-dir ./hooks run_app.py --clean
 
 
     - name: Copy everything to dist directory

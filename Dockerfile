@@ -1,7 +1,7 @@
 # This Dockerfile creates a container with pyOpenMS
 # It also adds a basic streamlit server that serves a pyOpenMS-based app.
 # hints:
-# build image with: docker build -f Dockerfile_simple --no-cache -t streamlitapp:latest --build-arg GITHUB_TOKEN=<your-github-token> . 2>&1 | tee build.log
+# build image with: docker build --no-cache -t umetaflow-app:latest --build-arg GITHUB_TOKEN=<your-github-token> . 2>&1 | tee build.log
 # check if image was build: docker image ls
 # run container: docker run -p 8501:8501 streamlitapp:latest
 # debug container after build (comment out ENTRYPOINT) and run container with interactive /bin/bash shell
@@ -51,7 +51,7 @@ RUN python -m pip install -r requirements.txt
 # create workdir and copy over all streamlit related files/folders
 WORKDIR /app
 # note: specifying folder with slash as suffix and repeating the folder name seems important to preserve directory structure
-COPY app.py /app/app.py 
+COPY Home.py /app/Home.py 
 COPY src/ /app/src
 COPY assets/ /app/assets
 COPY example-data/ /app/example-data
@@ -69,4 +69,4 @@ RUN WORKFLOW_ID=$(curl -s "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REP
 # make sure that mamba environment is used
 SHELL ["mamba", "run", "-n", "streamlit-env", "/bin/bash", "-c"]
 EXPOSE $PORT
-ENTRYPOINT ["mamba", "run", "--no-capture-output", "-n", "streamlit-env", "streamlit", "run", "app.py"]
+ENTRYPOINT ["mamba", "run", "--no-capture-output", "-n", "streamlit-env", "streamlit", "run", "Home.py"]

@@ -109,6 +109,19 @@ class Compound:
         self.formula = get_formula_from_dict(self.elements)
         return self
 
+def check_formula(formula):
+    if re.search(r'[0-9]+[a-z]+',formula) or re.search(r'^[a-z]+',formula) or re.search(r'[A-Z][a-z]{2,}',formula) or re.search(r'^[0-9]+',formula):
+        return False
+    for char in formula:
+        if not char.isalnum():
+            return False
+    for key in exact_masses.keys():
+        try:
+            check = exact_masses[key]
+        except KeyError:
+            return False
+    return True
+
 
 def get_mass(formula, adduct):
     if adduct == "[M+H]+":

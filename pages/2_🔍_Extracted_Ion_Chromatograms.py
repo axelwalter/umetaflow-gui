@@ -1,7 +1,7 @@
 import streamlit as st
 from src.common import *
 from src.xic import *
-from src.masscalculator import get_mass
+from src.masscalculator import get_mass, check_formula
 
 from pathlib import Path
 import pandas as pd
@@ -46,21 +46,25 @@ with st.expander("Settings", expanded=True):
         "sum formula", "", help="Enter a neutral sum formula for a new compound in the table.").strip()
     adduct = c3.selectbox(
         "adduct", ["[M+H]+", "[M+Na]+", "[M+2H]2+", "[M-H2O+H]+", "[M-H]-", "[M-2H]2-", "[M-H2O-H]-"], help="Specify the adduct.")
+
     if c3.button("Add new compound to table", disabled=not formula, help="Calculate mass from formula with given adduct and add to table."):
-        mz = get_mass(formula, adduct)
-        if mz:
-            if name:
-                compound_name = f"{name}#{adduct}"
+        if check_formula(formula):
+            mz = get_mass(formula, adduct)
+            if mz:
+                if name:
+                    compound_name = f"{name}#{adduct}"
+                else:
+                    compound_name = f"{formula}#{adduct}"
+                new_row = pd.DataFrame({"name": [compound_name], "mz": [mz], "RT": [
+                    np.nan], "peak width": [np.nan]})
+                edited = pd.concat([edited, new_row], ignore_index=True).to_csv(
+                    path, sep="\t", index=False)
+                st.experimental_rerun()
             else:
-                compound_name = f"{formula}#{adduct}"
-            new_row = pd.DataFrame({"name": [compound_name], "mz": [mz], "RT": [
-                np.nan], "peak width": [np.nan]})
-            edited = pd.concat([edited, new_row], ignore_index=True).to_csv(
-                path, sep="\t", index=False)
-            st.experimental_rerun()
+                st.warning(
+                    "Can not calculate mz of this formula/adduct combination.")
         else:
-            st.warning(
-                "Can not calculate mz of this formula/adduct combination.")
+            st.warning("Invalid formula.")
 
     # Retention time settings
     st.markdown("**Parameters for chromatogram extraction**")

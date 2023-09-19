@@ -202,6 +202,9 @@ You can share this unique workspace ID with other people.
             elif st.session_state.location == "local":
                 # Define callback function to change workspace
                 def change_workspace():
+                    for key in params.keys():
+                        if key in st.session_state.keys():
+                            del st.session_state[key]
                     st.session_state.workspace = Path(
                         workspaces_dir, st.session_state["chosen-workspace"]
                     )

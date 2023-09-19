@@ -10,6 +10,9 @@ params = page_setup()
 
 st.title("File Upload")
 
+if "selected-mzML-files" not in st.session_state:
+    st.session_state["selected-mzML-files"] = params["selected-mzML-files"]
+
 tabs = ["File Upload", "Example Data"]
 if st.session_state.location == "local":
     tabs.append("Files from local folder")

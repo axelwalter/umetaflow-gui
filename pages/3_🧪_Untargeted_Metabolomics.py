@@ -266,7 +266,6 @@ CH2O2:0:0.5
 
 results_dir = Path(st.session_state.workspace, "umetaflow-results")
 if run_button:
-    save_params(params)
     umetaflow_params = load_params()
     # Modify paramters to have float values if necessary
     for key in ("fl_rt_tol", "ad_rt_max_diff", "ma_rt_max", "ffm_noise"):
@@ -425,3 +424,5 @@ if results_dir.exists():
                 md.T.to_csv(sep="\t", index=False),
                 "MetaData.tsv",
             )
+
+save_params(params)

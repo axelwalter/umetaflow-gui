@@ -78,6 +78,7 @@ def save_params(params: dict[str, Any]) -> None:
     for key, value in st.session_state.items():
         if key in params.keys():
             params[key] = value
+
     # Save the parameter dictionary to a JSON file in the workspace directory
     path = Path(st.session_state.workspace, "params.json")
     with open(path, "w") as outfile:
@@ -237,10 +238,8 @@ You can share this unique workspace ID with other people.
         # Workflow pages have mzML file selector, there can be multiple workflow pages which share mzML file selection
         if page == "workflow":
             st.markdown("📁 **mzML files**")
-            st.multiselect("mzML files",
-                           [Path(f).stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
-                           params["selected-mzML-files"], key="selected-mzML-files", label_visibility="collapsed")
-
+            options = [Path(f).stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")]
+            st.multiselect("mzML files", options, params["selected-mzML-files"], key="selected-mzML-files", label_visibility="collapsed")
         # All pages have logo and settings
         with st.expander("⚙️ **Settings**"):
             img_formats = ["svg", "png", "jpeg", "webp"]

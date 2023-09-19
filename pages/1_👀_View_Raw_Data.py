@@ -5,6 +5,7 @@ from src.common import *
 from src.view import *
 
 params = page_setup()
+
 st.title("View raw MS data")
 
 selected_file = st.selectbox(

@@ -143,17 +143,16 @@ def page_setup(page: str = "") -> dict[str, Any]:
     Path(st.session_state.workspace,
          "mzML-files").mkdir(parents=True, exist_ok=True)
 
-    # Load parameters from the parameter file
-    params = load_params()
-
     # Render the sidebar
-    params = render_sidebar(params, page)
-
-    # Return the loaded parameters
+    params = render_sidebar(page)
     return params
 
 
-def render_sidebar(params: dict[str, Any], page: str = "") -> None:
+    # Return the loaded parameters
+    # return params
+
+
+def render_sidebar(page: str = "") -> None:
     """
     Renders the sidebar on the Streamlit app, which includes the workspace switcher,
     the mzML file selector, the logo, and settings.
@@ -170,6 +169,7 @@ def render_sidebar(params: dict[str, Any], page: str = "") -> None:
     Returns:
         None
     """
+    params = load_params()
     with st.sidebar:
         # The main page has workspace switcher
         if page == "main":
@@ -237,8 +237,9 @@ You can share this unique workspace ID with other people.
         # Workflow pages have mzML file selector, there can be multiple workflow pages which share mzML file selection
         if page == "workflow":
             st.markdown("📁 **mzML files**")
-            st.multiselect("mzML files",  options=[Path(f).stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
-                           default=params["selected-mzML-files"], key="selected-mzML-files", label_visibility="collapsed")
+            st.multiselect("mzML files",
+                           [Path(f).stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
+                           params["selected-mzML-files"], key="selected-mzML-files", label_visibility="collapsed")
 
         # All pages have logo and settings
         with st.expander("⚙️ **Settings**"):
@@ -256,9 +257,7 @@ You can share this unique workspace ID with other people.
         
         # Logo
         st.image("assets/pyopenms_transparent_background.png", "powered by")
-
-        return params
-
+    return params
 
 def v_space(n: int, col=None) -> None:
     """

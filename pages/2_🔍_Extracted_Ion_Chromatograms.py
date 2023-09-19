@@ -14,13 +14,19 @@ st.title("Extracted Ion Chromatograms (EIC/XIC)")
 with st.expander("📖 Help"):
     st.markdown(HELP)
 
-if path.exists():
-    # Read dataframe from path (defined in src.eic)
-    df = pd.read_csv(path, sep="\t")
+default_df = pd.DataFrame({"name": [""], "mz": [np.nan], "RT (seconds)": [np.nan], "peak width (seconds)": [np.nan]})
+
+if "workspace" in st.session_state:
+    path = Path(st.session_state.workspace, "XIC-input-table.tsv")
+    if path.exists():
+        # Read dataframe from path (defined in src.eic)
+        df = pd.read_csv(path, sep="\t")
+    else:
+        # Load a default example df
+        df = default_df
 else:
     # Load a default example df
-    df = pd.DataFrame(
-        {"name": [""], "mz": [np.nan], "RT (seconds)": [np.nan], "peak width (seconds)": [np.nan]})
+    df = default_df
 
 with st.expander("Settings", expanded=True):
     st.markdown("**Table with metabolites for chromatogram extraction**")

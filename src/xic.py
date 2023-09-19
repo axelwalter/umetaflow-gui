@@ -47,9 +47,6 @@ This page allows you to extract chromatograms from mzML files and perform variou
 Feel free to explore the different features and options on this page to extract and analyze your chromatogram data efficiently.
 """
 
-path = Path(st.session_state.workspace, "XIC-input-table.tsv")
-
-
 def upload_xic_table(df):
     if not st.session_state["xic-table-uploader"]:
         return

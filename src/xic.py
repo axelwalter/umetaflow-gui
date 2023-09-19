@@ -246,11 +246,12 @@ def get_auc_fig(df_auc):
     for col in df_auc.columns:
         df_auc = df_auc.rename(columns={col: col[:-5]})
     fig = px.bar(df_auc.T, barmode="group")
+    fig.update_traces(width=0.2)
     fig.update_layout(
         xaxis_title="",
         yaxis_title="area under curve",
         legend_title="metabolite",
-        plot_bgcolor="rgb(255,255,255)",
+        plot_bgcolor="rgb(255,255,255)"
     )
     fig.layout.template = "plotly_white"
     return fig

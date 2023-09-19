@@ -43,7 +43,7 @@ with st.expander("Settings", expanded=True):
     name = c1.text_input(
         "compound name (optional)", "")
     formula = c2.text_input(
-        "sum formula", "", help="Enter a neutral sum formula for a new compound in the table.")
+        "sum formula", "", help="Enter a neutral sum formula for a new compound in the table.").strip()
     adduct = c3.selectbox(
         "adduct", ["[M+H]+", "[M+Na]+", "[M+2H]2+", "[M-H2O+H]+", "[M-H]-", "[M-2H]2-", "[M-H2O-H]-"], help="Specify the adduct.")
     if c3.button("Add new compound to table", disabled=not formula, help="Calculate mass from formula with given adduct and add to table."):

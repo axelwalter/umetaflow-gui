@@ -243,6 +243,8 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
 
 @st.cache_resource
 def get_auc_fig(df_auc):
+    for col in df_auc.columns:
+        df_auc = df_auc.rename(columns={col: col[:-5]})
     fig = px.bar(df_auc.T, barmode="group")
     fig.update_layout(
         xaxis_title="",

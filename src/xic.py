@@ -47,6 +47,8 @@ This page allows you to extract chromatograms from mzML files and perform variou
 Feel free to explore the different features and options on this page to extract and analyze your chromatogram data efficiently.
 """
 
+path = Path(st.session_state.workspace, "XIC-input-table.tsv")
+
 def upload_xic_table(df):
     if not st.session_state["xic-table-uploader"]:
         return
@@ -72,7 +74,7 @@ def upload_xic_table(df):
 
 def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz_da, time_unit, default_peak_width, baseline):
 
-    with st.spinner("Extracting chromatograms..."):
+    with st.status("Extracting chromatograms..."):
         # Save edited xic input table to tsv file
         df_input.to_csv(path, sep="\t", index=False)
 
@@ -102,6 +104,7 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
 
         # Iterate over the files and extract chromatograms in a single dataframe per file
         for file in mzML_files:
+            st.write(f"Extracting chromatograms from {Path(file).name} ...")
             # Load mzML file into exp
             exp = MSExperiment()
             MzMLFile().load(str(file), exp)
@@ -165,7 +168,6 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
                     else:
                         # Find the highest peak in spec within mz window (ppm)
                         ppm_window = float((mz_ppm / 1000000) * mass)
-                        print(ppm_window)
                         index_highest_peak_within_window = (
                             spec.findHighestInWindow(
                                 mass, ppm_window, ppm_window)
@@ -233,9 +235,8 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
         # Save AUC to text file
         with open(Path(results_dir, "run-params.txt"), "w") as f:
             f.write(f"{baseline}\n{time_unit}")
-
-    # Re-run to prevent tab jumping back to first tab upon first widget change (streamlit bug)
-    st.experimental_rerun()
+    # # Re-run to prevent tab jumping back to first tab upon first widget change (streamlit bug)
+    # st.experimental_rerun()
 
 
 @st.cache_resource

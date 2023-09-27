@@ -13,7 +13,7 @@ st.title("Extracted Ion Chromatograms (EIC/XIC)")
 
 with st.expander("📖 Help"):
     st.markdown(HELP)
-
+ 
 default_df = pd.DataFrame({"name": [""], "mz": [np.nan], "RT (seconds)": [np.nan], "peak width (seconds)": [np.nan]})
 
 if "workspace" in st.session_state:
@@ -28,13 +28,11 @@ else:
     # Load a default example df
     df = default_df
 
-with st.expander("Settings", expanded=True):
-    st.markdown("**Table with metabolites for chromatogram extraction**")
+with st.expander("**Mass table with metabolites for chromatogram extraction**", True):
     c1, c2 = st.columns(2)
     # Uploader for XIC input table
     c1.file_uploader("Upload XIC input table", type="tsv", label_visibility="collapsed",
-                     key="xic-table-uploader", accept_multiple_files=False, on_change=upload_xic_table, args=[df])
-
+                        key="xic-table-uploader", accept_multiple_files=False, on_change=upload_xic_table, args=[df])
     # def update_mass_table()
     edited = st.data_editor(df, use_container_width=True, num_rows="dynamic")
 
@@ -44,6 +42,7 @@ with st.expander("Settings", expanded=True):
         edited.to_csv(sep="\t", index=False).encode("utf-8"),
         "XIC-input-table.tsv",
     )
+
     st.markdown("**Calculate mass and add to table**")
     c1, c2, c3 = st.columns(3)
     name = c1.text_input(
@@ -72,6 +71,10 @@ with st.expander("Settings", expanded=True):
         else:
             st.warning("Invalid formula.")
 
+with st.form("eic_form"):
+    st.multiselect("mzML files", [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
+                   params["eic_selected_mzML"], key="eic_selected_mzML")
+
     # Retention time settings
     st.markdown("**Parameters for chromatogram extraction**")
     c1, c2, c3 = st.columns(3)
@@ -94,27 +97,28 @@ with st.expander("Settings", expanded=True):
         "mass tolerance Da", 0.01, 10.0, params["eic_tolerance_da"], 0.05, key="eic_tolerance_da"
     )
 
-    mzML_files = [str(Path(st.session_state.workspace,
-                           "mzML-files", f+".mzML")) for f in st.session_state["selected-mzML-files"]]
 
     results_dir = Path(st.session_state.workspace,
                        "extracted-ion-chromatograms")
 
-    v_space(1)
     _, c2, _ = st.columns(3)
-    if c2.button("Extract chromatograms", type="primary"):
-        if not mzML_files:
-            st.warning("Upload/select some mzML files first!")
-        else:
-            extract_chromatograms(results_dir,
-                                  mzML_files,
-                                  edited,
-                                  st.session_state["eic_mz_unit"],
-                                  st.session_state["eic_tolerance_ppm"],
-                                  st.session_state["eic_tolerance_da"],
-                                  st.session_state["eic_time_unit"],
-                                  st.session_state["eic_peak_width"],
-                                  st.session_state["eic_baseline"])
+    submitted = c2.form_submit_button("Extract chromatograms", type="primary")
+
+if submitted:
+    mzML_files = [str(Path(st.session_state.workspace,
+                        "mzML-files", f+".mzML")) for f in st.session_state["eic_selected_mzML"]]
+    if not mzML_files:
+        st.warning("Upload/select some mzML files first!")
+    else:
+        extract_chromatograms(results_dir,
+                                mzML_files,
+                                edited,
+                                st.session_state["eic_mz_unit"],
+                                st.session_state["eic_tolerance_ppm"],
+                                st.session_state["eic_tolerance_da"],
+                                st.session_state["eic_time_unit"],
+                                st.session_state["eic_peak_width"],
+                                st.session_state["eic_baseline"])
 
 
 # Display summary table

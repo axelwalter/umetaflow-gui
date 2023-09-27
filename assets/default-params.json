@@ -1,8 +1,8 @@
 {
-    "selected-mzML-files": [],
     "image-format": "svg",
     "2D-map-intensity-cutoff": 5000,
 
+    "eic_selected_mzML": [],
     "eic_mz_unit": "ppm",
     "eic_tolerance_ppm": 10,
     "eic_tolerance_da": 0.2,
@@ -11,6 +11,7 @@
     "eic_combine": false,
     "eic_peak_width": 20,
 
+    "umetaflow_selected_mzML": [],
     "ffm_mass_error": 10.0,
     "ffm_noise": 100.0,
     "ffm_peak_width": 10.0,

@@ -3,13 +3,11 @@ import os
 import shutil
 import sys
 import uuid
-import base64
 import json
 from typing import Any
 from pathlib import Path
 
 import streamlit as st
-import streamlit.components.v1 as components
 import pandas as pd
 
 # set these variables according to your project
@@ -44,12 +42,6 @@ def load_params(default: bool = False) -> dict[str, Any]:
     else:
         with open("assets/default-params.json", "r") as f:
             params = json.load(f)
-
-    # Check if any parameters have been modified during the current session and update the parameter dictionary
-    if not default:
-        for key, value in st.session_state.items():
-            if key in params.keys():
-                params[key] = value
 
     # Return the parameter dictionary
     return params
@@ -238,12 +230,7 @@ You can share this unique workspace ID with other people.
                         )
                         st.experimental_rerun()
 
-        # Workflow pages have mzML file selector, there can be multiple workflow pages which share mzML file selection
-        if page == "workflow":
-            st.markdown("📁 **mzML files**")
-            options = [Path(f).stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")]
-            st.multiselect("mzML files", options, params["selected-mzML-files"], key="selected-mzML-files", label_visibility="collapsed")
-        # All pages have logo and settings
+        # All pages have settings, workflow indicator and logo
         with st.expander("⚙️ **Settings**"):
             img_formats = ["svg", "png", "jpeg", "webp"]
             st.selectbox(
@@ -251,13 +238,9 @@ You can share this unique workspace ID with other people.
                 img_formats,
                 img_formats.index(params["image-format"]), key="image-format"
             )
-
-        # Indicator for current workspace
         if page != "main":
             st.info(
                 f"**{Path(st.session_state['workspace']).stem}**")
-        
-        # Logo
         st.image("assets/pyopenms_transparent_background.png", "powered by")
     return params
 

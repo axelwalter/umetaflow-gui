@@ -10,9 +10,6 @@ params = page_setup()
 
 st.title("File Upload")
 
-if "selected-mzML-files" not in st.session_state:
-    st.session_state["selected-mzML-files"] = params["selected-mzML-files"]
-
 tabs = ["File Upload", "Example Data"]
 if st.session_state.location == "local":
     tabs.append("Files from local folder")
@@ -61,12 +58,10 @@ if any(Path(mzML_dir).iterdir()):
         c1, c2 = st.columns(2)
         if c2.button("Remove **selected**", type="primary", disabled=not any(to_remove)):
             remove_selected_mzML_files(to_remove)
-            save_params(params)
             st.experimental_rerun()
 
         if c1.button("⚠️ Remove **all**", disabled=not any(mzML_dir.iterdir())):
             remove_all_mzML_files()
-            save_params(params)
             st.experimental_rerun()
 
 save_params(params)

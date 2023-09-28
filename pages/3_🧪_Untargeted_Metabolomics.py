@@ -57,7 +57,8 @@ with st.form("umetaflow-form"):
     c1.multiselect(
         "select blank samples",
         [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
-        key="blank_files",
+        params["blank_mzML_files"],
+        key="blank_mzML_files",
         help="The selected samples will be used to calculate avarage feature blank intensities and will not be further processed.",
     )
     c2.number_input(

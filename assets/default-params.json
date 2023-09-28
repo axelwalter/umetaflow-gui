@@ -21,7 +21,7 @@
     "ffm_snr": 3.0,
     "remove_blanks": false,
     "blank_cutoff": 0.3,
-    "blank_files": [],
+    "blank_mzML_files": [],
     "use_ma": true,
     "ma_mz_max": 10.0,
     "ma_mz_unit": "ppm",

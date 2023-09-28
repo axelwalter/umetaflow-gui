@@ -372,6 +372,7 @@ def run_umetaflow(params, mzML_files, results_dir):
         umetaflow.make_zip_archives()
 
         status.update(label="UmetaFlow run complete!", state="complete", expanded=False)
+        st.rerun()
 
 
 METABO = {

@@ -3,7 +3,7 @@ from src.common import *
 from src.captcha import *
 
 params = page_setup(page="main")
-
+st.write(params)
 def main():
     st.markdown(
     """

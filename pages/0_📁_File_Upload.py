@@ -43,6 +43,7 @@ if st.session_state.location == "local":
         if cols[1].button("Copy files to workspace", type="primary", disabled=(local_mzML_dir == "")):
             copy_local_mzML_files_from_directory(local_mzML_dir)
 
+mzML_dir = Path(st.session_state.workspace, "mzML-files")
 if any(Path(mzML_dir).iterdir()):
     v_space(2)
     # Display all mzML files currently in workspace

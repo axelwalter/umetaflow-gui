@@ -272,16 +272,17 @@ class UmetaFlow:
 
 
 def run_umetaflow(params, mzML_files, results_dir):
-    umetaflow = UmetaFlow(params, mzML_files, results_dir)
+    with st.status("Running UmetaFlow", expanded=True) as status:
+        umetaflow = UmetaFlow(params, mzML_files, results_dir)
 
-    with st.spinner("Fetching raw data..."):
+        st.write("Fetching input mzML files...")
         umetaflow.fetch_raw_data()
 
-    with st.spinner("Detecting features..."):
+        st.write("Detecting features...")
         umetaflow.feature_detection()
 
-    if params["remove_blanks"] and len(params["blank_files"]) > 0:
-        with st.spinner("Removing blank features..."):
+        if params["remove_blanks"] and len(params["blank_files"]) > 0:
+            st.write("Removing blank features...")
             umetaflow.remove_blanks()
             if not any(umetaflow.featureXML_dir.iterdir()):
                 st.warning(
@@ -289,90 +290,88 @@ def run_umetaflow(params, mzML_files, results_dir):
                 )
                 return
 
-    if params["use_ad"] and not params["use_requant"]:
-        with st.spinner("Determining adducts..."):
+        if params["use_ad"] and not params["use_requant"]:
+            st.write("Determining adducts...")
             umetaflow.adduct_detection()
 
-    # annotate only when necessary
-    if (
-        params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]
-    ) and not params["use_requant"]:
-        umetaflow.feature_maps_to_df()
-        with st.spinner("Mapping MS2 data to features..."):
+        # annotate only when necessary
+        if (
+            params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]
+        ) and not params["use_requant"]:
+            umetaflow.feature_maps_to_df()
+            st.write("Mapping MS2 data to features...")
             umetaflow.map_MS2()
 
 
-    if params["use_ma"] and len(list(umetaflow.featureXML_dir.iterdir())) > 1:
-        with st.spinner("Aligning feature maps..."):
+        if params["use_ma"] and len(list(umetaflow.featureXML_dir.iterdir())) > 1:
+            st.write("Aligning feature maps...")
             umetaflow.align_feature_maps()
             umetaflow.feature_maps_to_df()
 
-        with st.spinner("Aligning mzML files..."):
+            st.write("Aligning mzML files...")
             umetaflow.align_peak_maps()
             umetaflow.peak_maps_to_df()
-    else:
-        umetaflow.feature_maps_to_df()
-        umetaflow.peak_maps_to_df()
+        else:
+            umetaflow.feature_maps_to_df()
+            umetaflow.peak_maps_to_df()
 
-    # export only sirius ms files to use in the GUI tool
-    if params["use_sirius_manual"] and not params["use_requant"]:
-        with st.spinner("Exporting files for Sirius..."):
+        # export only sirius ms files to use in the GUI tool
+        if params["use_sirius_manual"] and not params["use_requant"]:
+            st.write("Exporting files for Sirius...")
             umetaflow.sirius()
 
-    with st.spinner("Linking features..."):
+        st.write("Linking features...")
         umetaflow.link_feature_maps()
         umetaflow.consensus_df()
 
-    if params["use_requant"]:
-        # for requant run FFMID and Feature Linking and optionally Adduct Decharging and Mapping MS2 data
-        with st.spinner("Re-quantification..."):
+        if params["use_requant"]:
+            # for requant run FFMID and Feature Linking and optionally Adduct Decharging and Mapping MS2 data
+            st.write("Re-quantification...")
             umetaflow.requantify()
 
-        with st.spinner("Exporting re-quantified feature maps for visualization..."):
+            st.write("Exporting re-quantified feature maps for visualization...")
             umetaflow.feature_maps_to_df(requant=True)
 
-        # annotate only when necessary
-        if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
-            with st.spinner("Mapping MS2 data to features..."):
+            # annotate only when necessary
+            if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
+                st.write("Mapping MS2 data to features...")
                 umetaflow.map_MS2()
 
-        if params["use_ad"]:
-            with st.spinner("Determining adducts..."):
+            if params["use_ad"]:
+                st.write("Determining adducts...")
                 umetaflow.adduct_detection()
 
-        if params["use_sirius_manual"]:
-            with st.spinner("Exporting files for Sirius..."):
+            if params["use_sirius_manual"]:
+                st.write("Exporting files for Sirius...")
                 umetaflow.sirius()
 
-        with st.spinner("Linking re-quantified features..."):
+            st.write("Linking re-quantified features...")
             umetaflow.link_feature_maps()
             umetaflow.consensus_df()
 
-    # export metadata
-    umetaflow.export_metadata()
+        # export metadata
+        umetaflow.export_metadata()
 
-    if params["use_gnps"] or params["annotate_ms2"]:
-        with st.spinner("Exporting files for GNPS..."):
+        if params["use_gnps"] or params["annotate_ms2"]:
+            st.write("Exporting files for GNPS...")
             umetaflow.gnps()
 
-    if params["annotate_ms1"]:
-        with st.spinner("Annotating features on MS1 level by m/z and RT"):
+        if params["annotate_ms1"]:
+            st.write("Annotating features on MS1 level by m/z and RT")
             umetaflow.annotate_MS1()
 
-    if (
-        params["annotate_ms2"] and params["ad_ion_mode"] == "positive"
-    ):  # fails with negative mode right now due to wrong charge annotation
-        with st.spinner(
-            "Annotating features on MS2 level by fragmentation patterns..."
-        ):
+        if (
+            params["annotate_ms2"] and params["ad_ion_mode"] == "positive"
+        ):  # fails with negative mode right now due to wrong charge annotation
+            st.write("Annotating features on MS2 level by fragmentation patterns...")
             umetaflow.annotate_MS2()
 
-    umetaflow.additional_data_for_consensus_df()
+        umetaflow.additional_data_for_consensus_df()
 
-    # Export files
-    umetaflow.make_zip_archives()
+        # Export files
+        umetaflow.make_zip_archives()
 
-    st.success("Complete!")
+        status.update(label="UmetaFlow run complete!", state="complete", expanded=False)
 
 
 METABO = {

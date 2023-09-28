@@ -236,7 +236,7 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
         with open(Path(results_dir, "run-params.txt"), "w") as f:
             f.write(f"{baseline}\n{time_unit}")
     # # Re-run to prevent tab jumping back to first tab upon first widget change (streamlit bug)
-    # st.experimental_rerun()
+    st.experimental_rerun()
 
 
 @st.cache_resource

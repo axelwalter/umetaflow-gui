@@ -7,7 +7,7 @@ from src.common import reset_directory
 
 
 # Specify mzML file location in workspace
-mzML_dir: Path = Path(st.session_state.workspace, "mzML-files")
+mzML_dir = Path(st.session_state.workspace, "mzML-files")
 
 @st.cache_data
 def save_uploaded_mzML(uploaded_files: list[bytes]) -> None:

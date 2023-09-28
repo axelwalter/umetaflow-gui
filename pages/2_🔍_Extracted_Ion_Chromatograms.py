@@ -43,7 +43,6 @@ with st.expander("**Mass table with metabolites for chromatogram extraction**", 
         "XIC-input-table.tsv",
     )
 
-    st.markdown("**Calculate mass and add to table**")
     c1, c2, c3 = st.columns(3)
     name = c1.text_input(
         "compound name (optional)", "")
@@ -72,11 +71,10 @@ with st.expander("**Mass table with metabolites for chromatogram extraction**", 
             st.warning("Invalid formula.")
 
 with st.form("eic_form"):
-    st.multiselect("mzML files", [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
+    st.markdown("**Parameters**")
+    st.multiselect("**input mzML files**", [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
                    params["eic_selected_mzML"], key="eic_selected_mzML")
 
-    # Retention time settings
-    st.markdown("**Parameters for chromatogram extraction**")
     c1, c2, c3 = st.columns(3)
     c1.radio(
         "time unit for display", ["seconds", "minutes"], index=["seconds", "minutes"].index(params["eic_time_unit"]), key="eic_time_unit", help="Retention time unit for figures and downloadable tables. Rentention time settings have to be specified in seconds."
@@ -101,8 +99,10 @@ with st.form("eic_form"):
     results_dir = Path(st.session_state.workspace,
                        "extracted-ion-chromatograms")
 
-    _, c2, _ = st.columns(3)
-    submitted = c2.form_submit_button("Extract chromatograms", type="primary")
+    c1, _, c3 = st.columns(3)
+    if c1.form_submit_button("Save Parameters"):
+        save_params(params)
+    submitted = c3.form_submit_button("Extract chromatograms", type="primary")
 
 if submitted:
     mzML_files = [str(Path(st.session_state.workspace,

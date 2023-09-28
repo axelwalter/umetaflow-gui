@@ -40,7 +40,7 @@
     "annotate_ms1": false,
     "annotate_ms2": false,
     "use_requant": true,
-    "annotate_gnps_library": true,
+    "annotate_gnps_library": false,
     "annoation_rt_window_sec": 60,
     "annotation_mz_window_ppm": 10,
     "ms1_annotation_file": "",

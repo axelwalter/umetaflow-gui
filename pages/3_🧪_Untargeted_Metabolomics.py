@@ -13,7 +13,7 @@ with st.expander("📖 Help"):
     st.markdown(HELP)
 
 with st.form("umetaflow-form"):
-    st.multiselect("mzML files", [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
+    st.multiselect("**sample mzML files**", [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
                    params["umetaflow_selected_mzML"], key="umetaflow_selected_mzML")
     st.markdown("#### 1. Pre-Processing")
     st.markdown("**Feature Detection**")
@@ -56,7 +56,7 @@ with st.form("umetaflow-form"):
     c1, c2 = st.columns(2)
     c1.multiselect(
         "select blank samples",
-        st.session_state["umetaflow_selected_mzML"],
+        [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
         key="blank_files",
         help="The selected samples will be used to calculate avarage feature blank intensities and will not be further processed.",
     )
@@ -224,11 +224,7 @@ CH2O2:0:0.5
         with open(path, "wb") as f:
             f.write(ms1_annotation_file_upload.getbuffer())
         params["ms1_annotation_file"] = str(path)
-    elif params["ms1_annotation_file"]:
-        c2.info(
-            f"Currently selected MS1 library: {Path(params['ms1_annotation_file']).name}")
     else:
-        c2.warning("No MS1 library selected.")
         params["ms1_annotation_file"] = ""
     c1, c2 = st.columns(2)
     c1.number_input(
@@ -259,31 +255,33 @@ CH2O2:0:0.5
         with open(path, "wb") as f:
             f.write(ms2_annotation_file_upload.getbuffer())
         params["ms2_annotation_file"] = str(path)
-    elif params["ms2_annotation_file"]:
-        c2.info(
-            f"Currently selected MS2 library: {Path(params['ms2_annotation_file']).name}")
     else:
-        c2.warning("No MS2 library selected.")
         params["ms2_annotation_file"] = ""
 
     v_space(1)
-    _, c2, _ = st.columns(3)
-    run_button = c2.form_submit_button("Run UmetaFlow", type="primary")
+    c1, _, c3 = st.columns(3)
+    if c1.form_submit_button("Save Parameters"):
+        params = save_params(params)
+    run_button = c3.form_submit_button("Run UmetaFlow", type="primary")
 
 results_dir = Path(st.session_state.workspace, "umetaflow-results")
 if run_button:
     save_params(params)
-    umetaflow_params = load_params()
+    params = load_params()
     # Modify paramters to have float values if necessary
     for key in ("fl_rt_tol", "ad_rt_max_diff", "ma_rt_max", "ffm_noise"):
-        umetaflow_params[key] = float(umetaflow_params[key])
-    mzML_files = [str(Path(st.session_state.workspace,
-                           "mzML-files", f+".mzML")) for f in st.session_state["umetaflow_selected_mzML"]]
-    if mzML_files:
+        params[key] = float(params[key])
+
+    # add blank files to samples which have not been selected as samples
+    mzML_files = params["umetaflow_selected_mzML"]
+    mzML_files += [f for f in params["blank_files"] if f not in params["umetaflow_selected_mzML"]]
+    mzML_files = [str(Path(st.session_state.workspace, "mzML-files", f+".mzML")) for f in mzML_files]
+
+    if len(mzML_files) > len(params["blank_files"]):
         reset_directory(results_dir)
-        run_umetaflow(umetaflow_params, mzML_files, results_dir)
+        run_umetaflow(params, mzML_files, results_dir)
     else:
-        st.warning("No mzML files selected!")
+        st.warning("Check your mzML and blank file selection.")
 
 if results_dir.exists():
     v_space(1)
@@ -433,5 +431,3 @@ if results_dir.exists():
                 md.T.to_csv(sep="\t", index=False),
                 "MetaData.tsv",
             )
-
-save_params(params)

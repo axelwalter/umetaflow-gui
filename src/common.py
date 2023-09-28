@@ -112,24 +112,11 @@ def page_setup(page: str = "") -> dict[str, Any]:
         if "windows" in sys.argv:
             os.chdir("../umetaflow-gui-main")
         # Define the directory where all workspaces will be stored
+        workspaces_dir = Path("..", "workspaces-"+REPOSITORY_NAME)
         if st.session_state.location == "online":
-            workspaces_dir = Path("workspaces-"+REPOSITORY_NAME)
-            # Outside of the repository directory for local and docker
-            # If running in a Docker container, set working directory to the repository directory
-            if "docker" in sys.argv:
-                workspaces_dir = Path("..", "workspaces-"+REPOSITORY_NAME)
-                os.chdir(REPOSITORY_NAME)
+            st.session_state.workspace = Path(workspaces_dir, str(uuid.uuid1()))
         else:
-            workspaces_dir = Path("..", "workspaces-"+REPOSITORY_NAME)
-
-        # If running locally, use the default workspace
-        if "local" in sys.argv:
             st.session_state.workspace = Path(workspaces_dir, "default")
-
-        # If running online, create a new workspace with a random UUID
-        else:
-            st.session_state.workspace = Path(
-                workspaces_dir, str(uuid.uuid1()))
 
     # Make sure the necessary directories exist
     st.session_state.workspace.mkdir(parents=True, exist_ok=True)
@@ -139,11 +126,6 @@ def page_setup(page: str = "") -> dict[str, Any]:
     # Render the sidebar
     params = render_sidebar(page)
     return params
-
-
-    # Return the loaded parameters
-    # return params
-
 
 def render_sidebar(page: str = "") -> None:
     """

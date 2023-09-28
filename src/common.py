@@ -202,7 +202,7 @@ You can share this unique workspace ID with other people.
                 if st.button("**Create Workspace**"):
                     path.mkdir(parents=True, exist_ok=True)
                     st.session_state.workspace = path
-                    st.experimental_rerun()
+                    st.rerun()
                 # Remove existing workspace and fall back to default
                 if st.button("⚠️ Delete Workspace"):
                     if path.exists():
@@ -210,7 +210,7 @@ You can share this unique workspace ID with other people.
                         st.session_state.workspace = Path(
                             workspaces_dir, "default"
                         )
-                        st.experimental_rerun()
+                        st.rerun()
 
         # All pages have settings, workflow indicator and logo
         with st.expander("⚙️ **Settings**"):

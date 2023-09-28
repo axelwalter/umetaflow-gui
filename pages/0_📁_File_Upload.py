@@ -59,10 +59,10 @@ if any(Path(mzML_dir).iterdir()):
         c1, c2 = st.columns(2)
         if c2.button("Remove **selected**", type="primary", disabled=not any(to_remove)):
             remove_selected_mzML_files(to_remove)
-            st.experimental_rerun()
+            st.rerun()
 
         if c1.button("⚠️ Remove **all**", disabled=not any(mzML_dir.iterdir())):
             remove_all_mzML_files()
-            st.experimental_rerun()
+            st.rerun()
 
 save_params(params)

@@ -6,9 +6,6 @@ import streamlit as st
 from src.common import reset_directory
 
 
-# Specify mzML file location in workspace
-mzML_dir = Path(st.session_state.workspace, "mzML-files")
-
 @st.cache_data
 def save_uploaded_mzML(uploaded_files: list[bytes]) -> None:
     """
@@ -20,6 +17,7 @@ def save_uploaded_mzML(uploaded_files: list[bytes]) -> None:
     Returns:
         None
     """
+    mzML_dir = Path(st.session_state.workspace, "mzML-files")
     # A list of files is required, since online allows only single upload, create a list
     if st.session_state.location == "online":
         uploaded_files = [uploaded_files]
@@ -45,6 +43,7 @@ def copy_local_mzML_files_from_directory(local_mzML_directory: str) -> None:
     Returns:
         None
     """
+    mzML_dir = Path(st.session_state.workspace, "mzML-files")
     # Check if local directory contains mzML files, if not exit early
     if not any(Path(local_mzML_directory).glob("*.mzML")):
         st.warning("No mzML files found in specified folder.")
@@ -66,6 +65,7 @@ def load_example_mzML_files() -> None:
     Returns:
         None
     """
+    mzML_dir = Path(st.session_state.workspace, "mzML-files")
     # Copy files from example-data/mzML to workspace mzML directory, add to selected files
     for f in Path("example-data", "mzML").glob("*.mzML"):
         shutil.copy(f, mzML_dir)
@@ -82,6 +82,7 @@ def remove_selected_mzML_files(to_remove: list[str]) -> None:
     Returns:
         None
     """
+    mzML_dir = Path(st.session_state.workspace, "mzML-files")
     # remove all given files from mzML workspace directory and selected files
     for f in to_remove:
         Path(mzML_dir, f+".mzML").unlink()
@@ -98,6 +99,7 @@ def remove_all_mzML_files() -> None:
     Returns:
         None
     """
+    mzML_dir = Path(st.session_state.workspace, "mzML-files")
     # reset (delete and re-create) mzML directory in workspace
     reset_directory(mzML_dir)
     st.success("All mzML files removed!")

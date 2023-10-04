@@ -55,7 +55,7 @@ class UmetaFlow:
         self.featureXML_dir = Path(self.interim, "FFM")
 
     def remove_blanks(self):
-        blanks = [file + ".mzML" for file in self.params["blank_files"]]
+        blanks = [file + ".mzML" for file in self.params["blank_mzML_files"]]
         BlankRemoval.run(
             self.featureXML_dir,
             blanks,
@@ -281,7 +281,7 @@ def run_umetaflow(params, mzML_files, results_dir):
         st.write("Detecting features...")
         umetaflow.feature_detection()
 
-        if params["remove_blanks"] and len(params["blank_files"]) > 0:
+        if params["remove_blanks"] and len(params["blank_mzML_files"]) > 0:
             st.write("Removing blank features...")
             umetaflow.remove_blanks()
             if not any(umetaflow.featureXML_dir.iterdir()):

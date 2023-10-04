@@ -275,10 +275,10 @@ if run_button:
 
     # add blank files to samples which have not been selected as samples
     mzML_files = params["umetaflow_selected_mzML"]
-    mzML_files += [f for f in params["blank_files"] if f not in params["umetaflow_selected_mzML"]]
+    mzML_files += [f for f in params["blank_mzML_files"] if f not in params["umetaflow_selected_mzML"]]
     mzML_files = [str(Path(st.session_state.workspace, "mzML-files", f+".mzML")) for f in mzML_files]
 
-    if len(mzML_files) > len(params["blank_files"]):
+    if len(mzML_files) > len(params["blank_mzML_files"]):
         reset_directory(results_dir)
         run_umetaflow(params, mzML_files, results_dir)
     else:

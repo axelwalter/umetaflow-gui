@@ -24,7 +24,7 @@ USER root
 
 RUN apt-get -y update
 # note: streamlit in docker needs libgtk2.0-dev (see https://yugdamor.medium.com/importerror-libgthread-2-0-so-0-cannot-open-shared-object-file-no-such-file-or-directory-895b94a7827b)
-RUN apt-get install -y --no-install-recommends --no-install-suggests wget ca-certificates libgtk2.0-dev curl jq
+RUN apt-get install -y --no-install-recommends --no-install-suggests wget ca-certificates libgtk2.0-dev curl jq cron
 RUN update-ca-certificates
 
 # Install mamba (faster than conda)
@@ -57,8 +57,17 @@ COPY assets/ /app/assets
 COPY example-data/ /app/example-data
 COPY pages/ /app/pages
 
-# install cron (TODO: think about automatic clean up of temporary files and workspaces)
-# RUN apt-get install -y cron
+COPY clean-up-workspaces.py /app/clean-up-workspaces.py
+
+# add cron job to the crontab
+RUN echo "0 3 * * * /root/mambaforge/envs/streamlit-env/bin/python /app/clean-up-workspaces.py >> /app/clean-up-workspaces.log 2>&1" | crontab -
+
+# create entrypoint script to start cron service and launch streamlit app
+RUN echo "#!/bin/bash" > /app/entrypoint.sh
+RUN echo "service cron start" >> /app/entrypoint.sh
+RUN echo "mamba run --no-capture-output -n streamlit-env streamlit run Home.py" >> /app/entrypoint.sh
+# make the script executable
+RUN chmod +x /app/entrypoint.sh
 
 # Download latest OpenMS App executable for Windows from Github actions workflow.
 RUN WORKFLOW_ID=$(curl -s "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/actions/workflows" | jq -r '.workflows[] | select(.name == "Build executable for Windows") | .id') \
@@ -69,4 +78,4 @@ RUN WORKFLOW_ID=$(curl -s "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REP
 # make sure that mamba environment is used
 SHELL ["mamba", "run", "-n", "streamlit-env", "/bin/bash", "-c"]
 EXPOSE $PORT
-ENTRYPOINT ["mamba", "run", "--no-capture-output", "-n", "streamlit-env", "streamlit", "run", "Home.py"]
+ENTRYPOINT ["/app/entrypoint.sh"]

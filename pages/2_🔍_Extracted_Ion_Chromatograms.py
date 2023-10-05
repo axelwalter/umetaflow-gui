@@ -63,7 +63,7 @@ with st.expander("**Mass table with metabolites for chromatogram extraction**", 
                     np.nan], "peak width": [np.nan]})
                 edited = pd.concat([edited, new_row], ignore_index=True).to_csv(
                     path, sep="\t", index=False)
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.warning(
                     "Can not calculate mz of this formula/adduct combination.")

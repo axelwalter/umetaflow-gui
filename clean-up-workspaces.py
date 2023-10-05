@@ -6,7 +6,7 @@ import shutil
 from datetime import datetime
 
 # Define the workspaces directory
-workspaces_directory = Path("..", "workspaces-umetaflow-gui")
+workspaces_directory = Path("/workspaces-umetaflow-gui")
 
 # Get the current time in seconds
 current_time = time.time()

@@ -1,11 +1,10 @@
 import streamlit as st
 from src.common import *
-from src.captcha import *
+from src.common import page_setup
 
 params = page_setup(page="main")
 
-def main():
-    st.markdown(
+st.markdown(
     """
 # UmetaFlow
 ## A universal metabolomics tool
@@ -20,8 +19,8 @@ The same applies for GNPS, here you can export all the files required for Featur
 Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find additional tabs for **Extracted Ion Chromatograms** and **Statistics**. The data produced here is fully compatible with the web app for [statistical analyis of metabolomics](https://github.com/axelwalter/streamlit-metabolomics-statistics) data.
     """)
 
-    if Path("UmetaFlow-App.zip").exists():
-        st.markdown(
+if Path("UmetaFlow-App.zip").exists():
+    st.markdown(
             """
 ## Installation
 
@@ -29,15 +28,15 @@ Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find
 
 Simply download and extract the zip file. The folder contains an executable UmetaFlow file. No need to install anything.
         """)
-        with open("UmetaFlow-App.zip", "rb") as file:
-            st.download_button(
+    with open("UmetaFlow-App.zip", "rb") as file:
+        st.download_button(
                     label="Download for Windows",
                     data=file,
                     file_name="UmetaFlow-App.zip",
                     mime="archive/zip",
                 )
 
-    st.markdown(
+st.markdown(
     """
 ## Quickstart
 
@@ -81,23 +80,20 @@ Here, you can do basic statistics right away such as calculating mean intensitie
 For an advanced and complete workflow visit the [app for statistical analysis of metabolomics data](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/).
     """)
 
-if st.session_state["location"] == "local":
-    main()
-else:
-    # WORK LIKE MULTIPAGE APP         
-    if 'controllo' not in st.session_state or st.session_state['controllo'] == False:
-        delete_page("app", "File_Upload")
-        delete_page("app", "View_Raw_Data")
-        delete_page("app", "Extracted_Ion_Chromatograms")
-        delete_page("app", "Untargeted_Metabolomics")
-        delete_page("app", "Statistics")
-        captcha_control()
-    else:
-        main()
-        add_page("app", "File_Upload")
-        add_page("app", "View_Raw_Data")
-        add_page("app", "Extracted_Ion_Chromatograms")
-        add_page("app", "Untargeted_Metabolomics")
-        add_page("app", "Statistics")
+# # Check if the script is run in local mode (e.g., "streamlit run app.py local")
+# if "local" in sys.argv:
+#     # In local mode, run the main function without applying captcha
+#     main()
 
-save_params(params)
+# # If not in local mode, assume it's hosted/online mode
+# else:
+           
+#     # WORK LIKE MULTIPAGE APP
+#     if 'controllo' not in st.session_state or st.session_state['controllo'] == False:
+
+#         # Apply captcha control to verify the user
+#         captcha_control()
+
+#     else:     
+#         # Run the main function
+#         main()

@@ -6,6 +6,7 @@ import uuid
 import json
 from typing import Any
 from pathlib import Path
+from .captcha import captcha_control
 
 import streamlit as st
 import pandas as pd
@@ -98,6 +99,8 @@ def page_setup(page: str = "") -> dict[str, Any]:
         menu_items=None,
     )
 
+
+
     # Determine the workspace for the current session
     if "workspace" not in st.session_state:
         # Clear any previous caches
@@ -106,8 +109,10 @@ def page_setup(page: str = "") -> dict[str, Any]:
         # Check location
         if "local" in sys.argv:
             st.session_state.location = "local"
+            st.session_state.controlo = True
         else:
             st.session_state.location = "online"
+            st.session_state.controlo = False
         # if we run the packaged windows version, we start within the Python directory -> need to change working directory to ..\umetaflow-gui-main
         if "windows" in sys.argv:
             os.chdir("../umetaflow-gui-main")
@@ -117,6 +122,11 @@ def page_setup(page: str = "") -> dict[str, Any]:
             st.session_state.workspace = Path(workspaces_dir, str(uuid.uuid1()))
         else:
             st.session_state.workspace = Path(workspaces_dir, "default")
+
+    # If run in hosted mode, show captcha as long as it has not been solved
+    if not st.session_state["controlo"]:
+        # Apply captcha by calling the captcha_control function
+        captcha_control()
 
     # Make sure the necessary directories exist
     st.session_state.workspace.mkdir(parents=True, exist_ok=True)

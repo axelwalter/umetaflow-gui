@@ -34,6 +34,7 @@ Simply download and extract the zip file. The folder contains an executable Umet
                     data=file,
                     file_name="UmetaFlow-App.zip",
                     mime="archive/zip",
+                    type="primary"
                 )
 
 st.markdown(

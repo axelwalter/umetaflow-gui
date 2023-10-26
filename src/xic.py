@@ -58,10 +58,18 @@ def upload_xic_table(df):
     df_tmp = pd.read_csv(tmp_path, sep="\t")
     if df.shape[1] == df_tmp.shape[1]:
         if all(df.columns == df_tmp.columns):
-            df_tmp.to_csv(path, sep="\t", index=False)
-            tmp_path.unlink()
-            st.rerun()
+            table_ok = True
+            # sanity check input table
+            for value in ("mz", "RT (seconds)", "peak width (seconds)"):
+                try:
+                    df_tmp[value].astype(float)
+                except:
+                    st.error(f"Invalid entry in {value} column.")
+                    table_ok = False
 
+            if table_ok:
+                df_tmp.to_csv(path, sep="\t", index=False)
+            tmp_path.unlink()
 
 def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz_da, time_unit, default_peak_width, baseline):
     with st.status("Extracting chromatograms..."):
@@ -128,8 +136,8 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
                 else:
                     metabolite_name = str(mass)
 
-                # If RT information is given, determine RT borders
-                if not np.isnan(rt):
+                # If RT infloatformation is given, determine RT borders
+                if rt:
                     rt_min = rt - default_peak_width/2
                     rt_max = rt + default_peak_width/2
                     # Custom peak width per metabolite

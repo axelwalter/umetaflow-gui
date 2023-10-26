@@ -35,7 +35,6 @@ with st.expander("**Mass table with metabolites for chromatogram extraction**", 
                         key="xic-table-uploader", accept_multiple_files=False, on_change=upload_xic_table, args=[df])
     # def update_mass_table()
     edited = st.data_editor(df, use_container_width=True, num_rows="dynamic")
-    edited.to_csv(path, sep="\t", index=False)
     v_space(1, c2)
     c2.download_button(
         "Download",
@@ -102,9 +101,12 @@ with st.form("eic_form"):
     c1, _, c3 = st.columns(3)
     if c1.form_submit_button("Save Parameters"):
         save_params(params)
+        edited.to_csv(path, sep="\t", index=False)
     submitted = c3.form_submit_button("Extract chromatograms", type="primary")
 
 if submitted:
+    edited.to_csv(path, sep="\t", index=False)
+
     mzML_files = [str(Path(st.session_state.workspace,
                         "mzML-files", f+".mzML")) for f in st.session_state["eic_selected_mzML"]]
     if not mzML_files:

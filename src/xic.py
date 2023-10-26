@@ -73,7 +73,6 @@ def upload_xic_table(df):
 
 
 def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz_da, time_unit, default_peak_width, baseline):
-
     with st.status("Extracting chromatograms..."):
         # Save edited xic input table to tsv file
         df_input.to_csv(path, sep="\t", index=False)
@@ -244,7 +243,7 @@ def get_auc_fig(df_auc):
     for col in df_auc.columns:
         df_auc = df_auc.rename(columns={col: col[:-5]})
     fig = px.bar(df_auc.T, barmode="group")
-    fig.update_traces(width=0.2)
+    # fig.update_traces(width=0.2)
     fig.update_layout(
         xaxis_title="",
         yaxis_title="area under curve",

@@ -36,10 +36,10 @@ Besides the core UmetaFlow algorithms in the **Metabolomics** tab, you will find
 `streamlit run Home.py local`
 
 ### Windows
-1. Download and extract the [UmetaFlow.zip](https://github.com/axelwalter/umetaflow-gui/releases/download/v1.0.0/UmetaFlow.zip) file
-2. Run the `Update` script (also from time to time to get latest changes).
-> The command prompt will close once the update is done.
-3. Run the app by executing` UmetaFlow`
+1. Visit the [UmetaFlow web app](https://abi-services.cs.uni-tuebingen.de/umetaflow/)
+2. Click on **Download for Windows** button and download zip file
+3. Extract zip file
+4. Run the app by executing `UmetaFlow`
 
 ## Quickstart
 

@@ -1,4 +1,5 @@
-# UmetaFlow GUI [![Open UmetaFlow!](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://umetaflow.streamlit.app/)
+# UmetaFlow GUI 
+## [Open Web App!](https://abi-services.cs.uni-tuebingen.de/umetaflow/)
 **powered by:**
 
 <img src="assets/pyopenms_transparent_background.png" width=20%>

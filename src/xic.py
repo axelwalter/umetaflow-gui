@@ -58,18 +58,9 @@ def upload_xic_table(df):
     df_tmp = pd.read_csv(tmp_path, sep="\t")
     if df.shape[1] == df_tmp.shape[1]:
         if all(df.columns == df_tmp.columns):
-            # Try to convert to appropriate dtype
-            try:
-                df_tmp["name"] = df_tmp["name"].astype(str)
-                df_tmp["mz"] = df_tmp["mz"].astype(float)
-                df_tmp["RT (seconds)"] = df_tmp["RT (seconds)"].astype(float)
-                df_tmp["peak width"] = df_tmp["peak width"].astype(float)
-                df_tmp.to_csv(path, sep="\t", index=False)
-                tmp_path.unlink()
-            except:
-                tmp_path.unlink()
-                st.error(
-                    "Check your XIC table format. Columns **mz**, **RT** and **peak width** have to be numeric.")
+            df_tmp.to_csv(path, sep="\t", index=False)
+            tmp_path.unlink()
+            st.rerun()
 
 
 def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz_da, time_unit, default_peak_width, baseline):

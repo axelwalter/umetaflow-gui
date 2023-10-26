@@ -35,7 +35,7 @@ with st.expander("**Mass table with metabolites for chromatogram extraction**", 
                         key="xic-table-uploader", accept_multiple_files=False, on_change=upload_xic_table, args=[df])
     # def update_mass_table()
     edited = st.data_editor(df, use_container_width=True, num_rows="dynamic")
-
+    edited.to_csv(path, sep="\t", index=False)
     v_space(1, c2)
     c2.download_button(
         "Download",

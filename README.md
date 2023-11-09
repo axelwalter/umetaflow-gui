@@ -1,6 +1,6 @@
-# UmetaFlow GUI 
-## [Open Web App!](https://abi-services.cs.uni-tuebingen.de/umetaflow/)
-**powered by:**
+# UmetaFlow GUI  
+
+**[Open Web App!](https://abi-services.cs.uni-tuebingen.de/umetaflow/)**
 
 <img src="assets/pyopenms_transparent_background.png" width=20%>
 

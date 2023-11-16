@@ -49,10 +49,11 @@ def copy_local_mzML_files_from_directory(local_mzML_directory: str) -> None:
         st.warning("No mzML files found in specified folder.")
         return
     # Copy all mzML files to workspace mzML directory, add to selected files
-    files = Path(local_mzML_directory).glob("*.mzML")
-    for f in files:
-        shutil.copy(f, Path(mzML_dir, f.name))
-    st.success("Successfully added local files!")
+    files = list(Path(local_mzML_directory).glob("*.mzML"))
+    with st.status(f"Copy files from {local_mzML_directory} to workspace..."):
+        for i, f in enumerate(files):
+            st.write(f"{i+1}/{len(files)} {f.name} ...")
+            shutil.copy(f, Path(mzML_dir, f.name))
 
 
 def load_example_mzML_files() -> None:

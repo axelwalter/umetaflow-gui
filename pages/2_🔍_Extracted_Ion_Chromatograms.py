@@ -1,6 +1,6 @@
 import streamlit as st
 from src.common import *
-from src.xic import *
+from src.eic import *
 from src.masscalculator import get_mass, check_formula
 
 from pathlib import Path
@@ -13,70 +13,51 @@ st.title("Extracted Ion Chromatograms (EIC/XIC)")
 
 with st.expander("📖 Help"):
     st.markdown(HELP)
- 
-default_df = pd.DataFrame({"name": [""], "mz": [np.nan], "RT (seconds)": [np.nan], "peak width (seconds)": [np.nan]})
 
-if "workspace" in st.session_state:
-    path = Path(st.session_state.workspace, "XIC-input-table.tsv")
-    if path.exists():
-        # Read dataframe from path (defined in src.eic)
-        df = pd.read_csv(path, sep="\t")
-    else:
-        # Load a default example df
-        df = default_df
+input_table_path = Path(st.session_state.workspace, "EIC-input-table.csv")
+if input_table_path.exists():
+    # Read dataframe from path (defined in src.eic)
+    df = pd.read_csv(input_table_path)
 else:
     # Load a default example df
-    df = default_df
-
-with st.expander("**Mass table with metabolites for chromatogram extraction**", True):
-    c1, c2 = st.columns(2)
-    # Uploader for XIC input table
-    c1.file_uploader("Upload XIC input table", type="tsv", label_visibility="collapsed",
-                        key="xic-table-uploader", accept_multiple_files=False, on_change=upload_xic_table, args=[df])
-    # def update_mass_table()
-    edited = st.data_editor(df, use_container_width=True, num_rows="dynamic")
-    v_space(1, c2)
-    c2.download_button(
-        "Download",
-        edited.to_csv(sep="\t", index=False).encode("utf-8"),
-        "XIC-input-table.tsv",
-    )
-
-    c1, c2, c3 = st.columns(3)
-    name = c1.text_input(
-        "compound name (optional)", "")
-    formula = c2.text_input(
-        "sum formula", "", help="Enter a neutral sum formula for a new compound in the table.").strip()
-    adduct = c3.selectbox(
-        "adduct", ["[M+H]+", "[M+Na]+", "[M+2H]2+", "[M-H2O+H]+", "[M-H]-", "[M-2H]2-", "[M-H2O-H]-"], help="Specify the adduct.")
-
-    if c3.button("Add new compound to table", disabled=not formula, help="Calculate mass from formula with given adduct and add to table."):
-        if check_formula(formula):
-            mz = get_mass(formula, adduct)
-            if mz:
-                if name:
-                    compound_name = f"{name}#{adduct}"
-                else:
-                    compound_name = f"{formula}#{adduct}"
-                new_row = pd.DataFrame({"name": [compound_name], "mz": [mz], "RT": [
-                    np.nan], "peak width": [np.nan]})
-                edited = pd.concat([edited, new_row], ignore_index=True).to_csv(
-                    path, sep="\t", index=False)
-                st.rerun()
-            else:
-                st.warning(
-                    "Can not calculate mz of this formula/adduct combination.")
-        else:
-            st.warning("Invalid formula.")
+    df = pd.DataFrame({"name": [""], "mz": [np.nan], "RT": [np.nan], "peak width": [np.nan]})
 
 with st.form("eic_form"):
-    st.markdown("**Parameters**")
-    st.multiselect("**input mzML files**", [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
-                   params["eic_selected_mzML"], key="eic_selected_mzML")
+    st.markdown("**mzML files**", help="Raw MS data files used for EIC extraction.")
+    st.multiselect("mzML files", [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
+                   params["eic_selected_mzML"], key="eic_selected_mzML", label_visibility="collapsed")
 
+    st.markdown("**Metabolite table**", help="""
+**Input table for EIC extraction.**
+
+Add metabolites whith their names and m/z values.
+                
+Optionally define a retention time value. If no peak width is specified, the default peak width defined in parameter section will be used.
+RT and peak width can be entered in seconds or minutes, depending on the time unit setting in parameter section.
+                
+New metabolites can be entered by entering sum formula and adduct information as well.
+
+💡 Combine intensities of metabolite variants (e.g. different adducts) using the `#` symbol in the metabolite name. E.g. `GlcNAc#[M+H]+` and `GlcNAc#[M+Na]+`. Make sure to check the **combine variants** box in the result section.
+
+To download the modified table, click on the **Download** button which appears in the top right corner hovering over the table.
+
+To paste a data table from Excel simply select all the cells in Excel, select the top left cell in the metabolite table (turns red) and paste with **Ctrl-V**.    
+""")
+    
+    edited = st.data_editor(df, use_container_width=True, num_rows="dynamic")
+    c1, c2, c3 = st.columns(3)
+    formula = c1.text_input(
+        "sum formula", "", help="Enter a neutral sum formula for a new compound in the table.").strip()
+    adduct = c2.selectbox(
+        "adduct", ["[M+H]+", "[M+Na]+", "[M+2H]2+", "[M-H2O+H]+", "[M-H]-", "[M-2H]2-", "[M-H2O-H]-"], help="Specify the adduct.")
+    
+    c3.markdown("###")
+    add_compound_button = c3.form_submit_button("Add Metabolite", use_container_width=True, help="Calculate m/z from sum formula and adduct and add metabolite to table.")
+
+    st.markdown("**Parameters**")
     c1, c2, c3 = st.columns(3)
     c1.radio(
-        "time unit for display", ["seconds", "minutes"], index=["seconds", "minutes"].index(params["eic_time_unit"]), key="eic_time_unit", help="Retention time unit for figures and downloadable tables. Rentention time settings have to be specified in seconds."
+        "time unit", ["seconds", "minutes"], index=["seconds", "minutes"].index(params["eic_time_unit"]), key="eic_time_unit", help="Retention time unit."
     )
     c2.number_input("default peak width (seconds)", 1, 600,
                     params["eic_peak_width"], 5, key="eic_peak_width", help="Default value for peak width. Used when a retention time is given without peak width. Adding a peak width in the table will override this setting.")
@@ -99,14 +80,32 @@ with st.form("eic_form"):
                        "extracted-ion-chromatograms")
 
     c1, _, c3 = st.columns(3)
-    if c1.form_submit_button("Save Parameters"):
-        save_params(params)
-        edited.to_csv(path, sep="\t", index=False)
-    submitted = c3.form_submit_button("Extract chromatograms", type="primary")
+    save_button = c1.form_submit_button("Save parameters", use_container_width=True, help="Save selected paramters to your workspace.")
+    submitted = c3.form_submit_button("Extract chromatograms", type="primary", use_container_width=True)
+
+if save_button:
+    edited.to_csv(input_table_path, index=False)
+    save_params(params)
+
+if add_compound_button:
+    if check_formula(formula):
+        mz = get_mass(formula, adduct)
+        if mz:
+            compound_name = f"{formula}#{adduct}"
+            new_row = pd.DataFrame({"name": [compound_name], "mz": [mz], "RT": [
+                np.nan], "peak width": [np.nan]})
+            edited = pd.concat([edited, new_row], ignore_index=True).to_csv(
+                input_table_path, index=False)
+            st.rerun()
+        else:
+            st.warning(
+                "Can not calculate mz of this formula/adduct combination.")
+    else:
+        st.warning("Invalid formula.")
 
 if submitted:
-    edited.to_csv(path, sep="\t", index=False)
-
+    edited.to_csv(input_table_path, index=False)
+    save_params(params)
     mzML_files = [str(Path(st.session_state.workspace,
                         "mzML-files", f+".mzML")) for f in st.session_state["eic_selected_mzML"]]
     if not mzML_files:
@@ -134,7 +133,7 @@ if path.exists():
 
     with tabs[0]:
         st.checkbox(
-            "combine variants",
+            "combine metabolite variants",
             params["eic_combine"],
             help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)",
             key="eic_combine"
@@ -153,41 +152,39 @@ if path.exists():
         show_table(df_auc, "feature-matrix-xic")
 
     with tabs[1]:
-        # compare two files side by side
+        file = st.selectbox(f"mzML file", df_auc.columns)
         c1, c2 = st.columns(2)
-        show_bpc = c1.checkbox("show base peak chromatogram", False)
+        show_bpc = c1.checkbox("BPC", True, help="Show base peak chromatogram.")
         show_baseline = c2.checkbox(
-            "show baseline for AUC calculation", False)
-        file1 = c1.selectbox(f"select file 1", df_auc.columns)
+            "AUC baseline", True, help="Show baseline used for AUC calculation (from noise threshold parameter).")
 
-        df = pd.read_feather(Path(results_dir, file1[:-4] + "ftr"))
+        df = pd.read_feather(Path(results_dir, file[:-4] + "ftr"))
         if show_baseline:
             df["AUC baseline"] = [baseline] * df.shape[0]
         if not show_bpc:
             df.drop(columns=["BPC"], inplace=True)
-        fig = get_sample_plot(df, file1, time_unit)
-        with c1:
-            show_fig(fig, file1)
+        fig = get_sample_plot(df, file, time_unit)
+        show_fig(fig, file)
 
-        if df_auc.shape[1] > 1:
-            file2_options = df_auc.columns.tolist()
-            file2_options.remove(file1)
-            file2 = c2.selectbox(
-                f"select file 2", file2_options)
-            df = pd.read_feather(Path(results_dir, file2[:-4] + "ftr"))
-            if show_baseline:
-                df["AUC baseline"] = [baseline] * df.shape[0]
-            if not show_bpc:
-                df.drop(columns=["BPC"], inplace=True)
-            fig = get_sample_plot(df, file2, time_unit)
-            with c2:
-                show_fig(fig, file2)
+        # if df_auc.shape[1] > 1:
+        #     file2_options = df_auc.columns.tolist()
+        #     file2_options.remove(file1)
+        #     file2 = c2.selectbox(
+        #         f"select file 2", file2_options)
+        #     df = pd.read_feather(Path(results_dir, file2[:-4] + "ftr"))
+        #     if show_baseline:
+        #         df["AUC baseline"] = [baseline] * df.shape[0]
+        #     if not show_bpc:
+        #         df.drop(columns=["BPC"], inplace=True)
+        #     fig = get_sample_plot(df, file2, time_unit)
+        #     with c2:
+        #         show_fig(fig, file2)
 
     with tabs[2]:
         # overlayed EICs for each sample
         metabolite = st.selectbox("select metabolite", df_auc.index)
         fig = get_metabolite_fig(df_auc, metabolite, time_unit)
-        show_fig(fig, f"xic-{metabolite}")
+        show_fig(fig, f"eic-{metabolite}")
 
     with tabs[3]:
         with open(os.path.join(results_dir, "chromatograms.zip"), "rb") as fp:
@@ -213,4 +210,4 @@ if path.exists():
             "xic-meta-data.tsv",
         )
 
-save_params(params)
+# save_params(params)

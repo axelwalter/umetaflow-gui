@@ -14,24 +14,24 @@ import plotly.graph_objects as go
 HELP = """
 This page allows you to extract chromatograms from mzML files and perform various operations on the extracted data. Below is a guide to help you navigate and use the features of this page effectively.
 
-##### 1. Uploading XIC Input Table
-- In the "Settings" section, you can upload an XIC input table by clicking on the "Upload XIC input table" button. The table should be in TSV format.
-- After uploading the table, you can view and edit its contents using the data editor below.
+##### 1. Define EIC input metabolite table
+- In the metabolite table, you can define metabolite m/z and RT values for EIC extraction.
 - Hovering on the edges of the table will allow you to add more rows, or select columns which you can delete with the delete key on your keyboard.
-- To download the modified table, click on the "Download" button.
+- To download the modified table, click on the "Download" button which appears in the top right corner hovering over the table.
 - When executing the workflow the current table will be saved to your workspace, no need to always download and re-upload it!
+- 💡 Combine intensities of metabolite variants (e.g. different adducts) using the `#` symbol in the metabolite name. E.g. `GlcNAc#[M+H]+` and `GlcNAc#[M+Na]+`. Make sure to check the **combine variants** box in the result section.
 
-##### 2. Calculate Mass and Add to Table
-- In the "Settings" section, you can calculate the mass of a compound using its sum formula and add it to the table.
-- Enter the compound name (optional), sum formula, and select the desired adduct.
-- Click on the "Add to table" button to calculate the mass and add the compound to the table.
+##### 2. Calculate mass and add to table
+- You can calculate the mass of a compound using its sum formula and adduct and add it to the table.
+- Click on the "Add Metabolite" button to calculate the mass and add the compound to the table.
+- Edit the compound name in the table (optional).
 
-##### 3. Chromatogram Extraction Parameters
+##### 3. Chromatogram extraction parameters
 - In the "Settings" section, you can customize the parameters for chromatogram extraction.
 - Specify the time unit for retention time, default peak width, mass tolerance unit, mass tolerance (in ppm and Da), noise threshold, and whether to combine variants of metabolites.
 - Make sure to set these parameters before proceeding with chromatogram extraction.
 
-##### 4. Extract Chromatograms
+##### 4. Extract chromatograms
 - After setting the parameters, click on the "Extract chromatograms" button to extract the chromatograms from the uploaded mzML files.
 - Note: You need to upload/select mzML files before extracting chromatograms.
 
@@ -47,38 +47,12 @@ This page allows you to extract chromatograms from mzML files and perform variou
 Feel free to explore the different features and options on this page to extract and analyze your chromatogram data efficiently.
 """
 
-path = Path(st.session_state.workspace, "XIC-input-table.tsv")
-
-def upload_xic_table(df):
-    if not st.session_state["xic-table-uploader"]:
-        return
-    tmp_path = Path(st.session_state.workspace, "XIC-input-table-tmp.tsv")
-    with open(tmp_path, "wb") as fh:
-        fh.write(st.session_state["xic-table-uploader"].getbuffer())
-    df_tmp = pd.read_csv(tmp_path, sep="\t")
-    if df.shape[1] == df_tmp.shape[1]:
-        if all(df.columns == df_tmp.columns):
-            table_ok = True
-            # sanity check input table
-            for value in ("mz", "RT (seconds)", "peak width (seconds)"):
-                try:
-                    df_tmp[value].astype(float)
-                except:
-                    st.error(f"Invalid entry in {value} column.")
-                    table_ok = False
-
-            if table_ok:
-                df_tmp.to_csv(path, sep="\t", index=False)
-            tmp_path.unlink()
-
 def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz_da, time_unit, default_peak_width, baseline):
-    with st.status("Extracting chromatograms..."):
-        # Save edited xic input table to tsv file
-        df_input.to_csv(path, sep="\t", index=False)
-
+    with st.status("Extracting chromatograms...") as status:
         # Check for unique index
         if not df_input["name"].is_unique:
-            st.error("Please enter unique metabolite names!")
+            st.error("Metabolite names need to be unique.")
+            status.update(label="Error!", state="error", expanded=True)
             return
 
         # Drop all rows without mz value
@@ -86,7 +60,8 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
 
         # Get RT times in seconds for extraction
         if time_unit == "minutes":
-            df_input["RT (seconds)"] = df_input["RT (seconds)"]*60
+            df_input["RT"] = df_input["RT"]*60
+            df_input["peak width"] = df_input["peak width"]*60
 
         # Delete and re-create results directory
         reset_directory(Path(results_dir))
@@ -129,22 +104,28 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
             # get EICs
             for mass, name, rt, peak_width in zip(df_input["mz"],
                                                   df_input["name"],
-                                                  df_input["RT (seconds)"],
-                                                  df_input["peak width (seconds)"]):
+                                                  df_input["RT"],
+                                                  df_input["peak width"]):
                 if name:
                     metabolite_name = name
                 else:
                     metabolite_name = str(mass)
 
-                # If RT infloatformation is given, determine RT borders
+                # If RT information is given, determine RT borders
                 if rt:
-                    rt_min = rt - default_peak_width/2
-                    rt_max = rt + default_peak_width/2
                     # Custom peak width per metabolite
                     if not np.isnan(peak_width):
                         rt_min = rt-(peak_width/2)
                         rt_max = rt+(peak_width/2)
+                    else:
+                        rt_min = rt - default_peak_width/2
+                        rt_max = rt + default_peak_width/2
 
+                print(name)
+                print(rt)
+                print(peak_width)
+                print(rt_min)
+                print(rt_max)
                 # List with intensity values (len = number of MS1 spectra)
                 ints = []
                 for spec in exp:

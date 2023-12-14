@@ -1,6 +1,6 @@
 import streamlit as st
 from src.common import *
-from src.common import page_setup
+from src.common import page_setup, save_params
 
 params = page_setup(page="main")
 
@@ -11,7 +11,7 @@ st.markdown(
 
 This app is based on the [UmetaFlow](https://chemrxiv.org/engage/chemrxiv/article-details/634fb68fdfbd2b6abc5c5fcd) workflow for LC-MS data analysis. UmetaFlow is implemented as a [snakemake pipeline](https://github.com/NBChub/snakemake-UmetaFlow) and as a Python version in [Jupyter notebooks](https://github.com/eeko-kon/pyOpenMS_UmetaFlow) based on [pyOpenMS](https://pyopenms.readthedocs.io/en/latest/index.html).
 
-Here, we take the powerful UmetFlow algorithms in a simple and easy graphical user interface. In contrast to the pipeline for automatic data processing,
+Here, we take the powerful UmetaFlow algorithms in a simple and easy graphical user interface. In contrast to the pipeline for automatic data processing,
 this app is tweaked a bit to be used with smaller to medium sample sets and some manual data interpretation. For example the automatic annotation of features via SIRIUS is omitted.
 Instead we export all the files necessary to run in the SIRIUS GUI tool and manually annotate the result tables via a unique identifier. This method of curated annotation can be interesting if you really want to be confident in your annotations.
 The same applies for GNPS, here you can export all the files required for Feature Based Molecular Networking and Ion Identity Networking.
@@ -53,6 +53,12 @@ Your uploaded files will be shown in the sidebar of all tabs dealing with the fi
 Result files are available via specified download buttons or, if run locally, within the workspace directory.
 ### Workflows
 
+#### 📟 m/z Calculator
+
+The m/z calculator facilitates the calculation of mass-to-charge ratios (m/z) for metabolites and includes a method to easily combine metabolites into large molecules.
+
+This table can be used as input for the Extracted Ion Chromatograms workflow.
+
 #### 🔍 Extracted Ion Chromatograms
 
 Simple workflow for the extraction of chromatograms by `m/z` (and optionally `RT` range) value. Produces a **Feature Matrix** file with area under the curve intensities as well as a **Meta Data** template and the chromatogram data for each file.
@@ -81,20 +87,11 @@ Here, you can do basic statistics right away such as calculating mean intensitie
 For an advanced and complete workflow visit the [app for statistical analysis of metabolomics data](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/).
     """)
 
-# # Check if the script is run in local mode (e.g., "streamlit run app.py local")
-# if "local" in sys.argv:
-#     # In local mode, run the main function without applying captcha
-#     main()
+# make sure new default params are saved in workspace params
+with open("assets/default-params.json", "r") as f:
+    default_params = json.load(f)
+for key, value in default_params.items():
+    if key not in params.keys():
+        params[key] = value
 
-# # If not in local mode, assume it's hosted/online mode
-# else:
-           
-#     # WORK LIKE MULTIPAGE APP
-#     if 'controllo' not in st.session_state or st.session_state['controllo'] == False:
-
-#         # Apply captcha control to verify the user
-#         captcha_control()
-
-#     else:     
-#         # Run the main function
-#         main()
+save_params(params)

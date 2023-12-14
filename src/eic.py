@@ -244,7 +244,7 @@ def get_metabolite_fig(df_auc, metabolite, time_unit):
             go.Scattergl(
                 name=sample[:-5],
                 x=df["time"],
-                y=df[[col for col in df if metabolite in col][0]],
+                y=df[[metabolite][0]],
             )
         )
     fig.update_layout(

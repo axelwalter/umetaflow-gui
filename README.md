@@ -4,7 +4,7 @@
 
 This app is based on the [UmetaFlow](https://chemrxiv.org/engage/chemrxiv/article-details/634fb68fdfbd2b6abc5c5fcd) workflow for LC-MS data analysis. UmetaFlow is implemented as a [snakemake pipeline](https://github.com/NBChub/snakemake-UmetaFlow) and as a Python version in [Jupyter notebooks](https://github.com/eeko-kon/pyOpenMS_UmetaFlow) based on [pyOpenMS](https://pyopenms.readthedocs.io/en/latest/index.html).
 
-Here, we take the powerful UmetFlow algorithms in a simple and easy graphical user interface. In contrast to the pipeline for automatic data processing,
+Here, we take the powerful UmetaFlow algorithms in a simple and easy graphical user interface. In contrast to the pipeline for automatic data processing,
 this app is tweaked a bit to be used with smaller to medium sample sets and some manual data interpretation. For example the automatic annotation of features via SIRIUS is omitted.
 Instead we export all the files necessary to run in the SIRIUS GUI tool and manually annotate the result tables via a unique identifier. This method of curated annotation can be interesting if you really want to be confident in your annotations.
 The same applies for GNPS, here you can export all the files required for Feature Based Molecular Networking and Ion Identity Networking.
@@ -53,6 +53,12 @@ Your uploaded files will be shown in the sidebar of all tabs dealing with the fi
 
 Result files are available via specified download buttons or, if run locally, within the workspace directory.
 ### Workflows
+
+#### 📟 m/z Calculator
+
+The m/z calculator facilitates the calculation of mass-to-charge ratios (m/z) for metabolites and includes a method to easily combine metabolites into large molecules.
+
+This table can be used as input for the Extracted Ion Chromatograms workflow.
 
 #### 🔍 Extracted Ion Chromatograms
 

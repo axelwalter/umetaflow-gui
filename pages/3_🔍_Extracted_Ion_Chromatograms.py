@@ -43,7 +43,7 @@ To download the modified table, click on the **Download** button which appears i
 
 To paste a data table from Excel simply select all the cells in Excel, select the top left cell in the metabolite table (turns red) and paste with **Ctrl-V**.    
 """)
-    
+    use_mz_calculator_table = st.toggle("Use table from mass-to-charge calculator and **ignore table below**.", params["eic_use_mz_table"], key="eic_use_mz_table")
     edited = st.data_editor(df, use_container_width=True, num_rows="dynamic")
     c1, c2, c3 = st.columns(3)
     formula = c1.text_input(
@@ -53,7 +53,6 @@ To paste a data table from Excel simply select all the cells in Excel, select th
     
     c3.markdown("###")
     add_compound_button = c3.form_submit_button("Add Metabolite", use_container_width=True, help="Calculate m/z from sum formula and adduct and add metabolite to table.")
-
     st.markdown("**Parameters**")
     c1, c2, c3 = st.columns(3)
     c1.radio(
@@ -111,33 +110,39 @@ if submitted:
     if not mzML_files:
         st.warning("Upload/select some mzML files first!")
     else:
-        extract_chromatograms(results_dir,
+        data = edited
+        if use_mz_calculator_table:
+            data = pd.read_csv(Path(st.session_state.workspace, "mass-calculator.csv"))[["name", "mz", "RT", "peak width"]]
+        
+        if not data.empty:
+            extract_chromatograms(results_dir,
                                 mzML_files,
-                                edited,
+                                data,
                                 st.session_state["eic_mz_unit"],
                                 st.session_state["eic_tolerance_ppm"],
                                 st.session_state["eic_tolerance_da"],
                                 st.session_state["eic_time_unit"],
                                 st.session_state["eic_peak_width"],
                                 st.session_state["eic_baseline"])
-
+        else:
+            st.error("No input m/z values provided.")
 
 # Display summary table
 path = Path(results_dir, "summary.tsv")
 if path.exists():
+    st.checkbox(
+        "combine metabolite variants",
+        params["eic_combine"],
+        help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)",
+        key="eic_combine"
+    )
     tabs = st.tabs(["📊 Summary", "📈 Samples", "📈 Metabolites",
                     "📁 Chromatogram data", "📁 Meta data"])
     with open(Path(results_dir, "run-params.txt"), "r") as f:
         baseline = int(f.readline())
         time_unit = f.readline()
-
+    
     with tabs[0]:
-        st.checkbox(
-            "combine metabolite variants",
-            params["eic_combine"],
-            help="Combines different variants (e.g. adducts or neutral losses) of a metabolite. Put a `#` with the name first and variant second (e.g. `glucose#[M+H]+` and `glucose#[M+Na]+`)",
-            key="eic_combine"
-        )
         if st.session_state["eic_combine"]:
             file_name = "summary-combined.tsv"
         else:
@@ -165,20 +170,6 @@ if path.exists():
             df.drop(columns=["BPC"], inplace=True)
         fig = get_sample_plot(df, file, time_unit)
         show_fig(fig, file)
-
-        # if df_auc.shape[1] > 1:
-        #     file2_options = df_auc.columns.tolist()
-        #     file2_options.remove(file1)
-        #     file2 = c2.selectbox(
-        #         f"select file 2", file2_options)
-        #     df = pd.read_feather(Path(results_dir, file2[:-4] + "ftr"))
-        #     if show_baseline:
-        #         df["AUC baseline"] = [baseline] * df.shape[0]
-        #     if not show_bpc:
-        #         df.drop(columns=["BPC"], inplace=True)
-        #     fig = get_sample_plot(df, file2, time_unit)
-        #     with c2:
-        #         show_fig(fig, file2)
 
     with tabs[2]:
         # overlayed EICs for each sample

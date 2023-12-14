@@ -96,7 +96,7 @@ def page_setup(page: str = "") -> dict[str, Any]:
         page_icon="assets/icon.png",
         layout="wide",
         initial_sidebar_state="auto",
-        menu_items=None,
+        menu_items=None
     )
 
     st.markdown("""

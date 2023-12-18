@@ -22,7 +22,10 @@ with tabs[0]:
             "mzML files", accept_multiple_files=(st.session_state.location == "local"))
         cols = st.columns(3)
         if cols[1].form_submit_button("Add files to workspace", type="primary"):
-            save_uploaded_mzML(files)
+            if files:
+                save_uploaded_mzML(files)
+            else:
+                st.error("Nothing to add, please upload file.")
 
 # Example mzML files
 with tabs[1]:

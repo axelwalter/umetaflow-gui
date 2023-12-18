@@ -193,7 +193,7 @@ def captcha_control():
             c1, c2 = st.columns([70, 30])
             capta2_text = c1.text_input('Enter captcha text', max_chars=5)
             c2.markdown("##")
-            if c2.form_submit_button("Verify the code", type="primary"):
+            if c2.form_submit_button("Verify the code", type="primary", use_container_width=True):
                 capta2_text = capta2_text.replace(" ", "")
                 # if the captcha is correct, the controllo session state is set to True
                 if st.session_state['Captcha'].lower() == capta2_text.lower().strip():

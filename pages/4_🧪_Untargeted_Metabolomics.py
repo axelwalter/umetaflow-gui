@@ -260,10 +260,10 @@ CH2O2:0:0.5
         params["ms2_annotation_file"] = ""
 
     v_space(1)
-    c1, _, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     if c1.form_submit_button("Save Parameters", use_container_width=True):
         params = save_params(params)
-    run_button = c3.form_submit_button("Run UmetaFlow", type="primary", use_container_width=True)
+    run_button = c2.form_submit_button("Run UmetaFlow", type="primary", use_container_width=True)
 
 results_dir = Path(st.session_state.workspace, "umetaflow-results")
 if run_button:

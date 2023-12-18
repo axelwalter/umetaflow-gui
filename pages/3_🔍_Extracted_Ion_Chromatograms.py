@@ -78,9 +78,9 @@ To paste a data table from Excel simply select all the cells in Excel, select th
     results_dir = Path(st.session_state.workspace,
                        "extracted-ion-chromatograms")
 
-    c1, _, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     save_button = c1.form_submit_button("Save parameters", use_container_width=True, help="Save selected paramters to your workspace.")
-    submitted = c3.form_submit_button("Extract chromatograms", type="primary", use_container_width=True)
+    submitted = c2.form_submit_button("Extract chromatograms", type="primary", use_container_width=True)
 
 if save_button:
     edited.to_csv(input_table_path, index=False)

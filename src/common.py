@@ -216,12 +216,12 @@ You can share this unique workspace ID with other people.
                     "create/remove workspace", "")
                 path = Path(workspaces_dir, create_remove)
                 # Create new workspace
-                if st.button("**Create Workspace**"):
+                if st.button("**Create Workspace**", type="primary", disabled=not create_remove):
                     path.mkdir(parents=True, exist_ok=True)
                     st.session_state.workspace = path
                     st.rerun()
                 # Remove existing workspace and fall back to default
-                if st.button("⚠️ Delete Workspace"):
+                if st.button("⚠️ Delete Workspace", disabled=not create_remove):
                     if path.exists():
                         shutil.rmtree(path)
                         st.session_state.workspace = Path(

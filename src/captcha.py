@@ -184,8 +184,7 @@ def captcha_control():
         if 'Captcha' not in st.session_state:
                 st.session_state['Captcha'] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=length_captcha))
         
-        col1, _ = st.columns(2)
-        with col1.form("captcha-form"):
+        with st.form("captcha-form"):
             #setup the captcha widget
             st.info("Please enter the captcha as text. Note: If your captcha is not accepted, you might need to disable your ad blocker.")
             image = ImageCaptcha(width=width, height=height)
@@ -199,7 +198,7 @@ def captcha_control():
                 # if the captcha is correct, the controllo session state is set to True
                 if st.session_state['Captcha'].lower() == capta2_text.lower().strip():
                     del st.session_state['Captcha']
-                    col1.empty()
+                    st.empty()
                     st.session_state['controllo'] = True
                     st.rerun() 
                 else:

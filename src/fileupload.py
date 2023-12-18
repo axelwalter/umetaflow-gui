@@ -91,8 +91,7 @@ def remove_selected_mzML_files(to_remove: list[str], params: dict) -> dict:
         Path(mzML_dir, f+".mzML").unlink()
     for k, v in params.items():
         if type(v) == list:
-            if f in v:
-                params[k].remove(f)
+            params[k] = [v for v in params[k] if v not in to_remove]
     st.success("Selected mzML files removed!")
     return params
 

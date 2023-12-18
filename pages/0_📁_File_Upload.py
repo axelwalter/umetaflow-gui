@@ -20,15 +20,16 @@ with tabs[0]:
     with st.form("mzML-upload", clear_on_submit=True):
         files = st.file_uploader(
             "mzML files", accept_multiple_files=(st.session_state.location == "local"))
-        cols = st.columns(3)
-        if cols[1].form_submit_button("Add files to workspace", type="primary"):
-            save_uploaded_mzML(files)
+        if st.form_submit_button("Add files to workspace", use_container_width=True, type="primary"):
+            if files:
+                save_uploaded_mzML(files)
+            else:
+                st.error("Nothing to add, please upload file.")
 
 # Example mzML files
 with tabs[1]:
     st.markdown("Example data set of bacterial cytosolic fractions. Bacillus subtilis cultures were treated with the antibiotic fosfomycin, which inhibits a step in the biosynthesis of petidoglycan (bacterial cell wall). The major accumulation product is UDP-GlcNAc.")
-    cols = st.columns(3)
-    if cols[1].button("Load Example Data", type="primary"):
+    if st.button("Load Example Data", type="primary", use_container_width=True):
         load_example_mzML_files()
 
 # Local file upload option: via directory path
@@ -39,8 +40,7 @@ if st.session_state.location == "local":
             "path to folder with mzML files")
         # raw string for file paths
         local_mzML_dir = r"{}".format(local_mzML_dir)
-        cols = st.columns(3)
-        if cols[1].button("Copy files to workspace", type="primary", disabled=(local_mzML_dir == "")):
+        if st.button("Copy files to workspace", type="primary", use_container_width=True, disabled=(local_mzML_dir == "")):
             copy_local_mzML_files_from_directory(local_mzML_dir)
 
 mzML_dir = Path(st.session_state.workspace, "mzML-files")
@@ -57,12 +57,12 @@ if any(Path(mzML_dir).iterdir()):
         to_remove = st.multiselect("select mzML files",
                                    options=[f.stem for f in sorted(mzML_dir.iterdir())])
         c1, c2 = st.columns(2)
-        if c2.button("Remove **selected**", type="primary", disabled=not any(to_remove)):
+        if c2.button("Remove **selected**", type="primary", use_container_width=True, disabled=not any(to_remove)):
             params = remove_selected_mzML_files(to_remove, params)
             save_params(params)
             st.rerun()
 
-        if c1.button("⚠️ Remove **all**", disabled=not any(mzML_dir.iterdir())):
+        if c1.button("⚠️ Remove **all**", use_container_width=True, disabled=not any(mzML_dir.iterdir())):
             params = remove_all_mzML_files(params)
             save_params(params)
             st.rerun()

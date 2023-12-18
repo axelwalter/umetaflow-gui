@@ -182,10 +182,9 @@ def captcha_control():
         
         # define the session state for the captcha text because it doesn't change during refreshes 
         if 'Captcha' not in st.session_state:
-                st.session_state['Captcha'] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=length_captcha))
+                st.session_state['Captcha'] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=length_captcha)).replace("O", "A").replace("1", "B").replace("7", "C")
         
-        col1, _ = st.columns(2)
-        with col1.form("captcha-form"):
+        with st.form("captcha-form"):
             #setup the captcha widget
             st.info("Please enter the captcha as text. Note: If your captcha is not accepted, you might need to disable your ad blocker.")
             image = ImageCaptcha(width=width, height=height)
@@ -194,17 +193,17 @@ def captcha_control():
             c1, c2 = st.columns([70, 30])
             capta2_text = c1.text_input('Enter captcha text', max_chars=5)
             c2.markdown("##")
-            if c2.form_submit_button("Verify the code", type="primary"):
+            if c2.form_submit_button("Verify the code", type="primary", use_container_width=True):
                 capta2_text = capta2_text.replace(" ", "")
                 # if the captcha is correct, the controllo session state is set to True
                 if st.session_state['Captcha'].lower() == capta2_text.lower().strip():
                     del st.session_state['Captcha']
-                    col1.empty()
+                    st.empty()
                     st.session_state['controllo'] = True
                     st.rerun() 
                 else:
                     # if the captcha is wrong, the controllo session state is set to False and the captcha is regenerated
-                    st.error("🚨 Captch is wrong")
+                    st.error("🚨 Captcha is wrong")
                     del st.session_state['Captcha']
                     del st.session_state['controllo']
                     st.rerun()

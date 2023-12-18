@@ -34,8 +34,7 @@ with tabs[0]:
         c2.markdown("adducts", help="Specify adducts except for protons (H) up the number of charges in total, the remaing will be filled with protons (positive mode). In negative mode as the absolute charge number of protons will be removed regardless of specified additional adducts.")
         adducts = c2.data_editor(pd.DataFrame({"adduct": ["Na", "K", "HCOOH"], "number": [
             0, 0, 0]}), hide_index=True, use_container_width=True)
-        _, c2, _ = st.columns(3)
-        create_compound_button = c2.form_submit_button(
+        create_compound_button = st.form_submit_button(
             "Add new metabolite", use_container_width=True,
             help="Calculate m/z from sum formula and adduct and add metabolite to table.")
     if create_compound_button:
@@ -73,8 +72,7 @@ with tabs[1]:
         c2.markdown("adducts", help="Specify adducts except for protons (H) up the number of charges in total, the remaing will be filled with protons (positive mode). In negative mode as the absolute charge number of protons will be removed regardless of specified additional adducts.")
         adducts = c2.data_editor(pd.DataFrame({"adduct": ["Na", "K", "HCOOH"], "number": [
             0, 0, 0]}), hide_index=True, use_container_width=True)
-        _, c2, _ = st.columns(3)
-        build_compound_button = c2.form_submit_button(
+        build_compound_button = st.form_submit_button(
         "Calculate metabolite", use_container_width=True,
         help="Calculate m/z from sum formula and adduct and add metabolite to table.")
 

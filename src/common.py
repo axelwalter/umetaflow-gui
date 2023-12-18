@@ -172,7 +172,7 @@ def render_sidebar(page: str = "") -> None:
             if st.session_state.location == "online":
                 # Change workspace...
                 new_workspace = st.text_input("enter workspace", "")
-                if st.button("**Enter Workspace**") and new_workspace:
+                if st.button("**Enter Workspace**", type="primary", disabled= not new_workspace) and new_workspace:
                     path = Path(
                         workspaces_dir, new_workspace)
                     if path.exists():
@@ -216,12 +216,12 @@ You can share this unique workspace ID with other people.
                     "create/remove workspace", "")
                 path = Path(workspaces_dir, create_remove)
                 # Create new workspace
-                if st.button("**Create Workspace**"):
+                if st.button("**Create Workspace**", type="primary", disabled=not create_remove):
                     path.mkdir(parents=True, exist_ok=True)
                     st.session_state.workspace = path
                     st.rerun()
                 # Remove existing workspace and fall back to default
-                if st.button("⚠️ Delete Workspace"):
+                if st.button("⚠️ Delete Workspace", disabled=not create_remove):
                     if path.exists():
                         shutil.rmtree(path)
                         st.session_state.workspace = Path(

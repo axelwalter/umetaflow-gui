@@ -281,6 +281,11 @@ def run_umetaflow(params, mzML_files, results_dir):
         st.write("Detecting features...")
         umetaflow.feature_detection()
 
+        # return if no features have been detected
+        if not any(Path(umetaflow.interim, "FFM").iterdir()):
+            st.error("No features detected in all files")
+            return
+
         if params["remove_blanks"] and len(params["blank_mzML_files"]) > 0:
             st.write("Removing blank features...")
             umetaflow.remove_blanks()
@@ -288,6 +293,7 @@ def run_umetaflow(params, mzML_files, results_dir):
                 st.warning(
                     "No samples left after blank removal! Blank samples will not be further processed."
                 )
+                shutil.rmtree(results_dir)
                 return
 
         if params["use_ad"] and not params["use_requant"]:
@@ -329,12 +335,19 @@ def run_umetaflow(params, mzML_files, results_dir):
             st.write("Re-quantification...")
             umetaflow.requantify()
 
+            # return if no features have been detected
+            if not any(Path(umetaflow.interim, "FFMID").iterdir()):
+                st.error("No features detected in all files **after requantification**.")
+                shutil.rmtree(results_dir)
+                return
+
             st.write("Exporting re-quantified feature maps for visualization...")
             umetaflow.feature_maps_to_df(requant=True)
 
             # annotate only when necessary
             if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
                 st.write("Mapping MS2 data to features...")
+                reset_directory(results_dir)
                 umetaflow.map_MS2()
 
             if params["use_ad"]:

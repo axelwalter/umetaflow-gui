@@ -280,7 +280,9 @@ if run_button:
 
     if len(mzML_files) > len(params["blank_mzML_files"]):
         reset_directory(results_dir)
+
         run_umetaflow(params, mzML_files, results_dir)
+
     else:
         st.warning("Check your mzML and blank file selection.")
 

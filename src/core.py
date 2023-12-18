@@ -230,16 +230,18 @@ class FeatureFinderMetabo:
 
             feature_map_chroms.setUniqueIds()
 
-            if os.path.isdir(featureXML):
-                FeatureXMLFile().store(
-                    os.path.join(
-                        featureXML, os.path.basename(
-                            mzML_file)[:-4] + "featureXML"
-                    ),
-                    feature_map_chroms,
-                )
-            else:
-                FeatureXMLFile().store(featureXML, feature_map_chroms)
+            if feature_map.size() > 0:
+
+                if os.path.isdir(featureXML):
+                    FeatureXMLFile().store(
+                        os.path.join(
+                            featureXML, os.path.basename(
+                                mzML_file)[:-4] + "featureXML"
+                        ),
+                        feature_map_chroms,
+                    )
+                else:
+                    FeatureXMLFile().store(featureXML, feature_map_chroms)
 
 
 class MapAligner:
@@ -511,22 +513,24 @@ class FeatureFinderMetaboIdent:
             # set number of mass traces (for SIRIUS)
             fm_include_mass_traces = FeatureMap(feature_map)
             fm_include_mass_traces.clear(False)
-            for feature in feature_map:
-                feature.setMetaValue(
-                    "num_of_masstraces", ffmid_params[b"extract:n_isotopes"]
-                )
-                fm_include_mass_traces.push_back(feature)
-            feature_map = fm_include_mass_traces
-            if os.path.isdir(featureXML):
-                FeatureXMLFile().store(
-                    os.path.join(
-                        featureXML, os.path.basename(
-                            mzML_file)[:-4] + "featureXML"
-                    ),
-                    feature_map,
-                )
-            else:
-                FeatureXMLFile().store(featureXML, feature_map)
+
+            if feature_map.size() > 0:
+                for feature in feature_map:
+                    feature.setMetaValue(
+                        "num_of_masstraces", ffmid_params[b"extract:n_isotopes"]
+                    )
+                    fm_include_mass_traces.push_back(feature)
+                feature_map = fm_include_mass_traces
+                if os.path.isdir(featureXML):
+                    FeatureXMLFile().store(
+                        os.path.join(
+                            featureXML, os.path.basename(
+                                mzML_file)[:-4] + "featureXML"
+                        ),
+                        feature_map,
+                    )
+                else:
+                    FeatureXMLFile().store(featureXML, feature_map)
 
 
 class MetaboliteAdductDecharger:

@@ -172,7 +172,7 @@ def render_sidebar(page: str = "") -> None:
             if st.session_state.location == "online":
                 # Change workspace...
                 new_workspace = st.text_input("enter workspace", "")
-                if st.button("**Enter Workspace**") and new_workspace:
+                if st.button("**Enter Workspace**", type="primary", disabled= not new_workspace) and new_workspace:
                     path = Path(
                         workspaces_dir, new_workspace)
                     if path.exists():

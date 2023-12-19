@@ -427,8 +427,6 @@ CH2O2:0:0.5
 }
 
 HELP = """
-### UmetaFlow
-
 It is designed to help you analyze mass spectrometry data for untargeted metabolomics.
 
 Below are the main steps and options available in the tool:

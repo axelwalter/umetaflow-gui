@@ -78,7 +78,7 @@ def save_params(params: dict[str, Any]) -> None:
         json.dump(params, outfile, indent=4)
 
 
-def page_setup(page: str = "") -> dict[str, Any]:
+def page_setup(page: str = "", help_text: str = "") -> dict[str, Any]:
     """
     Set up the Streamlit page configuration and determine the workspace for the current session.
 
@@ -141,10 +141,10 @@ def page_setup(page: str = "") -> dict[str, Any]:
          "mzML-files").mkdir(parents=True, exist_ok=True)
 
     # Render the sidebar
-    params = render_sidebar(page)
+    params = render_sidebar(page, help_text)
     return params
 
-def render_sidebar(page: str = "") -> None:
+def render_sidebar(page: str = "", help_text: str = "") -> None:
     """
     Renders the sidebar on the Streamlit app, which includes the workspace switcher,
     the mzML file selector, the logo, and settings.
@@ -177,6 +177,7 @@ def render_sidebar(page: str = "") -> None:
                         workspaces_dir, new_workspace)
                     if path.exists():
                         st.session_state.workspace = path
+                        st.success(f"Switched to workspace **{new_workspace}**")
                     else:
                         st.warning("⚠️ Workspace does not exist.")
                 # Display info on current workspace and warning
@@ -230,6 +231,9 @@ You can share this unique workspace ID with other people.
                         st.rerun()
 
         # All pages have settings, workflow indicator and logo
+        if page != "main":
+            st.success(
+                f"**{Path(st.session_state['workspace']).stem}**")
         with st.expander("⚙️ **Settings**"):
             img_formats = ["svg", "png", "jpeg", "webp"]
             st.selectbox(
@@ -237,9 +241,8 @@ You can share this unique workspace ID with other people.
                 img_formats,
                 img_formats.index(params["image-format"]), key="image-format"
             )
-        if page != "main":
-            st.info(
-                f"**{Path(st.session_state['workspace']).stem}**")
+        if help_text:
+            st.info(help_text)
         st.image("assets/pyopenms_transparent_background.png", "powered by")
     return params
 

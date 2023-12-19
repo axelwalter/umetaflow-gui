@@ -121,11 +121,6 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
                         rt_min = rt - default_peak_width/2
                         rt_max = rt + default_peak_width/2
 
-                print(name)
-                print(rt)
-                print(peak_width)
-                print(rt_min)
-                print(rt_max)
                 # List with intensity values (len = number of MS1 spectra)
                 ints = []
                 for spec in exp:
@@ -187,6 +182,10 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
         # save summary of AUC values to tsv file
         df_auc.index.name = "metabolite"
         df_auc = df_auc.reindex(sorted(df_auc.columns), axis=1)
+        df_auc = df_auc[~(df_auc == 0).all(axis=1)]
+        if df_auc.empty:
+            st.error("No metabolites detected from given input.")
+            return
         df_auc.to_csv(Path(results_dir, "summary.tsv"), sep="\t")
 
         # sum intensities of variants of the same metabolite

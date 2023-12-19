@@ -120,9 +120,13 @@ def plot_2D_map(df_ms1: pd.DataFrame, df_ms2: pd.DataFrame, cutoff: int) -> go.F
         (0.4, "rgba(68, 0, 206, 1.0)"),
         (1.0, "rgba(33, 0, 101, 1.0)"),
     ]
+    # Create hover text
+    hover_texts = ["m/z: {:.5f}<br>RT: {:.2f}<br>Intensity: {:.0f}".format(mz, rt, intensity) 
+                for mz, rt, intensity in zip(mzs, rts, ints)]
     fig.update_traces(
         marker_colorscale=color_scale,
-        hovertext=ints.round(),
+        hovertext=hover_texts,
+        hoverinfo="text",
         selector=dict(type="scattergl"),
     )
     return fig
@@ -140,9 +144,9 @@ def plot_bpc(df: pd.DataFrame) -> go.Figure:
     Returns:
         A plotly Figure object containing the BPC plot.
     """
-    intensity = np.array([max(intensity_array)
+    df["intensity"] = np.array([max(intensity_array)
                          for intensity_array in df["intarray"]])
-    fig = px.line(df, x="RT", y=intensity)
+    fig = px.line(df, x="RT", y="intensity")
     fig.update_traces(line_color="#555FF5", line_width=3)
     fig.update_traces(showlegend=False)
     fig.update_layout(

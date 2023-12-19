@@ -1,8 +1,8 @@
-import shutil
-from pathlib import Path
-
 import streamlit as st
-
+import shutil
+import zipfile
+from pathlib import Path
+from io import BytesIO
 from src.common import reset_directory
 
 
@@ -111,3 +111,21 @@ def remove_all_mzML_files(params: dict) -> dict:
             params[k] = []
     st.success("All mzML files removed!")
     return params
+
+def zip_files(directory):
+    directory = Path(directory)  # Ensure directory is a Path object
+    bytes_io = BytesIO()
+    my_bar = st.progress(0, text="Compressing mzML files...")
+
+    # List all files in the directory (ignoring subdirectories)
+    files = [file for file in directory.iterdir() if file.is_file()]
+    n_files = len(files) - 1
+
+    with zipfile.ZipFile(bytes_io, 'w') as zip_file:
+        for i, file_path in enumerate(files):
+            zip_file.write(file_path, file_path.name)
+            my_bar.progress(i / n_files)
+    
+    my_bar.empty()
+    bytes_io.seek(0)
+    return bytes_io

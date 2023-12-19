@@ -182,7 +182,7 @@ def captcha_control():
         
         # define the session state for the captcha text because it doesn't change during refreshes 
         if 'Captcha' not in st.session_state:
-                st.session_state['Captcha'] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=length_captcha)).replace("O", "A").replace("1", "B").replace("7", "C")
+                st.session_state['Captcha'] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=length_captcha)).replace("O", "A").replace("1", "B").replace("7", "C").replace("0", "A")
         
         with st.form("captcha-form"):
             #setup the captcha widget

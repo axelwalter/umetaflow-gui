@@ -8,11 +8,13 @@ from src.fileupload import *
 
 params = page_setup()
 
-st.title("File Upload")
+st.title("mzML Files")
 
 tabs = ["File Upload", "Example Data"]
 if st.session_state.location == "local":
     tabs.append("Files from local folder")
+elif st.session_state.location == "online":
+    tabs.append("Download mzML files")
 
 tabs = st.tabs(tabs)
 
@@ -42,6 +44,19 @@ if st.session_state.location == "local":
         local_mzML_dir = r"{}".format(local_mzML_dir)
         if st.button("Copy files to workspace", type="primary", use_container_width=True, disabled=(local_mzML_dir == "")):
             copy_local_mzML_files_from_directory(local_mzML_dir)
+elif st.session_state.location == "online":
+    with tabs[2]:
+        c1, c2 = st.columns(2)
+        if c1.button("Get all mzML files in workspace as zip file.", type="primary", use_container_width=True):
+            zip_buffer = zip_files(Path(st.session_state.workspace, "mzML-files"))
+            c2.download_button(
+                label="⬇️ Download Now",
+                data=zip_buffer,
+                file_name=f"mzML_files-{Path(st.session_state.workspace).stem}.zip",
+                mime="application/zip",
+                type="primary",
+                use_container_width=True
+            )
 
 mzML_dir = Path(st.session_state.workspace, "mzML-files")
 if any(Path(mzML_dir).iterdir()):

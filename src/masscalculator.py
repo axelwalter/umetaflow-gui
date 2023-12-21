@@ -315,7 +315,7 @@ def build_compound(builder, charge, adducts, name, df, elimination):
         return pd.DataFrame()
     # build compound
     total = {}
-    for entry in builder:
+    for _, entry in builder.iterrows():
         formula = df[df["name"] == entry["metabolite"]]["sum formula"].iloc[0]
         if formula in total.keys():
             total[formula] += entry["number"]
@@ -345,7 +345,7 @@ def build_compound(builder, charge, adducts, name, df, elimination):
             compound = compound.del_compound(Compound(entry[0]), elimination=elimination)
 
     if not name:
-        name = "+".join([f"{entry['number']}({entry['metabolite']})" for entry in builder]).replace("+-", "-")
+        name = "+".join([f"{entry['number']}({entry['metabolite']})" for _, entry in builder.iterrows()]).replace("+-", "-")
     return create_compound(compound.formula, charge, adducts, "", name)
 
 
@@ -358,10 +358,34 @@ def save_df(new_compound_df, input_table_path):
         pd.concat([new_compound_df, df]).to_csv(input_table_path, index=False)
         st.success(
             f"**{new_compound_df['name'][0]}** with adducts **{new_compound_df['adduct'][0]}** and m/z **{new_compound_df['mz'][0]}**")
-        
+
+
+def validate_dataframe(df):
+    # Define expected dtypes and column names
+    expected_dtypes = {
+        "name": str, 
+        "sum formula": str, 
+        "adduct": str, 
+        "mz": float, 
+        "RT": float, 
+        "peak width": float, 
+        "comment": str
+    }
+    # Try to convert data types
+    for col, dtype in expected_dtypes.items():
+        try:
+            df[col] = df[col].astype(dtype)
+        except ValueError:
+            st.error(f"Error: Column '{col}' cannot be converted to {dtype.__name__}")
+            return False
+        except KeyError:
+            st.error(f"Error: Column '{col}' is missing in the uploaded file.")
+            return False
+    return True
+
 
 HELP = """
-The m/z calculator facilitates the calculation of mass-to-charge ratios (m/z) for metabolites. This page is split into two main sections, each accessible via tabs: "➕ New" for adding new metabolites and "📟 Combine metabolites" for creating combined metabolite entries.
+The m/z calculator facilitates the calculation of mass-to-charge ratios (m/z) for metabolites
 
 #### ➕ New Metabolite Tab
 In this section, you can add new metabolites to your analysis.
@@ -382,6 +406,10 @@ Use this section to combine existing metabolites into larger molecules.
 - **Metabolite Name**: Optionally provide a name for the combined metabolite. If left blank, a name will be generated automatically.
 - **Elimination Product**: Optionally specify any elimination product to be removed when combining metabolites (default is "H2O").
 - **Adducts**: Like in the "New Metabolite" tab, define adducts for the combined metabolite.
+
+#### ⬆️ Upload existing table Tab
+
+- upload a m/z table which has been generated with this tool (e.g. to get a table from another workspace)
 
 After setting up your combination, click "Calculate metabolite" to process and add it to your table.
 

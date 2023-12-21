@@ -21,6 +21,9 @@ if selected_file:
         df[df["mslevel"] == 2],
     )
 
+    df_MS2["precursormz"] = df_MS2["precursormz"].apply(lambda x: str(round(x, 5)))
+    df_MS2["RT"] = df_MS2["RT"].apply(lambda x: str(round(x, 1)))
+
     if not df_MS1.empty:
         tabs = st.tabs(["📈 Base peak chromatogram and MS1 spectra",
                         "📈 Peak map and MS2 spectra"])
@@ -47,7 +50,7 @@ if selected_file:
             show_fig(fig, title.replace(" ", "_"))
 
         with tabs[1]:
-            with st.form("update 2D map", border=False):
+            with st.form("2D-peak-map-form", border=False):
                 st.number_input(
                     "2D map intensity cutoff",
                     0,
@@ -62,30 +65,19 @@ if selected_file:
                         df_MS2,
                         st.session_state["2D-map-intensity-cutoff"],
                     )
-                    map_points = plotly_events(map2D)
-                    # Determine RT and mz positions from clicks in the map to get closest MS2 spectrum
-                    if not df_MS2.empty:
-                        st.markdown("💡 Click anywhere to show the closest MS2 spectrum.")
-                        if map_points:
-                            rt = map_points[0]["x"]
-                            prec_mz = map_points[0]["y"]
-                        else:
-                            rt = df_MS2.iloc[0, 2]
-                            prec_mz = df_MS2.iloc[0, 0]
-                        spec = df_MS2.loc[
-                            (
-                                abs(df_MS2["RT"] - rt) +
-                                abs(df_MS2["precursormz"] - prec_mz)
-                            ).idxmin(),
-                            :,
-                        ]
-                        title = f"MS2 spectrum @precursor m/z {round(spec['precursormz'], 4)} @RT {round(spec['RT'], 2)}"
+                    show_fig(map2D, f"{selected_file}-2D-peak-map")
+            # Determine RT and mz positions from clicks in the map to get closest MS2 spectrum
+            if not df_MS2.empty:
+                spec = st.selectbox("select MS2 spectrum", df_MS2.apply(lambda x: f"{x['precursormz']}@{x['RT']}", axis=1))
+                precursormz_value, rt_value = spec.split("@")
+                spec = df_MS2[(df_MS2['precursormz'] == precursormz_value) & (df_MS2['RT'] == rt_value)].iloc[0]
+                title = f"MS2 spectrum @precursor m/z {spec['precursormz']} @RT {spec['RT']}"
 
-                        ms2_fig = plot_ms_spectrum(
-                            spec,
-                            title,
-                            "#00CC96"
-                        )
-                        show_fig(ms2_fig, title.replace(" ", "_"))
+                ms2_fig = plot_ms_spectrum(
+                    spec,
+                    title,
+                    "#00CC96"
+                )
+                show_fig(ms2_fig, title.replace(" ", "_"))
 
 save_params(params)

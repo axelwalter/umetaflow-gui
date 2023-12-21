@@ -16,9 +16,6 @@ results_only = c2.toggle("view results only")
 
 results_dir = Path(st.session_state.workspace, "extracted-ion-chromatograms")
 
-with st.sidebar:
-    st.markdown(HELP)
-
 if not results_only:
     input_table_path = Path(st.session_state.workspace, "EIC-input-table.csv")
     if input_table_path.exists():
@@ -28,12 +25,10 @@ if not results_only:
         # Load a default example df
         df = pd.DataFrame({"name": [""], "mz": [np.nan], "RT": [np.nan], "peak width": [np.nan]})
 
-    with st.form("eic_form"):
-        st.multiselect("mzML files", [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
-                    params["eic_selected_mzML"], key="eic_selected_mzML", label_visibility="collapsed")
-        tabs = st.tabs(["input m/z and RT table", "chromatogram extraction parameters"])
-        with tabs[0]:
-            st.markdown("**Metabolite table**", help="""
+    use_mz_calculator_table = st.toggle("Use metabolite table from m/z calculator", params["eic_use_mz_table"], key="eic_use_mz_table")
+    with st.form("eic_form", border=True):
+        if not use_mz_calculator_table:
+            st.markdown("metabolite table", help ="""
 **Input table for EIC extraction.**
 
 Add metabolites whith their names and m/z values.
@@ -48,8 +43,7 @@ New metabolites can be entered by entering sum formula and adduct information as
 To download the modified table, click on the **Download** button which appears in the top right corner hovering over the table.
 
 To paste a data table from Excel simply select all the cells in Excel, select the top left cell in the metabolite table (turns red) and paste with **Ctrl-V**.    
-    """)
-            use_mz_calculator_table = st.toggle("Use table from mass-to-charge calculator and **ignore table below**.", params["eic_use_mz_table"], key="eic_use_mz_table")
+""")
             edited = st.data_editor(df, use_container_width=True, num_rows="dynamic")
             c1, c2, c3 = st.columns(3)
             formula = c1.text_input(
@@ -58,62 +52,75 @@ To paste a data table from Excel simply select all the cells in Excel, select th
                 "adduct", ["[M+H]+", "[M+Na]+", "[M+2H]2+", "[M-H2O+H]+", "[M-H]-", "[M-2H]2-", "[M-H2O-H]-"], help="Specify the adduct.")
             v_space(1, c3)
             add_compound_button = c3.form_submit_button("Add Metabolite", use_container_width=True, help="Calculate m/z from sum formula and adduct and add metabolite to table.")
-        with tabs[1]:
-            c1, c2, c3 = st.columns(3)
-            c1.radio(
-                "time unit", ["seconds", "minutes"], index=["seconds", "minutes"].index(params["eic_time_unit"]), key="eic_time_unit", help="Retention time unit."
-            )
-            c2.number_input("default peak width (seconds)", 1, 600,
-                            params["eic_peak_width"], 5, key="eic_peak_width", help="Default value for peak width. Used when a retention time is given without peak width. Adding a peak width in the table will override this setting.")
-            c3.number_input(
-                "**noise threshold**", 0, 1000000, params["eic_baseline"], 100, key="eic_baseline", help="Peaks below the treshold intensity will not be extracted."
-            )
-            # Mass tolerance settings
-            c1, c2, c3 = st.columns(3)
-            c1.radio(
-                "mass tolerance unit", ["ppm", "Da"], index=["ppm", "Da"].index(params["eic_mz_unit"]), key="eic_mz_unit"
-            )
-            c2.number_input("**mass tolerance ppm**", 1, 100,
-                            params["eic_tolerance_ppm"], step=5, key="eic_tolerance_ppm")
-            c3.number_input(
-                "mass tolerance Da", 0.01, 10.0, params["eic_tolerance_da"], 0.05, key="eic_tolerance_da"
-            )
-
+            if add_compound_button:
+                if check_formula(formula):
+                    mz = get_mass(formula, adduct)
+                    if mz:
+                        compound_name = f"{formula}#{adduct}"
+                        new_row = pd.DataFrame({"name": [compound_name], "mz": [mz], "RT": [
+                            np.nan], "peak width": [np.nan]})
+                        edited = pd.concat([edited, new_row], ignore_index=True).to_csv(
+                            input_table_path, index=False)
+                        st.rerun()
+                    else:
+                        st.warning(
+                            "Can not calculate mz of this formula/adduct combination.")
+                else:
+                    st.warning("Invalid formula.")
+        c1, c2, c3 = st.columns(3)
+        c1.radio(
+            "time unit", ["seconds", "minutes"], index=["seconds", "minutes"].index(params["eic_time_unit"]), key="eic_time_unit", help="Retention time unit."
+        )
+        c2.number_input("default peak width (seconds)", 1, 600,
+                        params["eic_peak_width"], 5, key="eic_peak_width", help="Default value for peak width. Used when a retention time is given without peak width. Adding a peak width in the table will override this setting.")
+        c3.number_input(
+            "**noise threshold**", 0, 1000000, params["eic_baseline"], 100, key="eic_baseline", help="Peaks below the treshold intensity will not be extracted."
+        )
+        # Mass tolerance settings
+        c1, c2, c3 = st.columns(3)
+        c1.radio(
+            "mass tolerance unit", ["ppm", "Da"], index=["ppm", "Da"].index(params["eic_mz_unit"]), key="eic_mz_unit"
+        )
+        c2.number_input("**mass tolerance ppm**", 1, 100,
+                        params["eic_tolerance_ppm"], step=5, key="eic_tolerance_ppm")
+        c3.number_input(
+            "mass tolerance Da", 0.01, 10.0, params["eic_tolerance_da"], 0.05, key="eic_tolerance_da"
+        )
         c1, c2 = st.columns(2)
-        save_button = c1.form_submit_button("Save parameters", use_container_width=True, help="Save selected paramters to your workspace.")
+        save_button = c1.form_submit_button("💾 Save parameters", use_container_width=True, help="Save selected paramters to your workspace.")
         submitted = c2.form_submit_button("Extract chromatograms", type="primary", use_container_width=True)
 
+    v_space(1)
+
     if save_button:
-        edited.to_csv(input_table_path, index=False)
+        if not use_mz_calculator_table:
+            edited.to_csv(input_table_path, index=False)
         save_params(params)
 
-    if add_compound_button:
-        if check_formula(formula):
-            mz = get_mass(formula, adduct)
-            if mz:
-                compound_name = f"{formula}#{adduct}"
-                new_row = pd.DataFrame({"name": [compound_name], "mz": [mz], "RT": [
-                    np.nan], "peak width": [np.nan]})
-                edited = pd.concat([edited, new_row], ignore_index=True).to_csv(
-                    input_table_path, index=False)
-                st.rerun()
-            else:
-                st.warning(
-                    "Can not calculate mz of this formula/adduct combination.")
-        else:
-            st.warning("Invalid formula.")
 
     if submitted:
-        edited.to_csv(input_table_path, index=False)
+        if not use_mz_calculator_table:
+            edited.to_csv(input_table_path, index=False)
         save_params(params)
-        mzML_files = [str(Path(st.session_state.workspace,
-                            "mzML-files", f+".mzML")) for f in st.session_state["eic_selected_mzML"]]
+        df_path = Path(st.session_state.workspace, "mzML-files.tsv")
+
+        if not df_path.exists():
+            st.warning("Upload/select some mzML files first!")
+        else:
+            df = pd.read_csv(df_path, sep="\t")
+            
+            # Filter the DataFrame for files where "use in workflow" is True
+            selected_files = df[df["use in workflows"] == True]["file name"].tolist()
+            
+            # Construct full file paths
+            mzML_files = [Path(st.session_state.workspace, "mzML-files", file_name) for file_name in selected_files]
         if not mzML_files:
             st.warning("Upload/select some mzML files first!")
         else:
-            data = edited
             if use_mz_calculator_table:
                 data = pd.read_csv(Path(st.session_state.workspace, "mass-calculator.csv"))[["name", "mz", "RT", "peak width"]]
+            else:
+                data = edited
             
             if not data.empty:
                 extract_chromatograms(results_dir,
@@ -159,8 +166,8 @@ if path.exists():
     with tabs[1]:
         file = st.selectbox(f"mzML file", df_auc.columns)
         c1, c2 = st.columns(2)
-        show_bpc = c1.checkbox("BPC", True, help="Show base peak chromatogram.")
-        show_baseline = c2.checkbox(
+        show_bpc = c1.toggle("BPC", True, help="Show base peak chromatogram.")
+        show_baseline = c2.toggle(
             "AUC baseline", True, help="Show baseline used for AUC calculation (from noise threshold parameter).")
 
         df = pd.read_feather(Path(results_dir, file[:-4] + "ftr"))

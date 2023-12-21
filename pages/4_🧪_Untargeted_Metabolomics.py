@@ -14,10 +14,23 @@ results_only = c2.toggle("view results only")
 
 results_dir = Path(st.session_state.workspace, "umetaflow-results")
 
+        
 if not results_only:
+    df_path = Path(st.session_state.workspace, "mzML-files.tsv")
+
+    if not df_path.exists():
+        st.warning("Upload/select some mzML files first!")
+    else:
+        df = pd.read_csv(df_path, sep="\t")
+        
+        # Filter the DataFrame for files where "use in workflow" is True
+        selected_files = df[df["use in workflows"] == True]["file name"].tolist()
+        
+        # Construct full file paths
+        mzML_files = [Path(st.session_state.workspace, "mzML-files", file_name) for file_name in selected_files]
+    if not mzML_files:
+        st.warning("No mzML files selected.")
     with st.form("umetaflow-form"):
-        st.multiselect("**sample mzML files**", [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
-                    params["umetaflow_selected_mzML"], key="umetaflow_selected_mzML")
         st.markdown("**1. Pre-Processing**")
         tabs = st.tabs(["Feature Detection",
                         "Blank Removal",
@@ -64,7 +77,7 @@ if not results_only:
             c1, c2 = st.columns(2)
             c1.multiselect(
                 "select blank samples",
-                [f.stem for f in Path(st.session_state.workspace, "mzML-files").glob("*.mzML")],
+                [Path(f).stem for f in mzML_files],
                 params["blank_mzML_files"],
                 key="blank_mzML_files",
                 help="The selected samples will be used to calculate avarage feature blank intensities and will not be further processed.",
@@ -182,7 +195,6 @@ CH2O2:0:0.5
             c3.number_input("RT tolerance", 1, 200, int(
                 params["fl_rt_tol"]), 5, key="fl_rt_tol")
 
-        v_space(1)
         st.markdown("**2. Re-Quantification**")
         st.checkbox(
             "re-quantify consensus features with missing values",
@@ -191,9 +203,8 @@ CH2O2:0:0.5
             help="Go back into the raw data to re-quantify consensus features that have missing values.",
         )
 
-        v_space(1)
         st.markdown("**3. File Export**")
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         c1.checkbox(
             "Export files for SIRIUS",
             params["use_sirius_manual"],
@@ -206,8 +217,8 @@ CH2O2:0:0.5
             key="use_gnps",
             help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.",
         )
-        c2.checkbox(
-            "annotate features with GNPS library",
+        c3.checkbox(
+            "annotate with GNPS library",
             params["annotate_gnps_library"],
             key="annotate_gnps_library",
             help="UmetaFlow contains the complete GNPS library in mgf file format. Check to annotate.",
@@ -216,13 +227,14 @@ CH2O2:0:0.5
         st.markdown("**4. Annotation**")
         tabs = st.tabs(["MS1", "MS2"])
         with tabs[0]:
-            st.checkbox(
+            c1, c2 = st.columns(2)
+            c1.checkbox(
                 "MS1 annotation by m/z and RT",
                 value=params["annotate_ms1"],
                 key="annotate_ms1",
                 help="Annotate features on MS1 level with known m/z and retention times values.",
             )
-            ms1_annotation_file_upload = st.file_uploader(
+            ms1_annotation_file_upload = c1.file_uploader(
                 "Select library for MS1 annotations.", type=["tsv"]
             )
             if ms1_annotation_file_upload:
@@ -233,8 +245,7 @@ CH2O2:0:0.5
                 params["ms1_annotation_file"] = str(path)
             else:
                 params["ms1_annotation_file"] = ""
-            c1, c2 = st.columns(2)
-            c1.number_input(
+            c2.number_input(
                 "retention time window for annotation in seconds",
                 1, 240, params["annoation_rt_window_sec"], 10,
                 key="annoation_rt_window_sec",
@@ -266,30 +277,21 @@ CH2O2:0:0.5
             else:
                 params["ms2_annotation_file"] = ""
 
-        v_space(1)
         c1, c2 = st.columns(2)
-        if c1.form_submit_button("Save Parameters", use_container_width=True):
+        if c1.form_submit_button("💾 Save Parameters", use_container_width=True):
             params = save_params(params)
         run_button = c2.form_submit_button("Run UmetaFlow", type="primary", use_container_width=True)
 
-
     if run_button:
-        save_params(params)
-        params = load_params()
+        # save_params(params)
+        # params = load_params()
         # Modify paramters to have float values if necessary
-        for key in ("fl_rt_tol", "ad_rt_max_diff", "ma_rt_max", "ffm_noise"):
-            params[key] = float(params[key])
+        # for key in ("fl_rt_tol", "ad_rt_max_diff", "ma_rt_max", "ffm_noise"):
+        #     params[key] = float(params[key])
 
-        # add blank files to samples which have not been selected as samples
-        mzML_files = params["umetaflow_selected_mzML"]
-        mzML_files += [f for f in params["blank_mzML_files"] if f not in params["umetaflow_selected_mzML"]]
-        mzML_files = [str(Path(st.session_state.workspace, "mzML-files", f+".mzML")) for f in mzML_files]
-
-        if len(mzML_files) > len(params["blank_mzML_files"]):
+        if len(mzML_files) > len(st.session_state["blank_mzML_files"]):
             reset_directory(results_dir)
-
-            run_umetaflow(params, mzML_files, results_dir)
-
+            run_umetaflow(st.session_state, mzML_files, results_dir)
         else:
             st.warning("Check your mzML and blank file selection.")
 
@@ -441,5 +443,3 @@ if results_dir.exists():
                 md.T.to_csv(sep="\t", index=False),
                 "MetaData.tsv",
             )
-else:
-    st.info("No results yet. Please run the workflow.")

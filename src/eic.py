@@ -185,6 +185,7 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
         df_auc = df_auc[~(df_auc == 0).all(axis=1)]
         if df_auc.empty:
             st.error("No metabolites detected from given input.")
+            status.update(label="Error", state="error", expanded=True)
             return
         df_auc.to_csv(Path(results_dir, "summary.tsv"), sep="\t")
 

@@ -41,7 +41,7 @@ class UmetaFlow:
             self.mzML_dir,
             os.path.join(self.interim, "FFM"),
             {
-                "noise_threshold_int": self.params["ffm_noise"],
+                "noise_threshold_int": float(self.params["ffm_noise"]),
                 "chrom_fwhm": self.params["ffm_peak_width"],
                 "chrom_peak_snr": self.params["ffm_snr"],
                 "report_chromatograms": "true",
@@ -82,8 +82,8 @@ class UmetaFlow:
                 "charge_span_max": 1,
                 "max_neutrals": len(adducts) - 1,
                 "negative_mode": negative_mode,
-                "retention_max_diff": self.params["ad_rt_max_diff"],
-                "retention_max_diff_local": self.params["ad_rt_max_diff"],
+                "retention_max_diff": float(self.params["ad_rt_max_diff"]),
+                "retention_max_diff_local": float(self.params["ad_rt_max_diff"]),
             },
         )
         shutil.rmtree(self.featureXML_dir)
@@ -99,7 +99,7 @@ class UmetaFlow:
                 "superimposer:mz_pair_max_distance": 0.05,
                 "pairfinder:distance_MZ:max_difference": self.params["ma_mz_max"],
                 "pairfinder:distance_MZ:unit": self.params["ma_mz_unit"],
-                "pairfinder:distance_RT:max_difference": self.params["ma_rt_max"],
+                "pairfinder:distance_RT:max_difference": float(self.params["ma_rt_max"]),
             },
         )
         self.featureXML_dir = Path(self.interim, "FFM_aligned")
@@ -140,7 +140,7 @@ class UmetaFlow:
             str(self.consensusXML),
             {
                 "link:mz_tol": self.params["fl_mz_tol"],
-                "link:rt_tol": self.params["fl_rt_tol"],
+                "link:rt_tol": float(self.params["fl_rt_tol"]),
                 "mz_unit": self.params["fl_mz_unit"],
             },
         )

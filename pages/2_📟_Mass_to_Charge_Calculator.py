@@ -24,8 +24,7 @@ if not results_only:
     with tabs[0]:
         with st.form("new-metabolite-form"):
             c1, c2 = st.columns(2)
-            formula = c1.text_input(
-                "**sum formula**", "", help="Enter sum formula for new metabolite.")
+            formula = c1.text_input("**sum formula**", "", help="Enter sum formula for new metabolite.")
             name = c1.text_input("metabolite name (optional)", "",
                                 help="Will be created automatically if omitted.")
             neutral_loss = c1.text_input(
@@ -33,8 +32,7 @@ if not results_only:
             charge = c2.number_input(
                 "**charge**", -50, 50, 1, help="Enter charge. Negative numbers for negative ion mode, positive numbers for positive ion mode.")
             c2.markdown("adducts", help="Specify adducts except for protons (H) up the number of charges in total, the remaing will be filled with protons (positive mode). In negative mode as the absolute charge number of protons will be removed regardless of specified additional adducts.")
-            adducts = c2.data_editor(pd.DataFrame({"adduct": ["Na", "K", "HCOOH"], "number": [
-                0, 0, 0]}), hide_index=True, use_container_width=True)
+            adducts = c2.data_editor(pd.DataFrame({"adduct": ["Na", "K", "HCOOH"], "number": [0, 0, 0]}), hide_index=True, use_container_width=True)
             create_compound_button = st.form_submit_button(
                 "Add new metabolite", use_container_width=True,
                 help="Calculate m/z from sum formula and adduct and add metabolite to table.")
@@ -45,7 +43,7 @@ if not results_only:
 
     with tabs[1]:
         with st.form("build-metabolite-form"):
-            st.markdown("**metabolites to combine**",
+            st.markdown ("**metabolites to combine**",
                         help="Select from metabolites which are already in the table to combine them into larger molecules from the given numbers.")
             column_types = {'metabolite': 'str', 'number': 'int'}
             builder = st.data_editor(pd.DataFrame(columns=column_types.keys()).astype(column_types),
@@ -68,7 +66,7 @@ if not results_only:
                         required=True,
                         default=1
                     )
-                }, key="builder")
+                })
             c1, c2 = st.columns(2)
             charge = c1.number_input(
                 "**charge**", -50, 50, 1, help="Enter charge. Negative numbers for negative ion mode, positive numbers for positive ion mode.")
@@ -76,8 +74,7 @@ if not results_only:
                                     help="Will be created automatically if omitted.")
             elimination = c1.text_input("elimination product (optional)", "H2O", help="Remove elemination product when combining two metabolites.")
             c2.markdown("adducts", help="Specify adducts except for protons (H) up the number of charges in total, the remaing will be filled with protons (positive mode). In negative mode as the absolute charge number of protons will be removed regardless of specified additional adducts.")
-            adducts = c2.data_editor(pd.DataFrame({"adduct": ["Na", "K", "HCOOH"], "number": [
-                0, 0, 0]}), hide_index=True, use_container_width=True)
+            adducts = c2.data_editor(pd.DataFrame({"adduct": ["Na", "K", "HCOOH"], "number": [0, 0, 0]}), hide_index=True, use_container_width=True)
             build_compound_button = st.form_submit_button(
             "Calculate metabolite", use_container_width=True,
             help="Calculate m/z from sum formula and adduct and add metabolite to table.")
@@ -105,6 +102,11 @@ if not results_only:
 
             except Exception as e:
                 st.error(f"An error occurred: {e}")
+
+if "mz_calc_success" in st.session_state:
+    st.success(st.session_state["mz_calc_success"])
+if "mz_calc_error" in st.session_state:
+    st.error(st.session_state["mz_calc_error"])
 
 edited = st.data_editor(pd.read_csv(input_table_path, dtype={"name": str, "sum formula": str, "adduct": str, "mz": float, "RT": float, "peak width": float, "comment": str}), use_container_width=True, hide_index=True,
                         key="mass-table", disabled=("sum formula", "adduct", "mz"), num_rows="dynamic")

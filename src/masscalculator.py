@@ -204,7 +204,7 @@ def get_mass(formula, adduct):
 
 def create_compound(formula, charge, adducts, neutral_loss, name):
     if not formula:
-        st.error("Enter sum formula for new metabolite.")
+        st.session_state["mz_calc_error"] = "Enter sum formula for new metabolite."
         return pd.DataFrame()
     # try to build a valid compound with given input
     # check if adducts and charge are valid
@@ -216,7 +216,7 @@ def create_compound(formula, charge, adducts, neutral_loss, name):
     except:
         return pd.DataFrame()
     if adducts["number"].sum() > abs(charge) and charge != 0:
-        st.error(f"Total number of adducts ({adducts['number'].sum()}) can not be greater then number of charges ({abs(charge)}).")
+        st.session_state["mz_calc_error"] = f"Total number of adducts ({adducts['number'].sum()}) can not be greater then number of charges ({abs(charge)})."
         return pd.DataFrame()
     adduct_compound = Compound("", "adduct")
     if adducts["number"].sum() < charge and charge > 0:
@@ -226,7 +226,7 @@ def create_compound(formula, charge, adducts, neutral_loss, name):
     for adduct, number in zip(adducts["adduct"], adducts["number"]):
         c = Compound(adduct)
         if not c.check_formula():
-            st.error(f"Invalid **adduct** sum formula: **{c.formula}**")
+            st.session_state["mz_calc_error"] = f"Invalid **adduct** sum formula: **{c.formula}**"
             return pd.DataFrame()
         for _ in range(int(number)):
             adduct_compound.add_elements(c.formula)
@@ -239,11 +239,11 @@ def create_compound(formula, charge, adducts, neutral_loss, name):
     compound = Compound(formula, name, charge, adduct_compound.elements)
     # check formula
     if not compound.check_formula():
-        st.error(f"Invalid sum formula: **{compound.formula}**")
+        st.session_state["mz_calc_error"] = f"Invalid sum formula: **{compound.formula}**"
         return pd.DataFrame()
     # check if there are enough protons to remove in negative mode
     if (("H" in compound.elements and compound.elements["H"] < abs(charge)) or ("H" not in compound.elements)) and charge < 0:
-        st.error(f"Cannot remove protons from formula {compound.formula} in negative mode (negative charge).")
+        st.session_state["mz_calc_error"] = f"Cannot remove protons from formula {compound.formula} in negative mode (negative charge)."
         return pd.DataFrame()
     # remove neutral losses
     compound.del_elements(losses_compound.formula)
@@ -311,7 +311,7 @@ def can_eliminate(compound_one, compound_two, elimination_formula):
 def build_compound(builder, charge, adducts, name, df, elimination):
     # check elimination
     if not Compound(elimination).check_formula():
-        st.error("Elimination product has invalid formula.")
+        st.session_state["mz_calc_error"] = "Elimination product has invalid formula."
         return pd.DataFrame()
     # build compound
     total = {}
@@ -325,7 +325,7 @@ def build_compound(builder, charge, adducts, name, df, elimination):
     to_sub = [list(c) for c in total.items() if c[1] < 0]
     # check if there is anything to add
     if not to_add:
-        st.error("Nothing to add.")
+        st.session_state["mz_calc_error"] = "Nothing to add."
         return pd.DataFrame()
     # start compound with first one to add
     compound = Compound(to_add[0][0])
@@ -336,7 +336,7 @@ def build_compound(builder, charge, adducts, name, df, elimination):
         for _ in range(int(entry[1])):
             # check if it's possible to remove elemination product
             if not can_eliminate(compound.elements, Compound(entry[0]).elements, elimination):
-                st.error(f"Can't add **{entry[0]}** to **{compound.formula}**. Impossible to remove elimination product **{elimination}**.")
+                st.session_state["mz_calc_error"] = f"Can't add **{entry[0]}** to **{compound.formula}**. Impossible to remove elimination product **{elimination}**."
                 return pd.DataFrame()
             compound = compound.add_compound(Compound(entry[0]), elimination=elimination)
     # remove all the substracted
@@ -345,7 +345,7 @@ def build_compound(builder, charge, adducts, name, df, elimination):
             compound = compound.del_compound(Compound(entry[0]), elimination=elimination)
 
     if not name:
-        name = "+".join([f"{entry['number']}({entry['metabolite']})" for _, entry in builder.iterrows()]).replace("+-", "-")
+        name = "+".join([f"{int(entry['number'])}({entry['metabolite']})" for _, entry in builder.iterrows()]).replace("+-", "-")
     return create_compound(compound.formula, charge, adducts, "", name)
 
 
@@ -353,12 +353,19 @@ def save_df(new_compound_df, input_table_path):
     df = pd.read_csv(input_table_path)
     if not new_compound_df.empty:
         if df["name"].isin([new_compound_df["name"][0]]).any():
-            st.error("Metabolite names have to be unique.")
-            return
+            st.session_state["mz_calc_error"] = "Metabolite names have to be unique."
+            if "mz_calc_success" in st.session_state:
+                del st.session_state["mz_calc_success"]
+            st.rerun()
         pd.concat([new_compound_df, df]).to_csv(input_table_path, index=False)
-        st.success(
-            f"**{new_compound_df['name'][0]}** with adducts **{new_compound_df['adduct'][0]}** and m/z **{new_compound_df['mz'][0]}**")
-
+        st.session_state["mz_calc_success"] = f"**{new_compound_df['name'][0]}** with adducts **{new_compound_df['adduct'][0]}** and m/z **{new_compound_df['mz'][0]}**"
+        if "mz_calc_error" in st.session_state:
+            del st.session_state["mz_calc_error"]
+        st.rerun()
+    else:
+        if "mz_calc_success" in st.session_state:
+            del st.session_state["mz_calc_success"]
+        st.rerun()
 
 def validate_dataframe(df):
     # Define expected dtypes and column names
@@ -376,10 +383,10 @@ def validate_dataframe(df):
         try:
             df[col] = df[col].astype(dtype)
         except ValueError:
-            st.error(f"Error: Column '{col}' cannot be converted to {dtype.__name__}")
+            st.session_state["mz_calc_error"] = f"Error: Column '{col}' cannot be converted to {dtype.__name__}"
             return False
         except KeyError:
-            st.error(f"Error: Column '{col}' is missing in the uploaded file.")
+            st.session_state["mz_calc_error"] = f"Error: Column '{col}' is missing in the uploaded file."
             return False
     return True
 

@@ -29,17 +29,22 @@ if not results_only:
                                 help="Will be created automatically if omitted.")
             neutral_loss = c1.text_input(
                 "neutral losses (optional)", "", help="Sum formula of neutral losses (e.g. H2O).")
+            add_adduct_info = c1.checkbox("add adduct info to name", True, help="Always add adduct information to metabolite name separated by `#` if a custom name was chosen.")
             charge = c2.number_input(
                 "**charge**", -50, 50, 1, help="Enter charge. Negative numbers for negative ion mode, positive numbers for positive ion mode.")
-            c2.markdown("adducts", help="Specify adducts except for protons (H) up the number of charges in total, the remaing will be filled with protons (positive mode). In negative mode as the absolute charge number of protons will be removed regardless of specified additional adducts.")
+            c2.markdown("addtional adducts", help="Specify adducts except for protons (H) up the number of charges in total, the remaing will be filled with protons (positive mode). In negative mode as the absolute charge number of protons will be removed regardless of specified additional adducts.")
             adducts = c2.data_editor(pd.DataFrame({"adduct": ["Na", "K", "HCOOH"], "number": [0, 0, 0]}), hide_index=True, use_container_width=True)
+            add_both_adducts = c2.checkbox("add two entries: protons only **and** with additional adducts", False, help="Add to entries to table. One contains only addition or loss of protons, the other considers the additional adduct table. Useful to include e.g. always the sodium adduct as well: `metabolite#[M+H]+` and `metabolite#[M+Na]+`.")
             create_compound_button = st.form_submit_button(
                 "Add new metabolite", use_container_width=True,
                 help="Calculate m/z from sum formula and adduct and add metabolite to table.")
         if create_compound_button:
-            save_df(create_compound(
-                formula, charge, adducts, neutral_loss, name),
-                input_table_path)
+            if add_both_adducts and adducts["number"].sum() > 0:
+                 save_df(pd.concat([create_compound(formula, charge, pd.DataFrame({"adduct": [], "number": []}), "", name, True),
+                        create_compound(formula, charge, adducts, neutral_loss, name, True)]),
+                        input_table_path)
+            else:
+                save_df(create_compound(formula, charge, adducts, neutral_loss, name, add_adduct_info), input_table_path)
 
     with tabs[1]:
         with st.form("build-metabolite-form"):
@@ -73,14 +78,16 @@ if not results_only:
             name = c1.text_input("metabolite name (optional)", "",
                                     help="Will be created automatically if omitted.")
             elimination = c1.text_input("elimination product (optional)", "H2O", help="Remove elemination product when combining two metabolites.")
-            c2.markdown("adducts", help="Specify adducts except for protons (H) up the number of charges in total, the remaing will be filled with protons (positive mode). In negative mode as the absolute charge number of protons will be removed regardless of specified additional adducts.")
+            add_adduct_info = c1.checkbox("add adduct info to name", True, help="Always add adduct information to metabolite name separated by `#` if a custom name was chosen.")
+            c2.markdown("additional adducts", help="Specify adducts except for protons (H) up the number of charges in total, the remaing will be filled with protons (positive mode). In negative mode as the absolute charge number of protons will be removed regardless of specified additional adducts.")
             adducts = c2.data_editor(pd.DataFrame({"adduct": ["Na", "K", "HCOOH"], "number": [0, 0, 0]}), hide_index=True, use_container_width=True)
+            add_both_adducts = c2.checkbox("add two entries: protons only **and** with additional adducts", False, help="Add to entries to table. One contains only addition or loss of protons, the other considers the additional adduct table. Useful to include e.g. always the sodium adduct as well: `metabolite#[M+H]+` and `metabolite#[M+Na]+`.")
             build_compound_button = st.form_submit_button(
             "Calculate metabolite", use_container_width=True,
             help="Calculate m/z from sum formula and adduct and add metabolite to table.")
 
         if build_compound_button:
-            save_df(build_compound(builder, charge, adducts, name, pd.read_csv(input_table_path), elimination), input_table_path)
+            save_df(build_compound(builder, charge, adducts, name, pd.read_csv(input_table_path), elimination, add_adduct_info, add_both_adducts), input_table_path)
 
     with tabs[2]:
         # Create file uploader
@@ -96,6 +103,7 @@ if not results_only:
                     if st.button("Replace current table with uploaded table (will delete current data).", type="primary", use_container_width=True):
                         # Save the table (customize the path as needed)
                         df.to_csv(input_table_path, index=False)
+                        st.session_state["mz_calc_success"] = [f"Uploaded table **{uploaded_file.name}**"]
                         st.rerun()
                 else:
                     st.error("The uploaded file does not match the required format or data types.")
@@ -104,7 +112,8 @@ if not results_only:
                 st.error(f"An error occurred: {e}")
 
 if "mz_calc_success" in st.session_state:
-    st.success(st.session_state["mz_calc_success"])
+    for message in st.session_state["mz_calc_success"]:
+        st.success(message)
 if "mz_calc_error" in st.session_state:
     st.error(st.session_state["mz_calc_error"])
 

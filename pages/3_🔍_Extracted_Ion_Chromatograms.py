@@ -105,7 +105,7 @@ To paste a data table from Excel simply select all the cells in Excel, select th
         df_path = Path(st.session_state.workspace, "mzML-files.tsv")
 
         if not df_path.exists():
-            st.warning("Upload/select some mzML files first!")
+            mzML_files = None
         else:
             df = pd.read_csv(df_path, sep="\t")
             

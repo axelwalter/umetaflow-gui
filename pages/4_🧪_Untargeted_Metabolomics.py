@@ -19,7 +19,7 @@ if not results_only:
     df_path = Path(st.session_state.workspace, "mzML-files.tsv")
 
     if not df_path.exists():
-        st.warning("Upload/select some mzML files first!")
+        mzML_files = []
     else:
         df = pd.read_csv(df_path, sep="\t")
         

@@ -202,7 +202,7 @@ def get_mass(formula, adduct):
         except:
             return
 
-def create_compound(formula, charge, adducts, neutral_loss, name):
+def create_compound(formula, charge, adducts, neutral_loss, name, add_adduct_info):
     if not formula:
         st.session_state["mz_calc_error"] = "Enter sum formula for new metabolite."
         return pd.DataFrame()
@@ -279,10 +279,10 @@ def create_compound(formula, charge, adducts, neutral_loss, name):
         else:
             adduct_string = f"[M{adduct_notation}]{charge_sign}"
     # determine a name
-    if name:
-        compound_name = name
-    else:
-        compound_name = f"{formula}#{adduct_string}"
+    # Determine compound name
+    compound_name = name if name else f"{formula}#{adduct_string}"
+    if name and add_adduct_info:
+        compound_name += f"#{adduct_string}"
     # determine m/z
     mz = compound.calc_mass()
 
@@ -308,7 +308,7 @@ def can_eliminate(compound_one, compound_two, elimination_formula):
     
     return True
 
-def build_compound(builder, charge, adducts, name, df, elimination):
+def build_compound(builder, charge, adducts, name, df, elimination, add_adduct_info, add_both_adducts):
     # check elimination
     if not Compound(elimination).check_formula():
         st.session_state["mz_calc_error"] = "Elimination product has invalid formula."
@@ -346,7 +346,11 @@ def build_compound(builder, charge, adducts, name, df, elimination):
 
     if not name:
         name = "+".join([f"{int(entry['number'])}({entry['metabolite']})" for _, entry in builder.iterrows()]).replace("+-", "-")
-    return create_compound(compound.formula, charge, adducts, "", name)
+
+    if add_both_adducts and adducts["number"].sum() > 0:
+        return pd.concat([create_compound(compound.formula, charge, pd.DataFrame({"adduct": [], "number": []}), "", name, True),
+                        create_compound(compound.formula, charge, adducts, "", name, True)])
+    return create_compound(compound.formula, charge, adducts, "", name, add_adduct_info)
 
 
 def save_df(new_compound_df, input_table_path): 
@@ -358,7 +362,7 @@ def save_df(new_compound_df, input_table_path):
                 del st.session_state["mz_calc_success"]
             st.rerun()
         pd.concat([new_compound_df, df]).to_csv(input_table_path, index=False)
-        st.session_state["mz_calc_success"] = f"**{new_compound_df['name'][0]}** with adducts **{new_compound_df['adduct'][0]}** and m/z **{new_compound_df['mz'][0]}**"
+        st.session_state["mz_calc_success"] = [f"**{row['name']}** with adducts **{row['adduct']}** and m/z **{row['mz']}**" for _, row in new_compound_df.iterrows()]
         if "mz_calc_error" in st.session_state:
             del st.session_state["mz_calc_error"]
         st.rerun()

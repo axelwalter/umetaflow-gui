@@ -9,6 +9,8 @@ from src.fileupload import *
 params = page_setup()
 
 st.title("mzML Files")
+df_path = Path(st.session_state.workspace, "mzML-files.tsv")
+mzML_dir = Path(st.session_state.workspace, "mzML-files")
 
 tabs = ["File Upload", "Example Data"]
 if st.session_state.location == "local":
@@ -26,6 +28,8 @@ with tabs[0]:
         if c2.form_submit_button("Add files to workspace", use_container_width=True, type="primary"):
             if files:
                 save_uploaded_mzML(files)
+                update_mzML_df(df_path, mzML_dir).to_csv(df_path, sep="\t", index=False)
+                st.rerun()
             else:
                 st.error("Nothing to add, please upload file.")
 
@@ -35,6 +39,8 @@ with tabs[1]:
     _, c2, _ = st.columns(3)
     if c2.button("Load Example Data", type="primary", use_container_width=True):
         load_example_mzML_files()
+        update_mzML_df(df_path, mzML_dir).to_csv(df_path, sep="\t", index=False)
+        st.rerun()
 
 # Local file upload option: via directory path
 if st.session_state.location == "local":
@@ -47,6 +53,8 @@ if st.session_state.location == "local":
         _, c2, _ = st.columns(3)
         if c2.button("Copy files to workspace", type="primary", use_container_width=True, disabled=(local_mzML_dir == "")):
             copy_local_mzML_files_from_directory(local_mzML_dir)
+            update_mzML_df(df_path, mzML_dir).to_csv(df_path, sep="\t", index=False)
+            st.rerun()
 elif st.session_state.location == "online":
     with tabs[2]:
         c1, c2 = st.columns(2)
@@ -61,9 +69,6 @@ elif st.session_state.location == "online":
                 use_container_width=True
             )
 
-mzML_dir = Path(st.session_state.workspace, "mzML-files")
-
-df_path = Path(st.session_state.workspace, "mzML-files.tsv")
 
 df = update_mzML_df(df_path, mzML_dir)
 

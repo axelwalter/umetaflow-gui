@@ -7,31 +7,29 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      name: Check out repository code
-      uses: actions/checkout@v2
+      - name: Check out repository code 
+        uses: actions/checkout@v2
 
-          
-      name: Download Python 3.11 Embeddable
-      run: |
-        curl -o python-embed.zip https://www.python.org/ftp/python/3.11.0/python-3.11.0-embed-amd64.zip
+      - name: Download Python 3.11 Embeddable
+        run: |
+          curl -o python-embed.zip https://www.python.org/ftp/python/3.11.0/python-3.11.0-embed-amd64.zip
 
-          
-      name: Extract Python
-      run: |
-          Expand-Archive python-embed.zip -DestinationPath python
+      - name: Extract Python
+        run: |
+            Expand-Archive python-embed.zip -DestinationPath python
 
-          
-      name: Install pip
-      run: |
-          curl -o get-pip.py https://bootstrap.pypa.io/get-pip.py.\python\python.exe get-pip.py
+      - name: Install pip
+        run: |
+            curl -o get-pip.py https://bootstrap.pypa.io/get-pip.py
+            .\python\python.exe get-pip.py
 
-          
-      name: Install dependencies
-      run: |
-          .\python\python.exe -m pip install -r requirements.pip
+      - name: Install dependencies
+        run: |
+            .\python\python.exe -m pip install -r requirements.pip
 
       - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: UmetaFlow-App-Embeddable
-        path: .
+        uses: actions/upload-artifact@v3
+        with:
+          name: UmetaFlow-App-Embeddable
+          path: .
+.

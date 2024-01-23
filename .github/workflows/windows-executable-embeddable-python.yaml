@@ -35,8 +35,13 @@ jobs:
         run: |
             ./python/python.exe -m pip install -r requirements.txt
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
+      - name: Zip workspace
+        run: |
+            7z a workspace.zip ${{ github.workspace }}/*
+
+          
+      - name: Upload workspace as artifact
+        uses: actions/upload-artifact@v2
         with:
           name: UmetaFlow-App-Embeddable
-          path: .
+          path: workspace.zip

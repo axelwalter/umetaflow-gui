@@ -1,4 +1,4 @@
-streamlit==2.9.0
+streamlit==2.8.0
 streamlit-plotly-events
 pyopenms==3.0.0
 pandas

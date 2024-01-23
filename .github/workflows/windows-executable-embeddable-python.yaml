@@ -27,8 +27,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-            dir python\Scripts
-            .\python\Scripts\pip install -r requirements.txt
+            .\python\Scripts\pip.exe install -r requirements.txt
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3

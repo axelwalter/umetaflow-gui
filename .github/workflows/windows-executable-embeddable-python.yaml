@@ -24,6 +24,7 @@ jobs:
             curl -o get-pip.py https://bootstrap.pypa.io/get-pip.py
             .\python\python.exe get-pip.py
             del get-pip.py
+            echo "${{ github.workspace }}\python\Scripts" >> $env:GITHUB_PATH
 
       - name: Install dependencies
         run: |

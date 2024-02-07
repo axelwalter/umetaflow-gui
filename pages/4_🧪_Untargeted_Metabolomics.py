@@ -276,7 +276,8 @@ CH2O2:0:0.5
                     f.write(ms2_annotation_file_upload.getbuffer())
                 params["ms2_annotation_file"] = str(path)
             else:
-                params["ms2_annotation_file"] = ""
+                if params["ms2_annotation_file"]:
+                    st.info(params["ms2_annotation_file"])
 
         c1, c2 = st.columns(2)
         if c1.form_submit_button("💾 Save Parameters", use_container_width=True):

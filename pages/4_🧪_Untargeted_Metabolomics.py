@@ -244,7 +244,8 @@ CH2O2:0:0.5
                     f.write(ms1_annotation_file_upload.getbuffer())
                 params["ms1_annotation_file"] = str(path)
             else:
-                params["ms1_annotation_file"] = ""
+                if params["ms1_annotation_file"]:
+                    st.info(params["ms1_annotation_file"])
             c2.number_input(
                 "retention time window for annotation in seconds",
                 1, 240, params["annoation_rt_window_sec"], 10,
@@ -279,19 +280,14 @@ CH2O2:0:0.5
 
         c1, c2 = st.columns(2)
         if c1.form_submit_button("💾 Save Parameters", use_container_width=True):
-            params = save_params(params)
+            save_params(params)
         run_button = c2.form_submit_button("Run UmetaFlow", type="primary", use_container_width=True)
 
     if run_button:
-        # save_params(params)
-        # params = load_params()
-        # Modify paramters to have float values if necessary
-        # for key in ("fl_rt_tol", "ad_rt_max_diff", "ma_rt_max", "ffm_noise"):
-        #     params[key] = float(params[key])
-
-        if len(mzML_files) > len(st.session_state["blank_mzML_files"]):
+        save_params(params)
+        if len(mzML_files) > len(params["blank_mzML_files"]):
             reset_directory(results_dir)
-            run_umetaflow(st.session_state, mzML_files, results_dir)
+            run_umetaflow(params, mzML_files, results_dir)
         else:
             st.warning("Check your mzML and blank file selection.")
 

@@ -347,7 +347,6 @@ def run_umetaflow(params, mzML_files, results_dir):
             # annotate only when necessary
             if params["use_sirius_manual"] or params["annotate_ms2"] or params["use_gnps"]:
                 st.write("Mapping MS2 data to features...")
-                reset_directory(results_dir)
                 umetaflow.map_MS2()
 
             if params["use_ad"]:

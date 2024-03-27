@@ -126,9 +126,9 @@ class Workflow(WorkflowManager):
 
         # Precursor m/z correction to highest intensity MS1 peak
         if self.params["correct-precursor"]:
-            mzML_pmc = self.file_manager.get_files(mzML, "mzML", "auto")
+            mzML_pmc = self.file_manager.get_files(mzML, "mzML", "mzML-pmc")
             self.executor.run_topp(
-                "HighResPrecursorMassCorrector", {"in": mzML, "out": mzML_pmc}
+                "HighResPrecursorMassCorrector", {"in": mzML, "out": mzML_pmc}, write_log=False
             )
             mzML = mzML_pmc
 
@@ -151,38 +151,71 @@ class Workflow(WorkflowManager):
         
         # Map Alignement
         if self.params["map-alignement"]:
-            trafos = self.file_manager.get_files(ffm, "trafoXML", "auto", collect=True)
+            trafos = self.file_manager.get_files(ffm, "trafoXML", "trafos", collect=True)
             # Run MapAlignerPoseClustering for map alignement, with disabled logs.
             self.executor.run_topp(
                 "MapAlignerPoseClustering",
                 {"in": self.file_manager.get_files(ffm, collect=True), "out": self.file_manager.get_files(ffm, collect=True), "trafo_out": trafos},
+                write_log=False,
             )
             # Transform mzML files
             self.executor.run_topp(
                 "MapRTTransformer",
                 {"in": mzML, "out": mzML, "trafo_in": self.file_manager.get_files(trafos)},
+                write_log=False,
             )
 
         # Feature Linking and Export to pd.DataFrame
-        consensusXML = self.file_manager.get_files("feature-matrix.consensusXML", set_results_dir="feature-linker")
+        consensusXML = self.file_manager.get_files("feature-matrix", "consensusXML", "feature-linker")
         self.executor.run_topp(
             "FeatureLinkerUnlabeledKD",
             {"in": self.file_manager.get_files(ffm, collect=True), "out": consensusXML},
             write_log=False,
         )
         
-        consensus_df = self.file_manager.get_files(consensusXML, "parquet")
+        # Export to DataFrame
+        consensus_df = self.file_manager.get_files("feature-matrix", "parquet", "consensus-dfs")
         self.executor.run_python("export_consensus_df", {"in": consensusXML, "out": consensus_df})
         
-        # # Requantify features with missing values
-        # if self.params["requantify"]:
-        #     ffmid_library = self.file_manager.get_files(consensusXML, "tsv", "ffmid-library")
-        #     self.executor.run_python("generate_FFMID_library", {"in":  consensus_df, "out": ffmid_library})
+        # Requantify features with missing values
+        if self.params["requantify"]:
+            # Prepara library
+            ffmid_library = self.file_manager.get_files("library", "tsv", "ffmid-library")
+            consensus_df_ffm_complete = self.file_manager.get_files("consensus-df-ffm-complete", "parquet", "consensus-dfs")
+            self.executor.run_python("generate_FFMID_library", {"in":  consensus_df, "out": ffmid_library, "out_ffm": consensus_df_ffm_complete})
 
-        #     self.executor.run_topp(
-        #         "FeatureFinderMetaboIdent",
-        #         {"in": mzML, "out": self.file_manager.get_files(ffm, "ffmid-features"), "ffmid_library": ffmid_library},
-        #     )
+            # run FeatureFinderMetaboIdent
+            ffmid = self.file_manager.get_files(mzML, "featureXML", "ffmid-features")
+            self.executor.run_topp(
+                "FeatureFinderMetaboIdent",
+                {"in": mzML, "out": ffmid, "id": ffmid_library},
+                write_log=False,
+            )
+            
+            # Perform Adduct detection on re-quantified features
+            if self.params["adduct-detection"]:
+                # Run MetaboliteAdductDecharger for adduct detection.
+                self.executor.run_topp(
+                    "MetaboliteAdductDecharger",
+                    {"in": ffmid, "out_fm": ffmid},
+                    write_log=False,
+                )
+            
+            # Link re-quantified features
+            consensusXML_ffmid = self.file_manager.get_files("feature-matrix-ffmid", "consensusXML", "feature-linker")
+            self.executor.run_topp(
+                "FeatureLinkerUnlabeledKD",
+                {"in": self.file_manager.get_files(ffmid, collect=True), "out": consensusXML_ffmid},
+                write_log=False,
+            )
+            
+            # Export to DataFrame
+            consensus_df_ffmid = self.file_manager.get_files("consensus-df-ffmid", "parquet", "consensus-dfs")
+            self.executor.run_python("export_consensus_df", {"in": consensusXML_ffmid, "out": consensus_df_ffmid})
+
+            # Merge consensus_df and consensus_df_ffmid
+            self.executor.run_python("merge_consensus_df", {"in": [consensus_df_ffm_complete, consensus_df_ffmid], "out": consensus_df})
+                        
 
     def results(self) -> None:
         st.warning("Not implemented yet.")

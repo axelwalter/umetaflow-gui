@@ -24,7 +24,8 @@ import pandas as pd
 
 DEFAULTS = [
     {"key": "in", "value": [], "help": "feature matrix parquet", "hide": True},
-    {"key": "out", "value": [], "help": "FFMID library tsv", "hide": True}
+    {"key": "out", "value": [], "help": "FFMID library tsv file", "hide": True},
+    {"key": "out_ffm", "value": [], "help": "feature matrix with complete consensus features parquet file", "hide": True}
 ]
 
 def get_params():
@@ -42,13 +43,12 @@ if __name__ == "__main__":
     mzml_columns = df.filter(like='.mzML')
     # Create a boolean mask for rows with zero values in these columns
     mask = (mzml_columns == 0).any(axis=1)
+    # Keep the consensus features which don't have to be re-quantified
+    df[~mask].to_parquet(params["out_ffm"][0])
+    df[~mask].to_csv(Path(params["out_ffm"][0]).with_suffix(".tsv"), sep="\t")
     # Filter the DataFrame using this mask
-    print(df.head())
-    print(df.shape)
     df = df[mask]
-    print(df.head())
-    print(df.shape)
-    
+
     lib = pd.DataFrame(
         {
             "CompoundName": df["metabolite"],
@@ -62,6 +62,4 @@ if __name__ == "__main__":
         }
     )
     lib.to_csv(params["out"][0], sep="\t", index=False)
-    print(lib.head())
-    print(lib.shape)
     

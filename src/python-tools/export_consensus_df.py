@@ -103,6 +103,8 @@ if __name__ == "__main__":
     df = df.rename(columns={col: Path(col).name for col in df.columns if Path(col).exists()})
     if "second-feature-map.mzML" in df.columns:
         df = df.drop(columns=["second-feature-map.mzML"])
+    df = df.reset_index(drop=True)
+    df.index.name = "id"
     path = Path(params["out"][0])
     df.to_parquet(path)
     # save additionally as tsv file

@@ -110,8 +110,9 @@ class CommandExecutor:
         # Log stderr and raise an exception if errors occurred
         if stderr or process.returncode != 0:
             error_message = stderr.decode().strip()
-            self.logger.log(f"ERRORS OCCURRED:\n{error_message}")
-            raise Exception(f"Errors occurred while running command: {' '.join(command)}\n{error_message}")
+            if write_log:
+                self.logger.log(f"ERRORS OCCURRED:\n{error_message}")
+                raise Exception(f"Errors occurred while running command: {' '.join(command)}\n{error_message}")
 
     def run_topp(self, tool: str, input_output: dict, write_log: bool = True) -> None:
         """
@@ -131,7 +132,7 @@ class CommandExecutor:
             tool (str): The executable name or path of the tool.
             input_output (dict): A dictionary specifying the input/output parameter names (as key) and their corresponding file paths (as value).
             write_log (bool): If True, enables logging of command execution details.
-        
+
         Raises:
             ValueError: If the lengths of input/output file lists are inconsistent,
                         except for single string inputs.
@@ -173,7 +174,11 @@ class CommandExecutor:
             # Add non-default TOPP tool parameters
             if tool in params.keys():
                 for k, v in params[tool].items():
-                    command += [f"-{k}", str(v)]
+                    command += [f"-{k}"]
+                    if isinstance(v, str) and "\n" in v:
+                        command += v.split("\n")
+                    else:
+                        command += [str(v)]
             commands.append(command)
 
             # check if a ini file has been written, if yes use it (contains custom defaults)

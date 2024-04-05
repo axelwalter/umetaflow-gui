@@ -2,6 +2,7 @@ import json
 import sys
 import pyopenms as poms
 from pathlib import Path
+import pandas as pd
 
 ############################
 # default paramter values #
@@ -24,7 +25,6 @@ from pathlib import Path
 
 DEFAULTS = [
     {"key": "in", "value": [], "help": "consensusXML file", "hide": True},
-    {"key": "in_ms", "value": [], "help": "SIRIUS ms dir", "hide": True},
     {"key": "out", "value": [], "help": "consensus df parquet file", "hide": True}
 ]
 
@@ -72,38 +72,31 @@ if __name__ == "__main__":
                 for mz, rt in zip(df["mz"].tolist(), df["RT"].tolist())
             ],
         )
-    # annotate original feature IDs which are in the Sirius .ms files
-    if params["in_ms"]:
-        path = params["in_ms"][0]
-        ms_files = Path(path).glob("*.ms")
-        map = {
-            Path(value.filename).stem: key
-            for key, value in consensus_map.getColumnHeaders().items()
-        }
-        for file in ms_files:
-            if file.exists():
-                key = map[file.stem]
-                id_list = []
-                content = file.read_text()
-                for cf in consensus_map:
-                    # get a map with map index and feature id for each consensus feature -> get the feature id key exists
-                    f_map = {
-                        fh.getMapIndex(): fh.getUniqueId()
-                        for fh in cf.getFeatureList()
-                    }
-                    if key in f_map.keys():
-                        f_id = str(f_map[key])
-                    else:
-                        f_id = ""
-                    if f_id and f_id in content:
-                        id_list.append(f_id)
-                    else:
-                        id_list.append("")
-                df[file.stem + "_SiriusID"] = id_list
+    # annotate original feature IDs
+    fnames = [Path(value.filename).name for value in consensus_map.getColumnHeaders().values()]
+
+    ids = [[] for _ in fnames]
+
+    for cf in consensus_map:
+        fids = {f.getMapIndex(): f.getUniqueId() for f in cf.getFeatureList()}
+        for i, fname in enumerate(fnames):
+            if i in fids.keys():
+                ids[i].append(str(fids[i]))
+            else:
+                ids[i].append(pd.NA)
+
+    for i, f in enumerate(fnames):
+        df[f"{fnames[i]}_IDs"] = ids[i]
+
+    # Rename columns to not show full file path
     df = df.rename(columns={col: Path(col).name for col in df.columns if Path(col).exists()})
+    
+    # TODO: check if MapAligner needs second map
     if "second-feature-map.mzML" in df.columns:
         df = df.drop(columns=["second-feature-map.mzML"])
+    
     df = df.reset_index(drop=True)
+    df.index = df.index + 1
     df.index.name = "id"
     path = Path(params["out"][0])
     df.to_parquet(path)

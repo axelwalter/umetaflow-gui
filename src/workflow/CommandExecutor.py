@@ -24,6 +24,8 @@ class CommandExecutor:
         self.pid_dir = Path(workflow_dir, "pids")
         self.logger = logger
         self.parameter_manager = parameter_manager
+        self.log_commands = False
+        self.log_tool_outputs = False
 
     def run_multiple_commands(
         self, commands: list[str], write_log: bool = True
@@ -40,9 +42,10 @@ class CommandExecutor:
                                         a command and its arguments.
             write_log (bool): If True, logs the execution details and outcomes of the commands.
         """
-        # Log the start of command execution
-        self.logger.log(f"Running {len(commands)} commands in parallel...")
-        start_time = time.time()
+        if self.log_commands:
+            # Log the start of command execution
+            self.logger.log(f"Running {len(commands)} commands in parallel...")
+            start_time = time.time()
 
         # Initialize a list to keep track of threads
         threads = []
@@ -58,10 +61,11 @@ class CommandExecutor:
             thread.join()
 
         # Calculate and log the total execution time
-        end_time = time.time()
-        self.logger.log(
-            f"Total time to run {len(commands)} commands: {end_time - start_time:.2f} seconds"
-        )
+        if self.log_commands:
+            end_time = time.time()
+            self.logger.log(
+                f"Total time to run {len(commands)} commands: {end_time - start_time:.2f} seconds"
+            )
 
     def run_command(self, command: list[str], write_log: bool = True) -> None:
         """
@@ -76,11 +80,11 @@ class CommandExecutor:
         """
         # Ensure all command parts are strings
         command = [str(c) for c in command]
-        
-        # Log the execution start
-        self.logger.log(f"Running command:\n"+' '.join(command)+"\nWaiting for command to finish...")
-        
-        start_time = time.time()
+
+        if self.log_commands or write_log:
+            # Log the execution start
+            self.logger.log(f"Running command:\n"+' '.join(command)+"\nWaiting for command to finish...")   
+            start_time = time.time()
         
         # Execute the command
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -96,25 +100,25 @@ class CommandExecutor:
         
         # Cleanup PID file
         pid_file_path.unlink()
-        
-        end_time = time.time()
-        execution_time = end_time - start_time
-        
-        # Format the logging prefix
-        self.logger.log(f"Process finished:\n"+' '.join(command)+f"\nTotal time to run command: {execution_time:.2f} seconds")
+
+        if self.log_commands or write_log:
+            end_time = time.time()
+            execution_time = end_time - start_time
+            # Format the logging prefix
+            self.logger.log(f"Process finished:\n"+' '.join(command)+f"\nTotal time to run command: {execution_time:.2f} seconds")
         
         # Log stdout if present
-        if stdout and write_log:
+        if stdout and (self.log_tool_outputs or write_log):
             self.logger.log(stdout.decode())
         
         # Log stderr and raise an exception if errors occurred
         if stderr or process.returncode != 0:
             error_message = stderr.decode().strip()
-            if write_log:
+            if self.log_tool_outputs or write_log:
                 self.logger.log(f"ERRORS OCCURRED:\n{error_message}")
                 raise Exception(f"Errors occurred while running command: {' '.join(command)}\n{error_message}")
 
-    def run_topp(self, tool: str, input_output: dict, write_log: bool = True) -> None:
+    def run_topp(self, tool: str, input_output: dict, custom_params: dict = {}, write_log: bool = False) -> None:
         """
         Constructs and executes commands for the specified tool OpenMS TOPP tool based on the given
         input and output configurations. Ensures that all input/output file lists
@@ -131,6 +135,7 @@ class CommandExecutor:
         Args:
             tool (str): The executable name or path of the tool.
             input_output (dict): A dictionary specifying the input/output parameter names (as key) and their corresponding file paths (as value).
+            custom_params (dict): A dictionary of custom parameters to pass to the tool.
             write_log (bool): If True, enables logging of command execution details.
 
         Raises:
@@ -179,6 +184,14 @@ class CommandExecutor:
                         command += v.split("\n")
                     else:
                         command += [str(v)]
+            # Add custom parameters
+            for k, v in custom_params.items():
+                command += [f"-{k}"]
+                if v:
+                    if isinstance(v, list):
+                        command += [str(x) for x in v]
+                    else:
+                        command += [str(v)]
             commands.append(command)
 
             # check if a ini file has been written, if yes use it (contains custom defaults)
@@ -210,7 +223,7 @@ class CommandExecutor:
         shutil.rmtree(self.pid_dir, ignore_errors=True)
         self.logger.log("Workflow stopped.")
 
-    def run_python(self, script_file: str, input_output: dict = {}, write_log: bool = True) -> None:
+    def run_python(self, script_file: str, input_output: dict = {}, write_log: bool = False) -> None:
         """
         Executes a specified Python script with dynamic input and output parameters,
         optionally logging the execution process. The method identifies and loads

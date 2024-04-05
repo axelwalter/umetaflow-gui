@@ -2,6 +2,7 @@ import os
 import csv
 from pathlib import Path
 import pandas as pd
+import numpy as np
 from pyopenms import *
 from .common import reset_directory
 

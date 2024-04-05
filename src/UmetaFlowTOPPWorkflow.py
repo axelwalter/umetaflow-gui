@@ -2,6 +2,9 @@ import streamlit as st
 from pathlib import Path
 from .workflow.WorkflowManager import WorkflowManager
 
+# tmp imports
+import pandas as pd
+
 
 class Workflow(WorkflowManager):
     # Setup pages for upload, parameter, execution and results.
@@ -47,7 +50,12 @@ class Workflow(WorkflowManager):
                 ]
             )
             with t[0]:
-                self.ui.input_widget("correct-precursor", True, "correct precursor mass to highest intensity peak", help="Correct precursor mass to highest intensity MS peak peak.")
+                self.ui.input_widget(
+                    "correct-precursor",
+                    True,
+                    "correct precursor mass to highest intensity peak",
+                    help="Correct precursor mass to highest intensity MS peak peak.",
+                )
                 self.ui.input_TOPP(
                     "HighResPrecursorMassCorrector",
                     include_parameters=[
@@ -62,8 +70,9 @@ class Workflow(WorkflowManager):
                     exclude_parameters=["report_convex_hulls", "quant_method"],
                     custom_defaults={
                         "algorithm:common:noise_threshold_int": 1000.0,
-                        "algorithm:ffm:remove_single_traces": "true"
-                    }
+                        "algorithm:ffm:remove_single_traces": "true",
+                        "algorithm:ffm:report_convex_hulls": "true",
+                    },
                 )
             with t[2]:
                 # A single checkbox widget for workflow logic.
@@ -82,7 +91,9 @@ class Workflow(WorkflowManager):
                     "enable **map alignement**",
                     help="Align features to a reference map using the OpenMS TOPP tool *MapAlignerPoseClustering*.",
                 )
-                self.ui.input_TOPP("MapAlignerPoseClustering", exclude_parameters=["index"])
+                self.ui.input_TOPP(
+                    "MapAlignerPoseClustering", exclude_parameters=["index"]
+                )
             with t[4]:
                 self.ui.input_TOPP(
                     "FeatureLinkerUnlabeledKD",
@@ -118,6 +129,14 @@ class Workflow(WorkflowManager):
             st.warning("Not implemented yet")
 
     def execution(self) -> None:
+        # Set log levels from st.session_state
+        if st.session_state["log_level"] in [
+            "commands and execution times",
+            "show all",
+        ]:
+            self.executor.log_commands = True
+        if st.session_state["log_level"] in ["tool outputs", "show all"]:
+            self.executor.log_tool_outputs = True
         # Get mzML input files from self.params.
         mzML = self.file_manager.get_files(self.params["mzML-files"])
 
@@ -126,96 +145,259 @@ class Workflow(WorkflowManager):
 
         # Precursor m/z correction to highest intensity MS1 peak
         if self.params["correct-precursor"]:
+            self.logger.log("Correcting precursor m/z to highest intensity MS1 peak.")
             mzML_pmc = self.file_manager.get_files(mzML, "mzML", "mzML-pmc")
             self.executor.run_topp(
-                "HighResPrecursorMassCorrector", {"in": mzML, "out": mzML_pmc}, write_log=False
+                "HighResPrecursorMassCorrector",
+                {"in": mzML, "out": mzML_pmc},
             )
             mzML = mzML_pmc
 
         # Feature Detection
-        ffm = self.file_manager.get_files(
-            mzML, "featureXML", "feature-detection"
-        )
+        self.logger.log("Detecting features.")
+        ffm = self.file_manager.get_files(mzML, "featureXML", "feature-detection")
         self.executor.run_topp(
-            "FeatureFinderMetabo", input_output={"in": mzML, "out": ffm}, write_log=False
+            "FeatureFinderMetabo",
+            input_output={
+                "in": mzML,
+                "out": ffm,
+                "out_chrom": self.file_manager.get_files(
+                    mzML, set_results_dir="ffm-chroms"
+                ),
+            },
         )
 
         # Adduct Detection
+        self.logger.log("Detecting adducts.")
         if self.params["adduct-detection"]:
             # Run MetaboliteAdductDecharger for adduct detection, with disabled logs.
             self.executor.run_topp(
                 "MetaboliteAdductDecharger",
                 {"in": ffm, "out_fm": ffm},
-                write_log=False,
             )
-        
+
         # Map Alignement
         if self.params["map-alignement"]:
-            trafos = self.file_manager.get_files(ffm, "trafoXML", "trafos", collect=True)
+            self.logger.log("Aligning feature maps.")
+            trafos = self.file_manager.get_files(
+                ffm, "trafoXML", "trafos", collect=True
+            )
             # Run MapAlignerPoseClustering for map alignement, with disabled logs.
             self.executor.run_topp(
                 "MapAlignerPoseClustering",
-                {"in": self.file_manager.get_files(ffm, collect=True), "out": self.file_manager.get_files(ffm, collect=True), "trafo_out": trafos},
-                write_log=False,
+                {
+                    "in": self.file_manager.get_files(ffm, collect=True),
+                    "out": self.file_manager.get_files(ffm, collect=True),
+                    "trafo_out": trafos,
+                },
             )
+            self.logger.log("Transforming mzML files based on map alignement.")
             # Transform mzML files
             self.executor.run_topp(
                 "MapRTTransformer",
-                {"in": mzML, "out": mzML, "trafo_in": self.file_manager.get_files(trafos)},
-                write_log=False,
+                {
+                    "in": mzML,
+                    "out": mzML,
+                    "trafo_in": self.file_manager.get_files(trafos),
+                },
             )
 
+        # Export FFM feature maps to dataframes (including chromatograms)
+        self.executor.run_python("export_ffm_df", {"in": ffm})
+
         # Feature Linking and Export to pd.DataFrame
-        consensusXML = self.file_manager.get_files("feature-matrix", "consensusXML", "feature-linker")
+        self.logger.log("Linking features.")
+        consensusXML = self.file_manager.get_files(
+            "feature-matrix", "consensusXML", "feature-linker"
+        )
         self.executor.run_topp(
             "FeatureLinkerUnlabeledKD",
             {"in": self.file_manager.get_files(ffm, collect=True), "out": consensusXML},
-            write_log=False,
         )
-        
+
         # Export to DataFrame
-        consensus_df = self.file_manager.get_files("feature-matrix", "parquet", "consensus-dfs")
-        self.executor.run_python("export_consensus_df", {"in": consensusXML, "out": consensus_df})
-        
+        consensus_df = self.file_manager.get_files(
+            "feature-matrix", "parquet", "consensus-dfs"
+        )
+
+        self.executor.run_python(
+            "export_consensus_df", {"in": consensusXML, "out": consensus_df}
+        )
+
         # Requantify features with missing values
         if self.params["requantify"]:
-            # Prepara library
-            ffmid_library = self.file_manager.get_files("library", "tsv", "ffmid-library")
-            consensus_df_ffm_complete = self.file_manager.get_files("consensus-df-ffm-complete", "parquet", "consensus-dfs")
-            self.executor.run_python("generate_FFMID_library", {"in":  consensus_df, "out": ffmid_library, "out_ffm": consensus_df_ffm_complete})
+            self.logger.log("Re-quantifying features with missing values.")
+            # Prepare library
+            ffmid_library = self.file_manager.get_files(
+                "library", "tsv", "ffmid-library"
+            )
+            consensus_df_ffm_complete = self.file_manager.get_files(
+                "consensus-df-ffm-complete", "parquet", "consensus-dfs"
+            )
+            self.executor.run_python(
+                "generate_FFMID_library",
+                {
+                    "in": consensus_df,
+                    "out": ffmid_library,
+                    "out_ffm": consensus_df_ffm_complete,
+                },
+            )
 
-            # run FeatureFinderMetaboIdent
+            # Run FeatureFinderMetaboIdent
             ffmid = self.file_manager.get_files(mzML, "featureXML", "ffmid-features")
             self.executor.run_topp(
                 "FeatureFinderMetaboIdent",
                 {"in": mzML, "out": ffmid, "id": ffmid_library},
-                write_log=False,
             )
-            
+
             # Perform Adduct detection on re-quantified features
+            self.logger.log("Detecting adducts for re-quantified features.")
             if self.params["adduct-detection"]:
                 # Run MetaboliteAdductDecharger for adduct detection.
                 self.executor.run_topp(
                     "MetaboliteAdductDecharger",
                     {"in": ffmid, "out_fm": ffmid},
-                    write_log=False,
                 )
-            
+
+            # Export re-quantified feature maps to dataframes (including chromatograms)
+            self.executor.run_python("export_ffmid_df", {"in": ffmid})
+
             # Link re-quantified features
-            consensusXML_ffmid = self.file_manager.get_files("feature-matrix-ffmid", "consensusXML", "feature-linker")
+            consensusXML_ffmid = self.file_manager.get_files(
+                "feature-matrix-ffmid", "consensusXML", "feature-linker"
+            )
             self.executor.run_topp(
                 "FeatureLinkerUnlabeledKD",
-                {"in": self.file_manager.get_files(ffmid, collect=True), "out": consensusXML_ffmid},
-                write_log=False,
+                {
+                    "in": self.file_manager.get_files(ffmid, collect=True),
+                    "out": consensusXML_ffmid,
+                },
             )
-            
+
             # Export to DataFrame
-            consensus_df_ffmid = self.file_manager.get_files("consensus-df-ffmid", "parquet", "consensus-dfs")
-            self.executor.run_python("export_consensus_df", {"in": consensusXML_ffmid, "out": consensus_df_ffmid})
+            consensus_df_ffmid = self.file_manager.get_files(
+                "feature-matrix-ffmid", "parquet", "consensus-dfs"
+            )
+            self.executor.run_python(
+                "export_consensus_df",
+                {"in": consensusXML_ffmid, "out": consensus_df_ffmid},
+            )
 
             # Merge consensus_df and consensus_df_ffmid
-            self.executor.run_python("merge_consensus_df", {"in": [consensus_df_ffm_complete, consensus_df_ffmid], "out": consensus_df})
-                        
+            self.executor.run_python(
+                "merge_consensus_df",
+                {
+                    "in": [consensus_df_ffm_complete, consensus_df_ffmid],
+                    "out": consensus_df,
+                },
+            )
+
+            # Merge feature maps from FFM and FFMID from merged consensus table
+            self.executor.run_python(
+                "merge_ffm_ffmid_df",
+                {
+                    "in": consensus_df,
+                },
+            )
+
+            # for SIRIUS we need individual Feature Maps recreated from merged feature matrix
+            # for GNPS we need ConsensusMap generated from merged feature matrix (or link again)
+
+        if self.params["export-sirius"] or self.params["export-gnps"]:
+
+            if self.params["requantify"]:
+                # Re-create feature maps from consensus df
+                self.executor.run_python(
+                    "recreate_feature_maps",
+                    {"in": str(Path(self.file_manager.workflow_dir, "results"))},
+                )
+
+                # Ensure mzML and featureXML file paths are ordered the same for SiriusExport and GNPSExport
+                ffm = sorted(
+                    [
+                        str(p)
+                        for p in Path(
+                            Path(consensus_df[0]).parent.parent,
+                            "feature-maps-recreated",
+                        ).glob("*.featureXML")
+                    ]
+                )
+                mzML = sorted(mzML)
+
+            # TODO: how to deal with number of masstraces??
+            if self.params["export-sirius"]:
+                self.logger.log("Exporting input files for SIRIUS.")
+                self.executor.run_topp(
+                    "SiriusExport",
+                    {
+                        "in": mzML,
+                        "in_featureinfo": ffm,
+                        "out": self.file_manager.get_files(mzML, "ms", "sirius-export"),
+                    },
+                )
+        if self.params["export-gnps"]:
+            self.logger.log("Exporting input files for GNPS.")
+            # Map MS2 specs to features
+            self.executor.run_topp(
+                "IDMapper",
+                {
+                    "in": ffm,
+                    "spectra:in": mzML,
+                    "out": ffm,
+                    "id": self.file_manager.get_files(
+                        str(Path("assets", "empty.idXML"))
+                    ),
+                },
+            )
+            # Link features with MS2 info
+            gnps_consensus = self.file_manager.get_files(
+                "feature-matrix", "consensusXML", "gnps-consensus"
+            )
+            self.executor.run_topp(
+                "FeatureLinkerUnlabeledKD",
+                {
+                    "in": self.file_manager.get_files(ffm, collect=True),
+                    "out": gnps_consensus,
+                },
+            )
+            # Filter consensus features which have missing values
+            self.executor.run_topp(
+                "FileFilter",
+                {"in": gnps_consensus, "out": gnps_consensus},
+                custom_params={"id:remove_unannotated_features": ""},
+            )
+
+            # Run GNPSExport
+            self.executor.run_topp(
+                "GNPSExport",
+                {
+                    "in_cm": gnps_consensus,
+                    "in_mzml": self.file_manager.get_files(mzML, collect=True),
+                    "out": self.file_manager.get_files("MS2", "mgf", "gnps-export"),
+                    "out_quantification": self.file_manager.get_files(
+                        "feature-quantification", "txt", "gnps-export"
+                    ),
+                    "out_pairs": self.file_manager.get_files(
+                        "pairs", "csv", "gnps-export"
+                    ),
+                    "out_meta_values": self.file_manager.get_files(
+                        "meta-values", "tsv", "gnps-export"
+                    ),
+                },
+            )
 
     def results(self) -> None:
-        st.warning("Not implemented yet.")
+
+        # @st.cache_data
+        def load_parquet(file):
+            if Path(file).exists():
+                return pd.read_parquet(file)
+            else:
+                return pd.DataFrame()
+
+        df = load_parquet(
+            self.file_manager.get_files("feature-matrix", "parquet", "consensus-dfs")[0]
+        )
+
+        st.markdown("### Feature Matrix")
+        st.dataframe(df)

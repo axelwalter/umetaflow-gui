@@ -40,6 +40,9 @@ if __name__ == "__main__":
     df_ffm = pd.read_parquet(params["in"][0])
     df_ffmid = pd.read_parquet(params["in"][1])
     
+    df_ffm["re-quantified"] = False
+    df_ffmid["re-quantified"] = True
+    
     df = pd.concat([df_ffm, df_ffmid]).reset_index(drop=True)
     df.index.name = "id"
     

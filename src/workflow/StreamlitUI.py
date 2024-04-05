@@ -689,18 +689,20 @@ class StreamlitUI:
         self.parameter_manager.save_parameters()
 
     def execution_section(self, start_workflow_function) -> None:
+        c1, c2 = st.columns(2)
+        c1.selectbox("log details", ["minimal", "commands and execution times", "tool outputs", "show all"], index=1, key="log_level")
+        c2.markdown("##")
         if self.executor.pid_dir.exists():
-            if st.button("Stop Workflow", type="primary", use_container_width=True):
+            if c2.button("Stop Workflow", type="primary", use_container_width=True):
                 self.executor.stop()
                 st.rerun()
         else:
-            st.button(
+            c2.button(
                 "Start Workflow",
                 type="primary",
                 use_container_width=True,
                 on_click=start_workflow_function,
             )
-
         if self.logger.log_file.exists():
             if self.executor.pid_dir.exists():
                 with st.spinner("**Workflow running...**"):

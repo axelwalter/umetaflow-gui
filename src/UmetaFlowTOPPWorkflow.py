@@ -2,8 +2,10 @@ import streamlit as st
 from pathlib import Path
 from .workflow.WorkflowManager import WorkflowManager
 
+from src.common import show_fig
 # tmp imports
 import pandas as pd
+import plotly.graph_objects as go
 
 
 class Workflow(WorkflowManager):
@@ -360,6 +362,11 @@ class Workflow(WorkflowManager):
                     "out": gnps_consensus,
                 },
             )
+            # Export to dataframe
+            self.executor.run_python(
+                "export_consensus_df",
+                {"in": gnps_consensus, "out": consensus_df},
+            )
             # Filter consensus features which have missing values
             self.executor.run_topp(
                 "FileFilter",
@@ -394,10 +401,61 @@ class Workflow(WorkflowManager):
                 return pd.read_parquet(file)
             else:
                 return pd.DataFrame()
+        
+        tabs = st.tabs(["📁 **Feature Matrix**", "📁 Sample Features", "📊 **Chromatograms**"])
+        
+        with tabs[0]:
+            df_feature_matrix = load_parquet(
+                self.file_manager.get_files("feature-matrix", "parquet", "consensus-dfs")[0],
+            )
 
-        df = load_parquet(
-            self.file_manager.get_files("feature-matrix", "parquet", "consensus-dfs")[0]
-        )
+            st.dataframe(df_feature_matrix)
+        with tabs[1]:
+            feature_dfs = Path(self.workflow_dir, "results", "feature-dfs").iterdir()
+            feature_file = st.selectbox("Select feature file", feature_dfs, format_func=lambda x: x.stem)
 
-        st.markdown("### Feature Matrix")
-        st.dataframe(df)
+            df = load_parquet(feature_file)
+            st.dataframe(df)
+        with tabs[2]:
+            metabolite = st.selectbox("Select metabolite", df_feature_matrix["metabolite"])
+            # Get index of row in df_feature_matrix where "metabolite" is equal to metabolite
+            index = df_feature_matrix[df_feature_matrix["metabolite"] == metabolite].index[0]
+            samples = [col.replace(".mzML_IDs", "") for col in df_feature_matrix.columns if col.endswith("mzML_IDs")]
+            dfs = []
+            for sample in samples:
+                # Get feature ID for sample
+                fid = df_feature_matrix.loc[index, sample+".mzML_IDs"]
+                path = Path(self.workflow_dir, "results", "feature-dfs", sample+".parquet")
+                dfs.append(load_parquet(path).loc[[fid]])
+            df = pd.concat(dfs)
+            df["sample"] = samples
+            df["chrom_RT"] = df["chrom_RT"].apply(lambda x: x[0])
+            df["chrom_intensity"] = df["chrom_intensity"].apply(lambda x: x[0])
+            st.write(df)
+
+            def plot_feature_chromatogram(df):
+                # Create an empty figure
+                fig = go.Figure()
+
+                # Loop through each row in the DataFrame and add a line trace for each
+                for index, row in df.iterrows():
+                    fig.add_trace(go.Scatter(
+                        x=row["chrom_RT"],  # Assuming chrom_RT is a list of values
+                        y=row["chrom_intensity"],  # Assuming chrom_intensity is a list of values
+                        mode='lines',  # Line plot
+                        name=row['sample']  # Giving each line a name based on its index
+                    ))
+
+                # Update layout of the figure
+                fig.update_layout(
+                    title="Monoisotopic Peak Chromatogram",
+                    xaxis_title="retention time (s)",
+                    yaxis_title="intensity (counts per econd)",
+                    plot_bgcolor="rgb(255,255,255)",
+                    template="plotly_white"
+                )
+                
+                return fig
+
+            show_fig(plot_feature_chromatogram(df), f"chromatograms_{metabolite}")
+        

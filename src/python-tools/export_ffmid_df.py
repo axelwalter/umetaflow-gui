@@ -3,6 +3,7 @@ import sys
 import pyopenms as poms
 from pathlib import Path
 import pandas as pd
+import numpy as np
 
 ############################
 # default paramter values #
@@ -78,4 +79,8 @@ if __name__ == "__main__":
         
         df["re-quantified"] = True
         
+        df["quality ranked"] = np.linspace(0, 1, len(df))  # Generate ranks
+        
+        df = df.sort_values("quality ranked", ascending=False)
+
         df.to_parquet(Path(out_path, file.stem + ".parquet"))

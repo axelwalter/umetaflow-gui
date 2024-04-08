@@ -3,6 +3,7 @@ import sys
 import pyopenms as poms
 from pathlib import Path
 import pandas as pd
+import numpy as np
 
 ############################
 # default paramter values #
@@ -98,6 +99,19 @@ if __name__ == "__main__":
     df = df.reset_index(drop=True)
     df.index = df.index + 1
     df.index.name = "id"
+    
+    # # Get info if requantified or not from one (first) of the feature maps
+    # df["re-quantified"] = df[[c for c in df.columns if c.endswith("_IDs")]].apply(lambda x: x.isna().any(), axis=1)
+
+    # # Function to generate evenly spaced ranks
+    # def generate_ranks(group):
+    #     group = group.sort_values("quality")  # Sort by quality
+    #     group["quality ranked"] = np.linspace(0, 1, len(group))  # Generate ranks
+    #     return group
+
+    # # Apply the function to each group and concatenate the results
+    # df = df.groupby("re-quantified").apply(generate_ranks).sort_values("quality ranked", ascending=False)
+
     path = Path(params["out"][0])
     df.to_parquet(path)
     # save additionally as tsv file

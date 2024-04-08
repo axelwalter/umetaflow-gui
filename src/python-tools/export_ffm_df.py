@@ -41,7 +41,6 @@ if __name__ == "__main__":
     if not out_path.exists():
         out_path.mkdir(exist_ok=True)
     for file in Path(params["in"][0]).parent.glob("*.featureXML"):
-        print(file)
         fm = poms.FeatureMap()
         poms.FeatureXMLFile().load(str(file), fm)
         # Get DataFrame with meta values
@@ -64,11 +63,10 @@ if __name__ == "__main__":
             tmp_inty = []
             for fc in f_chroms:
                 iso = int(fc.getNativeID().split("_")[1])
-                chrom_rts, chrom_intys = fc.get_peaks()
-                tmp_rt.append(chrom_rts)
-                tmp_inty.append(chrom_intys)
-            rts.append(tmp_rt)
-            intys.append(tmp_inty)
+                if iso == 0:
+                    chrom_rts, chrom_intys = fc.get_peaks()
+                    rts.append(chrom_rts)
+                    intys.append(chrom_intys)
 
         df["chrom_RT"] = rts
         df["chrom_intensity"] = intys

@@ -402,60 +402,83 @@ class Workflow(WorkflowManager):
             else:
                 return pd.DataFrame()
         
-        tabs = st.tabs(["📁 **Feature Matrix**", "📁 Sample Features", "📊 **Chromatograms**"])
+        tabs = st.tabs(["📁 **Feature Matrix**", "📊 **Chromatograms**", "📁 Samples"])
         
-        with tabs[0]:
-            df_feature_matrix = load_parquet(
-                self.file_manager.get_files("feature-matrix", "parquet", "consensus-dfs")[0],
-            )
-
-            st.dataframe(df_feature_matrix)
-        with tabs[1]:
-            feature_dfs = Path(self.workflow_dir, "results", "feature-dfs").iterdir()
-            feature_file = st.selectbox("Select feature file", feature_dfs, format_func=lambda x: x.stem)
-
-            df = load_parquet(feature_file)
-            st.dataframe(df)
-        with tabs[2]:
-            metabolite = st.selectbox("Select metabolite", df_feature_matrix["metabolite"])
-            # Get index of row in df_feature_matrix where "metabolite" is equal to metabolite
-            index = df_feature_matrix[df_feature_matrix["metabolite"] == metabolite].index[0]
-            samples = [col.replace(".mzML_IDs", "") for col in df_feature_matrix.columns if col.endswith("mzML_IDs")]
-            dfs = []
-            for sample in samples:
-                # Get feature ID for sample
-                fid = df_feature_matrix.loc[index, sample+".mzML_IDs"]
-                path = Path(self.workflow_dir, "results", "feature-dfs", sample+".parquet")
-                dfs.append(load_parquet(path).loc[[fid]])
-            df = pd.concat(dfs)
-            df["sample"] = samples
-            df["chrom_RT"] = df["chrom_RT"].apply(lambda x: x[0])
-            df["chrom_intensity"] = df["chrom_intensity"].apply(lambda x: x[0])
-            st.write(df)
-
-            def plot_feature_chromatogram(df):
-                # Create an empty figure
-                fig = go.Figure()
-
-                # Loop through each row in the DataFrame and add a line trace for each
-                for index, row in df.iterrows():
-                    fig.add_trace(go.Scatter(
-                        x=row["chrom_RT"],  # Assuming chrom_RT is a list of values
-                        y=row["chrom_intensity"],  # Assuming chrom_intensity is a list of values
-                        mode='lines',  # Line plot
-                        name=row['sample']  # Giving each line a name based on its index
-                    ))
-
-                # Update layout of the figure
-                fig.update_layout(
-                    title="Monoisotopic Peak Chromatogram",
-                    xaxis_title="retention time (s)",
-                    yaxis_title="intensity (counts per econd)",
-                    plot_bgcolor="rgb(255,255,255)",
-                    template="plotly_white"
-                )
+        df_matrix = load_parquet(
+            self.file_manager.get_files("feature-matrix", "parquet", "consensus-dfs")[0],
+        )
+        if not df_matrix.empty:
+            with tabs[0]:
+                c1, c2 = st.columns(2)
+                c1.metric("Number of samples", len([col for col in df_matrix.columns if col.endswith(".mzML")]))
+                c2.metric("Number of features", len(df_matrix))
+                st.dataframe(df_matrix, column_order=[col for col in df_matrix.columns if "_IDs" not in col], hide_index=True)
+            with tabs[1]:
+                c1, _, _ = st.columns(3)
+                metabolite = c1.selectbox("Select metabolite", df_matrix["metabolite"])
                 
-                return fig
+                @st.cache_data
+                def get_chroms_for_each_sample(metabolite):
+                    # Get index of row in df_matrix where "metabolite" is equal to metabolite
+                    index = df_matrix[df_matrix["metabolite"] == metabolite].index[0]
+                    all_samples = [col.replace(".mzML_IDs", "") for col in df_matrix.columns if col.endswith("mzML_IDs")]
+                    dfs = []
+                    samples = []
+                    for sample in all_samples:
+                        # Get feature ID for sample
+                        fid = df_matrix.loc[index, sample+".mzML_IDs"]
+                        path = Path(self.workflow_dir, "results", "feature-dfs", sample+".parquet")
+                        f_df = load_parquet(path)
+                        if fid in f_df.index:
+                            dfs.append(f_df.loc[[fid]])
+                            samples.append(sample)
+                    df = pd.concat(dfs)
+                    df["sample"] = samples
+                    return df
 
-            show_fig(plot_feature_chromatogram(df), f"chromatograms_{metabolite}")
-        
+                @st.cache_resource
+                def plot_feature_chromatogram(df):
+                    # Create an empty figure
+                    fig = go.Figure()
+                    # Loop through each row in the DataFrame and add a line trace for each
+                    for _, row in df.iterrows():
+                        fig.add_trace(go.Scatter(
+                            x=row["chrom_RT"],  # Assuming chrom_RT is a list of values
+                            y=row["chrom_intensity"],  # Assuming chrom_intensity is a list of values
+                            mode='lines',  # Line plot
+                            name=row['sample']  # Giving each line a name based on its index
+                        ))
+                    # Update layout of the figure
+                    fig.update_layout(
+                        title=metabolite,
+                        xaxis_title="retention time (s)",
+                        yaxis_title="intensity (counts per second)",
+                        plot_bgcolor="rgb(255,255,255)",
+                        template="plotly_white",
+                        height=700,
+                        width=700,
+                        showlegend=True,
+                    )
+                    return fig
+
+                df = get_chroms_for_each_sample(metabolite)
+                show_fig(plot_feature_chromatogram(df), f"chromatograms_{metabolite}", container_width=False)
+                    
+                st.dataframe(df.set_index("sample"))
+            with tabs[2]:
+                c1, _, _ = st.columns(3)
+                feature_dfs = Path(self.workflow_dir, "results", "feature-dfs").iterdir()
+                feature_file = c1.selectbox("Select feature file", feature_dfs, format_func=lambda x: x.stem)
+                df = load_parquet(feature_file)
+                st.dataframe(df,
+                             hide_index=True,
+                             column_order=["metabolite", "chrom_intensity", "charge", "RT", "mz", "intensity", "num_of_masstraces", "adduct", "FWHM"],
+                             column_config={
+                            "chrom_intensity": st.column_config.LineChartColumn(
+                            "chromatogram",
+                            width="small"
+                            )},
+                             use_container_width=True,
+                             height=700),
+                
+            

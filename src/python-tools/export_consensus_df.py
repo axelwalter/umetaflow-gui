@@ -92,10 +92,6 @@ if __name__ == "__main__":
     # Rename columns to not show full file path
     df = df.rename(columns={col: Path(col).name for col in df.columns if Path(col).exists()})
     
-    # TODO: check if MapAligner needs second map
-    if "second-feature-map.mzML" in df.columns:
-        df = df.drop(columns=["second-feature-map.mzML"])
-    
     df = df.reset_index(drop=True)
     df.index = df.index + 1
     df.index.name = "id"

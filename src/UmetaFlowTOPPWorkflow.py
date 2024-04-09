@@ -145,6 +145,9 @@ class Workflow(WorkflowManager):
             # Construct full file paths
             mzML = [str(Path(st.session_state.workspace, "mzML-files", file_name)) for file_name in selected_files]
             
+        if len(mzML) == 1:
+            mzML = mzML + [mzML[0].replace(".mzML", "_duplicate.mzML")]
+            self.logger.log("WARNING: Running workflow with only one input file, duplicated mzML for worklfow to function properly.")
 
         # # Get mzML input files from self.params.
         # mzML = self.file_manager.get_files(self.params["mzML-files"])

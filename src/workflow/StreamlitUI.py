@@ -690,7 +690,7 @@ class StreamlitUI:
 
     def execution_section(self, start_workflow_function) -> None:
         c1, c2 = st.columns(2)
-        c1.selectbox("log details", ["minimal", "commands and execution times", "tool outputs", "show all"], key="log_level")
+        log_level = c1.selectbox("log details", ["minimal", "commands and run times", "all"], key="log_level")
         c2.markdown("##")
         if self.executor.pid_dir.exists():
             if c2.button("Stop Workflow", type="primary", use_container_width=True):
@@ -703,16 +703,17 @@ class StreamlitUI:
                 use_container_width=True,
                 on_click=start_workflow_function,
             )
-        if self.logger.log_file.exists():
+        log_path = Path(self.workflow_dir, "logs", log_level.replace(" ", "-") + ".log")
+        if log_path.exists():
             if self.executor.pid_dir.exists():
                 with st.spinner("**Workflow running...**"):
-                    with open(self.logger.log_file, "r", encoding="utf-8") as f:
+                    with open(log_path, "r", encoding="utf-8") as f:
                         st.code(f.read(), language="neon", line_numbers=True)
                     time.sleep(2)
                 st.rerun()
             else:
                 st.markdown("**Workflow log file**")
-                with open(self.logger.log_file, "r", encoding="utf-8") as f:
+                with open(log_path, "r", encoding="utf-8") as f:
                     st.code(f.read(), language="neon", line_numbers=True)
 
     def results_section(self, custom_results_function) -> None:

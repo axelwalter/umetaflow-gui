@@ -10,6 +10,7 @@ import importlib.util
 import time
 from io import BytesIO
 import zipfile
+import pandas as pd
 
 class StreamlitUI:
     """
@@ -689,6 +690,34 @@ class StreamlitUI:
         self.parameter_manager.save_parameters()
 
     def execution_section(self, start_workflow_function) -> None:
+        num_files = pd.read_csv(Path(st.session_state.workspace, 'mzML-files.tsv'), sep='\t')['use in workflows'].sum()
+        if num_files:
+            with st.expander("💡 **Parameter Summary**"):
+                summary_text = f"""
+number of mzML files: **{num_files}**
+        """     
+                tool_text = ""
+                for key, value in self.params.items():
+                    if not isinstance(value, dict):
+                        summary_text += f"""
+
+{key}: **{value}**                
+        """ 
+                    elif value:
+                        tool_text += f"""
+**{key}**:
+
+    """                 
+                        for k, v in value.items():
+                            tool_text += f"""
+{key}: **{v}**
+
+    """
+                c1, c2 = st.columns(2)
+                c1.info(summary_text)
+                c2.info(tool_text)
+        else:
+            st.warning("⚠️ **WARNING**: No mzML files selected")
         c1, c2 = st.columns(2)
         log_level = c1.selectbox("log details", ["minimal", "commands and run times", "all"], key="log_level")
         c2.markdown("##")

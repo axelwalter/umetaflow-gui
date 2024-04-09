@@ -25,26 +25,13 @@ class Workflow(WorkflowManager):
 
         tabs = st.tabs(
             [
-                "**mzML files**",
                 "**Pre-Processing**",
                 "Re-Quantification",
                 "Input Files for SIRIUS & GNPS",
                 "Annotation (MS1 & MS2)",
             ]
         )
-        # Create tabs for different analysis steps.
         with tabs[0]:
-            self.ui.input_widget(
-                "mzML-files",
-                [],
-                name="select mzML files",
-                options=[
-                    str(p)
-                    for p in Path(st.session_state.workspace, "mzML-files").iterdir()
-                ],
-                help="Select mzML files for the analysis.",
-            )
-        with tabs[1]:
             t = st.tabs(
                 [
                     "Precursor Mass Correction",
@@ -104,7 +91,7 @@ class Workflow(WorkflowManager):
                     "FeatureLinkerUnlabeledKD",
                     display_full_parameter_names=True,
                 )
-        with tabs[2]:
+        with tabs[1]:
             self.ui.input_widget(
                 "requantify",
                 False,
@@ -112,7 +99,7 @@ class Workflow(WorkflowManager):
                 help="Re-quantify missing values in consensus features using the OpenMS TOPP tool *FeatureFinderMetaboIdent*.",
             )
             self.ui.input_TOPP("FeatureFinderMetaboIdent")
-        with tabs[3]:
+        with tabs[2]:
             self.ui.input_widget(
                 "export-sirius",
                 False,
@@ -130,7 +117,7 @@ class Workflow(WorkflowManager):
                 self.ui.input_TOPP("SiriusExport")
             with t[1]:
                 self.ui.input_TOPP("GNPSExport")
-        with tabs[4]:
+        with tabs[3]:
             st.warning("Not implemented yet")
 
     def execution(self) -> None:
@@ -142,11 +129,29 @@ class Workflow(WorkflowManager):
             self.executor.log_commands = True
         if st.session_state["log_level"] in ["tool outputs", "show all"]:
             self.executor.log_tool_outputs = True
-        # Get mzML input files from self.params.
-        mzML = self.file_manager.get_files(self.params["mzML-files"])
+            
+            
+    #   # Get mzML files
+        df_path = Path(st.session_state.workspace, "mzML-files.tsv")
 
-        # Log any messages.
+        if not df_path.exists():
+            mzML = []
+        else:
+            df = pd.read_csv(df_path, sep="\t")
+
+            # Filter the DataFrame for files where "use in workflow" is True
+            selected_files = df[df["use in workflows"] == True]["file name"].tolist()
+            
+            # Construct full file paths
+            mzML = [str(Path(st.session_state.workspace, "mzML-files", file_name)) for file_name in selected_files]
+            
+
+        # # Get mzML input files from self.params.
+        # mzML = self.file_manager.get_files(self.params["mzML-files"])
+
+        # # Log any messages.
         self.logger.log(f"Number of input mzML files: {len(mzML)}")
+        self.logger.log(f"mzML files: {[Path(p).name for p in mzML]}")
 
         # Precursor m/z correction to highest intensity MS1 peak
         if self.params["correct-precursor"]:
@@ -404,12 +409,13 @@ class Workflow(WorkflowManager):
                 "📁 Samples",
             ]
         )
+        
+        consensus_df_file = Path(self.workflow_dir, "results", "consensus-dfs", "feature-matrix.parquet")
+        
+        if not consensus_df_file.exists():
+            return
 
-        df_matrix = load_parquet(
-            self.file_manager.get_files("feature-matrix", "parquet", "consensus-dfs")[
-                0
-            ],
-        )
+        df_matrix = load_parquet(consensus_df_file)
         def quality_colors(value):
             # Ensure the value is within the expected range
             value = max(0, min(1, value))
@@ -425,9 +431,6 @@ class Workflow(WorkflowManager):
                 red = 255 * ((1 - value) * 2)
                 
             return f"background-color: rgba({red}, {green}, 0, 0.3);"
-        
-        if df_matrix.empty:
-            return
 
 
         feature_df_dir = Path(self.file_manager.workflow_dir, "results", "feature-dfs")

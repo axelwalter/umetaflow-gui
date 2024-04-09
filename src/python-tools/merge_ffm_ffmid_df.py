@@ -1,9 +1,8 @@
 import json
 import sys
-import pyopenms as poms
 from pathlib import Path
 import pandas as pd
-import numpy as np
+import pyarrow
 
 ############################
 # default paramter values #
@@ -68,7 +67,7 @@ if __name__ == "__main__":
         )
         # Concat both dataframes
         df_merged = pd.concat([df_ffm, df_ffmid])
-        
+
         # Save dataframe
         df_merged.to_parquet(
             Path(

@@ -2,7 +2,6 @@ import json
 import sys
 import pyopenms as poms
 from pathlib import Path
-import pandas as pd
 import numpy as np
 
 ############################
@@ -67,8 +66,8 @@ if __name__ == "__main__":
             rts.append([float(x[0]) for x in f.getSubordinates()[0].getConvexHulls()[0].getHullPoints()])
             intys.append([int(y[1]) for y in f.getSubordinates()[0].getConvexHulls()[0].getHullPoints()])
         df["chrom_RT"] = rts
-        df["chrom_intensity"] = intys
-        
+        df["chrom_intensity"] = [[int(i) for i in chrom_int] for chrom_int in intys]
+
         df = df.rename(columns={
             "model_FWHM": "FWHM",
             "dc_charge_adducts": "adduct",

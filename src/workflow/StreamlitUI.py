@@ -690,7 +690,7 @@ class StreamlitUI:
 
     def execution_section(self, start_workflow_function) -> None:
         c1, c2 = st.columns(2)
-        c1.selectbox("log details", ["minimal", "commands and execution times", "tool outputs", "show all"], index=1, key="log_level")
+        c1.selectbox("log details", ["minimal", "commands and execution times", "tool outputs", "show all"], key="log_level")
         c2.markdown("##")
         if self.executor.pid_dir.exists():
             if c2.button("Stop Workflow", type="primary", use_container_width=True):

@@ -2,7 +2,6 @@ import json
 import sys
 import pyopenms as poms
 from pathlib import Path
-import pandas as pd
 import numpy as np
 
 ############################
@@ -70,7 +69,7 @@ if __name__ == "__main__":
                     intys.append(chrom_intys)
 
         df["chrom_RT"] = rts
-        df["chrom_intensity"] = intys
+        df["chrom_intensity"] = [[int(i) for i in chrom_int] for chrom_int in intys]
         
         df = df.rename(columns={
             "dc_charge_adducts": "adduct",

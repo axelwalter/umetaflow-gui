@@ -100,16 +100,17 @@ class Workflow(WorkflowManager):
             )
             self.ui.input_TOPP("FeatureFinderMetaboIdent")
         with tabs[2]:
+            st.markdown("**Export input files**")
             self.ui.input_widget(
                 "export-sirius",
                 False,
-                "export for SIRIUS",
+                "export files for SIRIUS",
                 help="Generate input files for SIRIUS from raw data and feature information using the OpenMS TOPP tool *SiriusExport*.",
             )
             self.ui.input_widget(
                 "export-gnps",
                 False,
-                "export for GNPS FBMN and IIMN",
+                "export files for GNPS FBMN and IIMN",
                 help="Generate input files for GNPS feature based molecular networking (FBMN) and ion identity molecular networking (IIMN) from raw data and feature information using the OpenMS TOPP tool *GNPSExport*.",
             )
             t = st.tabs(["**SIRIUS**", "**GNPS**"])
@@ -117,6 +118,10 @@ class Workflow(WorkflowManager):
                 self.ui.input_TOPP("SiriusExport")
             with t[1]:
                 self.ui.input_TOPP("GNPSExport")
+            st.markdown("**Run SIRIUS and annotate features**")
+            self.ui.input_widget("run-sirius", False, "run SIRIUS and annotate features")
+            self.ui.input_widget
+            t = st.tabs(["Formula prediction: SIRIUS", "Structure prediction: CSI : FingerID", "CANOPUS"])
         with tabs[3]:
             st.warning("Not implemented yet")
 
@@ -145,9 +150,9 @@ class Workflow(WorkflowManager):
             # Construct full file paths
             mzML = [str(Path(st.session_state.workspace, "mzML-files", file_name)) for file_name in selected_files]
             
-        if len(mzML) == 1:
-            mzML = mzML + [mzML[0].replace(".mzML", "_duplicate.mzML")]
-            self.logger.log("WARNING: Running workflow with only one input file, duplicated mzML for worklfow to function properly.")
+        if len(mzML) <= 1:
+            self.logger.log("ERROR: Select at leat two mzML files to run this workflow.")
+            return
 
         # # Get mzML input files from self.params.
         # mzML = self.file_manager.get_files(self.params["mzML-files"])
@@ -589,6 +594,7 @@ class Workflow(WorkflowManager):
             )
             if feature_file != "None":
                 df = load_parquet(feature_file).style.map(quality_colors, subset=["quality ranked"])
+                st.write(df.columns)
                 st.dataframe(
                     df,
                     hide_index=True,

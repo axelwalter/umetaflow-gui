@@ -691,7 +691,7 @@ class StreamlitUI:
 
     def execution_section(self, start_workflow_function) -> None:
         num_files = pd.read_csv(Path(st.session_state.workspace, 'mzML-files.tsv'), sep='\t')['use in workflows'].sum()
-        if num_files:
+        if num_files > 1:
             with st.expander("💡 **Parameter Summary**"):
                 summary_text = f"""
 number of mzML files: **{num_files}**
@@ -717,7 +717,8 @@ number of mzML files: **{num_files}**
                 c1.info(summary_text)
                 c2.info(tool_text)
         else:
-            st.warning("⚠️ **WARNING**: No mzML files selected")
+            st.warning("⚠️ Select at least **two** mzML files to run this workflow.")
+            return
         c1, c2 = st.columns(2)
         log_level = c1.selectbox("log details", ["minimal", "commands and run times", "all"], key="log_level")
         c2.markdown("##")

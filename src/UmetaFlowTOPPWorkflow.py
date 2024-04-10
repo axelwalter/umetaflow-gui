@@ -469,16 +469,15 @@ class Workflow(WorkflowManager):
             st.dataframe(
                 df_matrix,
                 column_order=[
-                    "metabolite",
                     "intensity",
                     # "quality ranked",
                     "RT",
                     "mz",
                     "charge",
                     "adduct",
-                    "re-quantified"
+                    "metabolite",
                 ],
-                hide_index=True,
+                hide_index=False,
                 column_config={
                     "intensity": st.column_config.BarChartColumn(
                         width="small",
@@ -594,12 +593,10 @@ class Workflow(WorkflowManager):
             )
             if feature_file != "None":
                 df = load_parquet(feature_file).style.map(quality_colors, subset=["quality ranked"])
-                st.write(df.columns)
                 st.dataframe(
                     df,
-                    hide_index=True,
+                    hide_index=False,
                     column_order=[
-                        "metabolite",
                         "chrom_intensity",
                         "quality ranked",
                         "charge",
@@ -610,6 +607,7 @@ class Workflow(WorkflowManager):
                         "adduct",
                         "FWHM",
                         "re-quantified",
+                        "metabolite",
                     ],
                     column_config={
                         "chrom_intensity": st.column_config.LineChartColumn(

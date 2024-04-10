@@ -405,6 +405,16 @@ class Workflow(WorkflowManager):
             else:
                 return pd.DataFrame()
 
+        
+        consensus_df_file = Path(self.workflow_dir, "results", "consensus-dfs", "feature-matrix.parquet")
+        
+        if not Path(self.workflow_dir, "results").exists():
+            st.info("No results yet.")
+            return
+        elif not consensus_df_file.exists():
+            st.error("No feature matrix found in results, please check log for errors.")
+            return
+
         tabs = st.tabs(
             [
                 "📁 **Feature Matrix**",
@@ -412,11 +422,6 @@ class Workflow(WorkflowManager):
                 "📁 Samples",
             ]
         )
-        
-        consensus_df_file = Path(self.workflow_dir, "results", "consensus-dfs", "feature-matrix.parquet")
-        
-        if not consensus_df_file.exists():
-            return
 
         df_matrix = load_parquet(consensus_df_file)
         def quality_colors(value):

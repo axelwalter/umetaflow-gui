@@ -105,7 +105,6 @@ class CommandExecutor:
         if stderr or process.returncode != 0:
             error_message = stderr.decode().strip()
             self.logger.log(f"ERRORS OCCURRED:\n{error_message}", 2)
-            raise Exception(f"Errors occurred while running command: {' '.join(command)}\n{error_message}", 2)
 
     def run_topp(self, tool: str, input_output: dict, custom_params: dict = {}) -> None:
         """

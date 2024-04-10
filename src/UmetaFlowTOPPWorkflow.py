@@ -402,6 +402,9 @@ class Workflow(WorkflowManager):
                     ),
                 },
             )
+        # ZIP all relevant files for Download
+        self.executor.run_python("zip-result-files", {"in": consensus_df})
+        
 
     def results(self) -> None:
         def load_parquet(file):
@@ -424,7 +427,8 @@ class Workflow(WorkflowManager):
             [
                 "📁 **Feature Matrix**",
                 "📊 **Chromatograms & Intensity Charts**",
-                "📁 Samples",
+                "📁 **Samples**",
+                "⬇️ Downloads",
             ]
         )
 
@@ -617,3 +621,14 @@ class Workflow(WorkflowManager):
                     use_container_width=True,
                     height=700,
                 ),
+
+        with tabs[3]:
+            if st.button("Prepare result files for download", type="primary"):
+                with open(Path(self.workflow_dir, "results", "results.zip"), "rb") as fp:
+                    st.download_button(
+                        label="Download Results",
+                        type="primary",
+                        data=fp,
+                        file_name="UmetaFlow-results.zip",
+                        mime="application/zip",
+                    )

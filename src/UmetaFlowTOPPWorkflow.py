@@ -27,8 +27,8 @@ class Workflow(WorkflowManager):
             [
                 "**Pre-Processing**",
                 "Re-Quantification",
-                "Input Files for SIRIUS & GNPS",
-                "Annotation (MS1 & MS2)",
+                "Input files for SIRIUS & GNPS",
+                "Annotation by in-house library",
             ]
         )
         with tabs[0]:
@@ -123,7 +123,14 @@ class Workflow(WorkflowManager):
             self.ui.input_widget
             t = st.tabs(["Formula prediction: SIRIUS", "Structure prediction: CSI : FingerID", "CANOPUS"])
         with tabs[3]:
-            st.warning("Not implemented yet")
+            t = st.tabs(["MS1", "MS2"])
+            with t[0]:
+                self.ui.input_widget("annotate-ms1", False, "annotate consensus features", help="Based on m/z and RT")
+                self.ui.simple_file_uploader("ms1-library", "tsv", "MS1 library in tsv format")
+                self.ui.input_python("annotate-ms1", num_cols=2)
+            with t[1]:
+                self.ui.input_widget("annotate-ms2", False, "annotate consensus features", help="Based on MS2 spectrum similarity.")
+                self.ui.simple_file_uploader("ms2-library", "mgf", "MS2 library in mgf format")
 
     def execution(self) -> None:
         # Set log levels from st.session_state
@@ -336,7 +343,6 @@ class Workflow(WorkflowManager):
             )
             mzML = sorted(mzML)
 
-        # TODO: how to deal with number of masstraces??
         if self.params["export-sirius"]:
             self.logger.log("Exporting input files for SIRIUS.")
             self.executor.run_topp(
@@ -402,6 +408,15 @@ class Workflow(WorkflowManager):
                     ),
                 },
             )
+            
+        # MS1 annotation
+        if self.params["annotate-ms1"]:
+            dir_path = Path(self.workflow_dir, "input-files", "ms1-library")
+            if dir_path.exists():
+                files = [p for p in Path(dir_path.iterdir())]
+                if files:
+                    self.executor.run_python("annotate-ms1", {"in": consensus_df, "in_lib": str(files[0])})
+        
         # ZIP all relevant files for Download
         self.executor.run_python("zip-result-files", {"in": consensus_df})
         

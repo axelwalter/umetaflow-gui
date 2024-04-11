@@ -413,8 +413,9 @@ class Workflow(WorkflowManager):
         if self.params["annotate-ms1"]:
             dir_path = Path(self.workflow_dir, "input-files", "ms1-library")
             if dir_path.exists():
-                files = [p for p in Path(dir_path.iterdir())]
+                files = [p for p in dir_path.iterdir()]
                 if files:
+                    self.logger.log("Annotating consensus features on MS1 level.")
                     self.executor.run_python("annotate-ms1", {"in": consensus_df, "in_lib": str(files[0])})
         
         # ZIP all relevant files for Download
@@ -489,11 +490,11 @@ class Workflow(WorkflowManager):
                 df_matrix,
                 column_order=[
                     "intensity",
-                    # "quality ranked",
                     "RT",
                     "mz",
                     "charge",
                     "adduct",
+                    "MS1 annotation",
                     "metabolite",
                 ],
                 hide_index=False,

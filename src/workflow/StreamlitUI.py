@@ -717,8 +717,8 @@ number of mzML files: **{num_files}**
                 if path.exists():
                     path = Path(path, "ms1-library")
                     if path.exists():
-                        files = [p for p in path.glob("*.tsv")]
-                        if any(files):
+                        files = [p for p in path.iterdir()]
+                        if files:
                             summary_text += f"""
 MS1 annotation library: **{files[0].name}**
 """

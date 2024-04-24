@@ -27,8 +27,9 @@ class Workflow(WorkflowManager):
             [
                 "**Pre-Processing**",
                 "Re-Quantification",
-                "Input files for SIRIUS & GNPS",
                 "Annotation by in-house library",
+                "SIRIUS",
+                "GNPS FBMN"
             ]
         )
         with tabs[0]:
@@ -100,29 +101,6 @@ class Workflow(WorkflowManager):
             )
             self.ui.input_TOPP("FeatureFinderMetaboIdent")
         with tabs[2]:
-            st.markdown("**Export input files**")
-            self.ui.input_widget(
-                "export-sirius",
-                False,
-                "export files for SIRIUS",
-                help="Generate input files for SIRIUS from raw data and feature information using the OpenMS TOPP tool *SiriusExport*.",
-            )
-            self.ui.input_widget(
-                "export-gnps",
-                False,
-                "export files for GNPS FBMN and IIMN",
-                help="Generate input files for GNPS feature based molecular networking (FBMN) and ion identity molecular networking (IIMN) from raw data and feature information using the OpenMS TOPP tool *GNPSExport*.",
-            )
-            t = st.tabs(["**SIRIUS**", "**GNPS**"])
-            with t[0]:
-                self.ui.input_TOPP("SiriusExport")
-            with t[1]:
-                self.ui.input_TOPP("GNPSExport")
-            st.markdown("**Run SIRIUS and annotate features**")
-            self.ui.input_widget("run-sirius", False, "run SIRIUS and annotate features")
-            self.ui.input_widget
-            t = st.tabs(["Formula prediction: SIRIUS", "Structure prediction: CSI : FingerID", "CANOPUS"])
-        with tabs[3]:
             t = st.tabs(["MS1", "MS2"])
             with t[0]:
                 self.ui.input_widget("annotate-ms1", False, "annotate consensus features", help="Based on m/z and RT")
@@ -131,19 +109,30 @@ class Workflow(WorkflowManager):
             with t[1]:
                 self.ui.input_widget("annotate-ms2", False, "annotate consensus features", help="Based on MS2 spectrum similarity.")
                 self.ui.simple_file_uploader("ms2-library", "mgf", "MS2 library in mgf format")
-
+                self.ui.input_TOPP("MetaboliteSpectralMatcher")
+        with tabs[3]:
+            self.ui.input_widget(
+                "export-sirius",
+                False,
+                "export files for SIRIUS",
+                help="Generate input files for SIRIUS from raw data and feature information using the OpenMS TOPP tool *SiriusExport*.",
+            )
+            self.ui.input_TOPP("SiriusExport")
+            # st.markdown("**Run SIRIUS and annotate features**")
+            # self.ui.input_widget("run-sirius", False, "run SIRIUS and annotate features")
+            # self.ui.input_widget
+            # t = st.tabs(["Formula prediction: SIRIUS", "Structure prediction: CSI : FingerID", "CANOPUS"])
+        with tabs[4]:
+            self.ui.input_widget(
+                "export-gnps",
+                False,
+                "export files for GNPS FBMN and IIMN",
+                help="Generate input files for GNPS feature based molecular networking (FBMN) and ion identity molecular networking (IIMN) from raw data and feature information using the OpenMS TOPP tool *GNPSExport*.",
+            )
+            self.ui.input_TOPP("GNPSExport")
+                
     def execution(self) -> None:
-        # Set log levels from st.session_state
-        if st.session_state["log_level"] in [
-            "commands and execution times",
-            "show all",
-        ]:
-            self.executor.log_commands = True
-        if st.session_state["log_level"] in ["tool outputs", "show all"]:
-            self.executor.log_tool_outputs = True
-            
-            
-    #   # Get mzML files
+        # Get mzML files
         df_path = Path(st.session_state.workspace, "mzML-files.tsv")
 
         if not df_path.exists():
@@ -157,7 +146,7 @@ class Workflow(WorkflowManager):
             # Construct full file paths
             mzML = [str(Path(st.session_state.workspace, "mzML-files", file_name)) for file_name in selected_files]
             
-        if len(mzML) <= 1:
+        if len(mzML) == 0:
             self.logger.log("ERROR: Select at leat two mzML files to run this workflow.")
             return
 
@@ -353,7 +342,7 @@ class Workflow(WorkflowManager):
                     "out": self.file_manager.get_files(mzML, "ms", "sirius-export"),
                 },
             )
-        if self.params["export-gnps"]:
+        if self.params["export-gnps"] or self.params["annotate-ms2"]:
             self.logger.log("Exporting input files for GNPS.")
             # Map MS2 specs to features
             self.executor.run_topp(
@@ -383,6 +372,8 @@ class Workflow(WorkflowManager):
                 "export_consensus_df",
                 {"in": gnps_consensus, "out": consensus_df},
             )
+        
+        if self.params["export-gnps"]:
             # Filter consensus features which have missing values
             self.executor.run_topp(
                 "FileFilter",
@@ -417,10 +408,19 @@ class Workflow(WorkflowManager):
                 if files:
                     self.logger.log("Annotating consensus features on MS1 level.")
                     self.executor.run_python("annotate-ms1", {"in": consensus_df, "in_lib": str(files[0])})
-        
+
+        if self.params["annotate-ms2"]:
+            dir_path = Path(self.workflow_dir, "input-files", "ms2-library")
+            if dir_path.exists():
+                files = [p for p in dir_path.iterdir()]
+                if files:
+                    self.logger.log("Annotating consensus features on MS2 level.")
+                    ms2_matches = self.file_manager.get_files(mzML, "mzTab", "ms2-matches")
+                    self.executor.run_topp("MetaboliteSpectralMatcher", {"in": mzML, "database": self.file_manager.get_files(str(files[0])), "out": ms2_matches})
+                    self.executor.run_python("annotate-ms2", {"in": consensus_df})
+
         # ZIP all relevant files for Download
         self.executor.run_python("zip-result-files", {"in": consensus_df})
-        
 
     def results(self) -> None:
         def load_parquet(file):
@@ -486,6 +486,7 @@ class Workflow(WorkflowManager):
                 "intensity",
                 df_matrix.apply(lambda row: [row[col] for col in sample_cols], axis=1),
             )
+            df_matrix.set_index("metabolite", inplace=True)
             st.dataframe(
                 df_matrix,
                 column_order=[
@@ -495,7 +496,7 @@ class Workflow(WorkflowManager):
                     "charge",
                     "adduct",
                     "MS1 annotation",
-                    "metabolite",
+                    "MS2 annotation",
                 ],
                 hide_index=False,
                 column_config={
@@ -517,12 +518,11 @@ class Workflow(WorkflowManager):
 
         with tabs[1]:
             c1, c2 = st.columns(2)
-            metabolite = c1.selectbox("Select metabolite", df_matrix["metabolite"])
+            metabolite = c1.selectbox("Select metabolite", df_matrix.index)
 
             @st.cache_data
             def get_chroms_for_each_sample(metabolite):
                 # Get index of row in df_matrix where "metabolite" is equal to metabolite
-                index = df_matrix[df_matrix["metabolite"] == metabolite].index[0]
                 all_samples = [
                     col.replace(".mzML_IDs", "")
                     for col in df_matrix.columns
@@ -532,7 +532,7 @@ class Workflow(WorkflowManager):
                 samples = []
                 for sample in all_samples:
                     # Get feature ID for sample
-                    fid = df_matrix.loc[index, sample + ".mzML_IDs"]
+                    fid = df_matrix.loc[metabolite, sample + ".mzML_IDs"]
                     path = Path(feature_df_dir, sample + ".parquet")
                     f_df = load_parquet(path)
                     if fid in f_df.index:
@@ -639,7 +639,7 @@ class Workflow(WorkflowManager):
                 ),
 
         with tabs[3]:
-            if st.button("Prepare result files for download", type="primary"):
+            if st.button("Prepare result files for download"):
                 with open(Path(self.workflow_dir, "results", "results.zip"), "rb") as fp:
                     st.download_button(
                         label="Download Results",

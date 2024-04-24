@@ -1,6 +1,16 @@
-# UmetaFlow GUI  [Open!](https://abi-services.cs.uni-tuebingen.de/umetaflow/)
-
-<img src="assets/pyopenms_transparent_background.png" width=20%>
+<table>
+  <tr>
+    <td>
+      ![umetaflow-logo](assets/umetaflow-logo.png)
+    </td>
+    <td>
+      ![pyopenms-logo](assets/pyopenms_transparent_background.png)
+    </td>
+    <td>
+      [Open app](https://abi-services.cs.uni-tuebingen.de/umetaflow/)
+    </td>
+  </tr>
+</table>
 
 This app is based on the [UmetaFlow](https://chemrxiv.org/engage/chemrxiv/article-details/634fb68fdfbd2b6abc5c5fcd) workflow for LC-MS data analysis. UmetaFlow is implemented as a [snakemake pipeline](https://github.com/NBChub/snakemake-UmetaFlow) and as a Python version in [Jupyter notebooks](https://github.com/eeko-kon/pyOpenMS_UmetaFlow) based on [pyOpenMS](https://pyopenms.readthedocs.io/en/latest/index.html).
 

@@ -11,6 +11,7 @@ import time
 from io import BytesIO
 import zipfile
 import pandas as pd
+from datetime import datetime
 
 class StreamlitUI:
     """
@@ -144,7 +145,7 @@ class StreamlitUI:
                 st.rerun()
         elif not fallback:
             st.warning(f"No **{name}** files!")
-            
+
     def simple_file_uploader(self, key: str, file_type: str, name: str = "") -> None:
         c1, c2 = st.columns(2)
         upload = c1.file_uploader(name, file_type, False, help="Save paramters after uploading.")
@@ -710,7 +711,9 @@ class StreamlitUI:
         num_files = pd.read_csv(Path(st.session_state.workspace, 'mzML-files.tsv'), sep='\t')['use in workflows'].sum()
         if num_files > 1:
             with st.expander("💡 **Parameter Summary**"):
-                summary_text = f"""
+                files_text = f"""
+#### Input files:
+
 number of mzML files: **{num_files}**
         """     
                 path = Path(self.workflow_dir, "input-files")
@@ -719,10 +722,28 @@ number of mzML files: **{num_files}**
                     if path.exists():
                         files = [p for p in path.iterdir()]
                         if files:
-                            summary_text += f"""
-MS1 annotation library: **{files[0].name}**
+                            files_text += f"""
+MS1 annotation library:
+
+**{files[0].name}**
 """
-                tool_text = ""
+                path = Path(self.workflow_dir, "input-files")
+                if path.exists():
+                    path = Path(path, "ms2-library")
+                    if path.exists():
+                        files = [p for p in path.iterdir()]
+                        if files:
+                            files_text += f"""
+MS2 annotation library:
+
+**{files[0].name}**
+
+"""             
+                tool_text = """#
+
+##### TOPP tool non-defaults:
+"""
+                summary_text = "#### other parameters:"
                 for key, value in self.params.items():
                     if not isinstance(value, dict):
                         summary_text += f"""
@@ -740,12 +761,14 @@ MS1 annotation library: **{files[0].name}**
 
     """
                 c1, c2 = st.columns(2)
-                c1.info(summary_text)
-                c2.info(tool_text)
+                c1.markdown(files_text)
+                c1.markdown(tool_text)
+                c2.markdown(summary_text)
         else:
             st.warning("⚠️ Select at least **two** mzML files to run this workflow.")
             return
         c1, c2 = st.columns(2)
+        # Select log level, this can be changed at run time or later without re-running the workflow
         log_level = c1.selectbox("log details", ["minimal", "commands and run times", "all"], key="log_level")
         c2.markdown("##")
         if self.executor.pid_dir.exists():
@@ -768,9 +791,13 @@ MS1 annotation library: **{files[0].name}**
                     time.sleep(2)
                 st.rerun()
             else:
-                st.markdown("**Workflow log file**")
+                st.markdown(f"**Workflow log file: {datetime.fromtimestamp(log_path.stat().st_ctime).strftime('%Y-%m-%d %H:%M')} CET**")
                 with open(log_path, "r", encoding="utf-8") as f:
-                    st.code(f.read(), language="neon", line_numbers=True)
+                    content = f.read()
+                    # Check if workflow finished successfully
+                    if not "WORKFLOW FINISHED" in content:
+                        st.error("**Errors occured, check log file.**")
+                    st.code(content, language="neon", line_numbers=True)
 
     def results_section(self, custom_results_function) -> None:
         custom_results_function()

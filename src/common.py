@@ -93,7 +93,7 @@ def page_setup(page: str = "", help_text: str = "") -> dict[str, Any]:
     # Set Streamlit page configurations
     st.set_page_config(
         page_title=APP_NAME,
-        page_icon="assets/icon.png",
+        page_icon="assets/umetaflow-logo.png",
         layout="wide",
         initial_sidebar_state="auto",
         menu_items=None
@@ -243,7 +243,9 @@ You can share this unique workspace ID with other people.
             )
         if help_text:
             st.info(help_text)
-        st.image("assets/pyopenms_transparent_background.png", "powered by")
+        c1, c2 = st.columns(2)
+        c1.image("assets/pyopenms_transparent_background.png")
+        c2.image("assets/umetaflow-logo.png")
     return params
 
 def v_space(n: int, col=None) -> None:

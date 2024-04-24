@@ -24,7 +24,7 @@ import numpy as np
 # advanced: whether or not the parameter is advanced (default: False)
 
 DEFAULTS = [
-    {"key": "in", "value": [], "help": "ffm featureXML dir", "hide": True},
+    {"key": "in", "value": [], "help": "ffmid featureXML dir", "hide": True},
 ]
 
 def get_params():
@@ -41,7 +41,6 @@ if __name__ == "__main__":
     if not out_path.exists():
         out_path.mkdir(exist_ok=True)
     for file in Path(params["in"][0]).parent.glob("*.featureXML"):
-        print(file)
         fm = poms.FeatureMap()
         poms.FeatureXMLFile().load(str(file), fm)
         # Get DataFrame with meta values

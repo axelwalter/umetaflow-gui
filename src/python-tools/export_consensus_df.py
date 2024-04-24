@@ -89,24 +89,15 @@ if __name__ == "__main__":
     for i, f in enumerate(fnames):
         df[f"{fnames[i]}_IDs"] = ids[i]
 
+    # annotate spectrum IDs for MS2 specs associated with feature
+    df["MS2_native_specs"] = [";".join([f"{fnames[p.getMetaValue('map_index')]}_{p.getMetaValue('spectrum_index')+1}" for p in f.getPeptideIdentifications()]) for f in consensus_map]
+
     # Rename columns to not show full file path
     df = df.rename(columns={col: Path(col).name for col in df.columns if Path(col).exists()})
     
     df = df.reset_index(drop=True)
     df.index = df.index + 1
     df.index.name = "id"
-    
-    # # Get info if requantified or not from one (first) of the feature maps
-    # df["re-quantified"] = df[[c for c in df.columns if c.endswith("_IDs")]].apply(lambda x: x.isna().any(), axis=1)
-
-    # # Function to generate evenly spaced ranks
-    # def generate_ranks(group):
-    #     group = group.sort_values("quality")  # Sort by quality
-    #     group["quality ranked"] = np.linspace(0, 1, len(group))  # Generate ranks
-    #     return group
-
-    # # Apply the function to each group and concatenate the results
-    # df = df.groupby("re-quantified").apply(generate_ranks).sort_values("quality ranked", ascending=False)
 
     path = Path(params["out"][0])
     df.to_parquet(path)

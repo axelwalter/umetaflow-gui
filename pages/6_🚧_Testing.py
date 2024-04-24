@@ -5,5 +5,7 @@ import numpy as np
 import pyopenms as poms
 
 from pathlib import Path
-import zipfile
+from pyteomics.mztab import MzTab
+
+params = {"in": []}
 

@@ -114,6 +114,7 @@ COPY src/ /app/src
 COPY assets/ /app/assets
 COPY example-data/ /app/example-data
 COPY pages/ /app/pages
+COPY .streamlit/config.toml /app/.streamlit/config.toml
 COPY clean-up-workspaces.py /app/clean-up-workspaces.py
 
 # add cron job to the crontab

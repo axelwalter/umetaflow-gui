@@ -1,27 +1,10 @@
-# dark
-# [theme]
-# primaryColor="#5865f2"
-# textColor="#F8F8F2"
-# backgroundColor="#36393f"
-# secondaryBackgroundColor="#2f3136"
-#
-# green light
-# [theme]
-# base="light"
-# primaryColor="#00b589"
-# backgroundColor="#ffffff"
-# secondaryBackgroundColor="#e1f7f1"
-#
-# blue light
-# [theme]
-# base="light"
-# primaryColor="#4657ce"
-# backgroundColor="#ffffff"
-# secondaryBackgroundColor="#c8cdf2"
-
 [global]
 developmentMode = false
 
 [server]
 port = 8502
 maxUploadSize=512
+
+[theme]
+# Primary accent color for interactive elements.
+primaryColor = "#29379b"

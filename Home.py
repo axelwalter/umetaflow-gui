@@ -4,7 +4,6 @@ from src.common import page_setup, save_params
 
 params = page_setup(page="main")
 
-st.image("assets/umetaflow-logo.png", width=300)
 st.markdown(
     """
 ## A universal metabolomics tool
@@ -36,6 +35,7 @@ Simply download and extract the zip file. The folder contains an executable Umet
                     mime="archive/zip",
                     type="primary"
                 )
+# st.image("assets/umetaflow-app-overview.png", width=800)
 
 st.markdown(
     """

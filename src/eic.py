@@ -54,6 +54,11 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
             st.error("Metabolite names need to be unique.")
             status.update(label="Error!", state="error", expanded=True)
             return
+        
+        if any(df_input["name"].isna()):
+            st.error("Enter a name for each metabolite.")
+            status.update(label="Error!", state="error", expanded=True)
+            return
 
         # Drop all rows without mz value
         df_input = df_input[df_input['mz'].notna()]

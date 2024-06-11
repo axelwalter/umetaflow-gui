@@ -560,7 +560,6 @@ class Workflow(WorkflowManager):
                         f"--password={self.params['sirius-user-password']}",
                     ]
                 )
-                self.logger.log("Running SIRIUS... (might take a VERY long time)")
                 sirius_projects = [
                     Path(
                         self.workflow_dir, "results", "sirius-projects", Path(file).stem
@@ -607,6 +606,7 @@ class Workflow(WorkflowManager):
                         command.append("write-summaries")
                         commands.append(command)
                 if commands:
+                    self.logger.log("Running SIRIUS... (might take a VERY long time)")
                     if len(commands) > 1:
                         self.executor.run_multiple_commands(commands)
                     else:
@@ -701,6 +701,9 @@ class Workflow(WorkflowManager):
                         },
                     )
                     self.executor.run_python("annotate-ms2", {"in": consensus_df})
+
+        if run_sirius:
+            self.executor.run_python("annotate-sirius", {"in": consensus_df})
 
         # ZIP all relevant files for Download
         self.executor.run_python("zip-result-files", {"in": consensus_df})

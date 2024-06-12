@@ -709,68 +709,17 @@ class StreamlitUI:
 
     def execution_section(self, start_workflow_function) -> None:
         num_files = pd.read_csv(Path(st.session_state.workspace, 'mzML-files.tsv'), sep='\t')['use in workflows'].sum()
+        st.info(f"**{num_files}** mzML files selected")
         if num_files > 1:
             with st.expander("💡 **Parameter Summary**"):
-                files_text = f"""
-#### Input files:
-
-number of mzML files: **{num_files}**
-        """     
-                path = Path(self.workflow_dir, "input-files")
-                if path.exists():
-                    path = Path(path, "ms1-library")
-                    if path.exists():
-                        files = [p for p in path.iterdir()]
-                        if files:
-                            files_text += f"""
-MS1 annotation library:
-
-**{files[0].name}**
-"""
-                path = Path(self.workflow_dir, "input-files")
-                if path.exists():
-                    path = Path(path, "ms2-library")
-                    if path.exists():
-                        files = [p for p in path.iterdir()]
-                        if files:
-                            files_text += f"""
-MS2 annotation library:
-
-**{files[0].name}**
-
-"""             
-                tool_text = """#
-
-##### TOPP tool non-defaults:
-"""
-                summary_text = "#### other parameters:"
-                for key, value in self.params.items():
-                    if not isinstance(value, dict):
-                        summary_text += f"""
-
-{key}: **{value}**                
-        """ 
-                    elif value:
-                        tool_text += f"""
-**{key}**:
-
-    """                 
-                        for k, v in value.items():
-                            tool_text += f"""
-{key}: **{v}**
-
-    """
-                c1, c2 = st.columns(2)
-                c1.markdown(files_text)
-                c1.markdown(tool_text)
-                c2.markdown(summary_text)
+                st.write(self.params)
         else:
             st.warning("⚠️ Select at least **two** mzML files to run this workflow.")
             return
         c1, c2 = st.columns(2)
         # Select log level, this can be changed at run time or later without re-running the workflow
         log_level = c1.selectbox("log details", ["minimal", "commands and run times", "all"], key="log_level")
-        c2.markdown("##")
+        c2.markdown("######")
         if self.executor.pid_dir.exists():
             if c2.button("Stop Workflow", type="primary", use_container_width=True):
                 self.executor.stop()

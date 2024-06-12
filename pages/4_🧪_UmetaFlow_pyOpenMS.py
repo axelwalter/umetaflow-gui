@@ -8,10 +8,10 @@ from pathlib import Path
 params = page_setup(page="workflow", help_text=HELP)
 
 c1, c2 = st.columns([0.7, 0.3])
-c1.title("UmetaFlow")
+c1.title("UmetaFlow pyOpenMS")
 v_space(1, c2)
 results_only = c2.toggle("view results only")
-st.markdown("💡**Minimal interface with pyOpenMS only. For more advanced use cases and fast execution times use UmetaFlow TOPP. Requires OpenMS TOPP tools to be installed.**")
+st.info("💡Minimal interface with **pyOpenMS** only. For more advanced use cases and fast execution times use **UmetaFlow TOPP**. Requires OpenMS TOPP tools to be installed.")
 
 results_dir = Path(st.session_state.workspace, "umetaflow-results")
 

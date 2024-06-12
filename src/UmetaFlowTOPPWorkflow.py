@@ -4,11 +4,12 @@ from .workflow.WorkflowManager import WorkflowManager
 
 from src.common import show_fig
 
-# tmp imports
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from itertools import cycle
+import shutil
+import sys
 
 
 class Workflow(WorkflowManager):
@@ -29,7 +30,7 @@ class Workflow(WorkflowManager):
                 "Re-Quantification",
                 "Annotation by in-house library",
                 "SIRIUS",
-                "GNPS FBMN"
+                "GNPS FBMN",
             ]
         )
         with tabs[0]:
@@ -103,14 +104,29 @@ class Workflow(WorkflowManager):
         with tabs[2]:
             t = st.tabs(["MS1", "MS2"])
             with t[0]:
-                self.ui.input_widget("annotate-ms1", False, "annotate consensus features", help="Based on m/z and RT")
-                self.ui.simple_file_uploader("ms1-library", "tsv", "MS1 library in tsv format")
+                self.ui.input_widget(
+                    "annotate-ms1",
+                    False,
+                    "annotate consensus features",
+                    help="Based on m/z and RT",
+                )
+                self.ui.simple_file_uploader(
+                    "ms1-library", "tsv", "MS1 library in tsv format"
+                )
                 self.ui.input_python("annotate-ms1", num_cols=2)
             with t[1]:
-                self.ui.input_widget("annotate-ms2", False, "annotate consensus features", help="Based on MS2 spectrum similarity.")
-                self.ui.simple_file_uploader("ms2-library", "mgf", "MS2 library in mgf format")
+                self.ui.input_widget(
+                    "annotate-ms2",
+                    False,
+                    "annotate consensus features",
+                    help="Based on MS2 spectrum similarity.",
+                )
+                self.ui.simple_file_uploader(
+                    "ms2-library", "mgf", "MS2 library in mgf format"
+                )
                 self.ui.input_TOPP("MetaboliteSpectralMatcher")
         with tabs[3]:
+            st.markdown("**Pre-processing and file export**")
             self.ui.input_widget(
                 "export-sirius",
                 False,
@@ -118,10 +134,181 @@ class Workflow(WorkflowManager):
                 help="Generate input files for SIRIUS from raw data and feature information using the OpenMS TOPP tool *SiriusExport*.",
             )
             self.ui.input_TOPP("SiriusExport")
-            # st.markdown("**Run SIRIUS and annotate features**")
-            # self.ui.input_widget("run-sirius", False, "run SIRIUS and annotate features")
-            # self.ui.input_widget
-            # t = st.tabs(["Formula prediction: SIRIUS", "Structure prediction: CSI : FingerID", "CANOPUS"])
+
+            if "sirius-exists" not in st.session_state:
+                st.session_state["sirius-exists"] = shutil.which(str(Path(sys.prefix, "bin", "sirius"))) is not None
+
+            if st.session_state["sirius-exists"]:
+                st.markdown("**SIRIUS user login**")
+                cols = st.columns([0.25, 0.25, 0.5])
+                with cols[0]:
+                    self.ui.input_widget(
+                        "sirius-user-email",
+                        "",
+                        "Email",
+                        help="Email address from a valid SIRIUS account.",
+                        widget_type="text",
+                    )
+                with cols[1]:
+                    self.ui.input_widget(
+                        "sirius-user-password",
+                        "",
+                        "password **NOT ENCRYPTED!**",
+                        help="Password from a valid SIRIUS account. **Not encrypted**, will be stored in **plain text** in parameters and show up in log files.",
+                        widget_type="password",
+                    )
+                self.ui.input_widget(
+                    "run-sirius",
+                    False,
+                    "predict **sum formulas**",
+                    help="Generate input files for SIRIUS from raw data and feature information using the OpenMS TOPP tool *SiriusExport*.",
+                )
+                cols = st.columns(4)
+                with cols[0]:
+                    self.ui.input_widget(
+                        "sirius-profile",
+                        name="profile",
+                        options=["default", "qtof", "orbitrap", "fticr"],
+                        default="default",
+                        help="Name of the configuration profile",
+                    )
+                with cols[1]:
+                    self.ui.input_widget(
+                        "sirius-maxmz",
+                        300,
+                        "max m/z",
+                        min_value=50,
+                        max_value=1000,
+                        step_size=50,
+                        help="Only considers compounds with a precursor m/z lower or equal. All other compounds in the input will be skipped. Recommended to be below 600, otherwise very long execution times are expected.",
+                    )
+                with cols[2]:
+                    self.ui.input_widget(
+                        "sirius-db",
+                        "none",
+                        "database formula prediction",
+                        options=[
+                            "none",
+                            "ALL",
+                            "ALL_BUT_INSILICO",
+                            "BIO",
+                            "PUBCHEM",
+                            "MESH",
+                            "HMDB",
+                            "KNAPSACK",
+                            "CHEBI",
+                            "PUBMED",
+                            "KEGG",
+                            "HSDB",
+                            "MACONDA",
+                            "METACYC",
+                            "GNPS",
+                            "ZINCBIO",
+                            "UNDP",
+                            "YMDB",
+                            "PLANTCYC",
+                            "NORMAN",
+                            "ADDITIONAL",
+                            "PUBCHEMANNOTATIONBIO",
+                            "PUBCHEMANNOTATIONDRUG",
+                            "PUBCHEMANNOTATIONSAFETYANDTOXIC",
+                            "PUBCHEMANNOTATIONFOOD",
+                            "KEGGMINE",
+                            "ECOCYCMINE",
+                            "YMDBMINE",
+                        ],
+                        help="Search formulas in the given database. If no database is given all possible molecular formulas will be respected (no database is used).",
+                    )
+                cols = st.columns(4)
+                with cols[0]:
+                    self.ui.input_widget(
+                        "sirius-elements-considered",
+                        "SBrClBSe",
+                        "elements considered",
+                        help="Set the allowed elements for rare element detection. Example: `SBrClBSe` to allow the elements S,Br,Cl,B and Se.",
+                    )
+                with cols[1]:
+                    self.ui.input_widget(
+                        "sirius-elements-enforced",
+                        "CHNOP",
+                        "elements enforced",
+                        help="Example: CHNOPSCl to allow the elements C, H, N, O, P, S and Cl. Add numbers in brackets to restrict the minimal and maximal allowed occurrence of these elements: CHNOP[5]S[8]Cl[1-2]. When one number is given then it is interpreted as upper bound. Default: C,H,N,O,P",
+                    )
+                with cols[2]:
+                    self.ui.input_widget(
+                        "sirius-ions-considered",
+                        "[M+H]+,[M+K]+,[M+Na]+,[M+H-H2O]+,[M+H-H4O2]+,[M+NH4]+,[M-H]-,[M+Cl]-,[M-H2O-H]-,[M+Br]-",
+                        "ions considered",
+                        help="The ion type/adduct of the MS/MS data in a comma separated list. Default: '[M+H]+,[M+K]+,[M+Na]+,[M+H-H2O]+,[M+H-H4O2]+,[M+NH4]+,[M-H]-,[M+Cl]-,[M-H2O-H]-,[M+Br]-'",
+                    )
+                with cols[0]:
+                    self.ui.input_widget(
+                        "sirius-ppm-max",
+                        10.0,
+                        "ppm max",
+                        help="Maximum allowed mass deviation in ppm for decomposing masses. Default: 10.0 ppm",
+                    )
+                with cols[1]:
+                    self.ui.input_widget(
+                        "sirius-ppm-max-ms2",
+                        10.0,
+                        "ppm max MS2",
+                        help="Maximum allowed mass deviation in ppm for decomposing masses in MS2. Default: 10.0 ppm",
+                    )
+                self.ui.input_widget(
+                    "run-fingerid",
+                    False,
+                    "predict **molecular structures**",
+                    help="This subtool is dedicated to predicting molecular structures based on tandem mass spectrometry (MS/MS) data. It utilizes a fragmentation tree approach for the annotation of fragment spectra.",
+                )
+                cols = st.columns(4)
+                with cols[0]:
+                    self.ui.input_widget(
+                        "sirius-structure-db",
+                        "BIO",
+                        "structure database",
+                        options=[
+                            "ALL",
+                            "ALL_BUT_INSILICO",
+                            "BIO",
+                            "PUBCHEM",
+                            "MESH",
+                            "HMDB",
+                            "KNAPSACK",
+                            "CHEBI",
+                            "PUBMED",
+                            "KEGG",
+                            "HSDB",
+                            "MACONDA",
+                            "METACYC",
+                            "GNPS",
+                            "ZINCBIO",
+                            "UNDP",
+                            "YMDB",
+                            "PLANTCYC",
+                            "NORMAN",
+                            "ADDITIONAL",
+                            "PUBCHEMANNOTATIONBIO",
+                            "PUBCHEMANNOTATIONDRUG",
+                            "PUBCHEMANNOTATIONSAFETYANDTOXIC",
+                            "PUBCHEMANNOTATIONFOOD",
+                            "KEGGMINE",
+                            "ECOCYCMINE",
+                            "YMDBMINE",
+                        ],
+                        help="Search structure in the given database.",
+                    )
+                self.ui.input_widget(
+                    "run-canopus",
+                    False,
+                    "predict **compound classes**",
+                    help="Predict compound categories for each compound individually based on its predicted molecular fingerprint (CSI:FingerID) using CANOPUS.",
+                )
+            else:
+                st.info(
+                    "💡 Install SIRIUS as command line tool to annotate features with formula, structural and compound class predictions."
+                )
+
         with tabs[4]:
             self.ui.input_widget(
                 "export-gnps",
@@ -130,7 +317,7 @@ class Workflow(WorkflowManager):
                 help="Generate input files for GNPS feature based molecular networking (FBMN) and ion identity molecular networking (IIMN) from raw data and feature information using the OpenMS TOPP tool *GNPSExport*.",
             )
             self.ui.input_TOPP("GNPSExport")
-                
+
     def execution(self) -> None:
         # Get mzML files
         df_path = Path(st.session_state.workspace, "mzML-files.tsv")
@@ -142,12 +329,17 @@ class Workflow(WorkflowManager):
 
             # Filter the DataFrame for files where "use in workflow" is True
             selected_files = df[df["use in workflows"] == True]["file name"].tolist()
-            
+
             # Construct full file paths
-            mzML = [str(Path(st.session_state.workspace, "mzML-files", file_name)) for file_name in selected_files]
-            
+            mzML = [
+                str(Path(st.session_state.workspace, "mzML-files", file_name))
+                for file_name in selected_files
+            ]
+
         if len(mzML) == 0:
-            self.logger.log("ERROR: Select at leat two mzML files to run this workflow.")
+            self.logger.log(
+                "ERROR: Select at leat two mzML files to run this workflow."
+            )
             return
 
         # # Get mzML input files from self.params.
@@ -331,17 +523,101 @@ class Workflow(WorkflowManager):
                 ]
             )
             mzML = sorted(mzML)
-
-        if self.params["export-sirius"]:
+        run_sirius = False
+        if st.session_state["sirius-exists"]:
+            if (
+                self.params["run-sirius"]
+                or self.params["run-fingerid"]
+                or self.params["run-canopus"]
+            ):
+                if not (
+                    self.params["sirius-user-email"]
+                    and self.params["sirius-user-password"]
+                ):
+                    self.logger.log(
+                        "WARNING: SIRIUS account info incomplete. SIRIUS will not be executed and features not annotated."
+                    )
+                else:
+                    run_sirius = True
+        if self.params["export-sirius"] or run_sirius:
             self.logger.log("Exporting input files for SIRIUS.")
+            sirius_ms_files = self.file_manager.get_files(mzML, "ms", "sirius-export")
             self.executor.run_topp(
                 "SiriusExport",
                 {
                     "in": mzML,
                     "in_featureinfo": ffm,
-                    "out": self.file_manager.get_files(mzML, "ms", "sirius-export"),
+                    "out": sirius_ms_files,
                 },
             )
+            if run_sirius:
+                self.logger.log("Logging in to SIRIUS...")
+                self.executor.run_command(
+                    [
+                        str(Path(sys.prefix, "bin", "sirius")),
+                        "login",
+                        f"--email={self.params['sirius-user-email']}",
+                        f"--password={self.params['sirius-user-password']}",
+                    ]
+                )
+                sirius_projects = [
+                    Path(
+                        self.workflow_dir, "results", "sirius-projects", Path(file).stem
+                    )
+                    for file in sirius_ms_files
+                ]
+                commands = []
+                for ms, project in zip(sirius_ms_files, sirius_projects):
+                    if Path(ms).stat().st_size > 0:
+                        project.mkdir(parents=True)
+                        command = [
+                            str(Path(sys.prefix, "bin", "sirius")),
+                            "--input",
+                            ms,
+                            "--project",
+                            str(project),
+                            "--no-compression",
+                            "--maxmz",
+                            self.params["sirius-maxmz"],
+                            "formula",
+                            "--db",
+                            self.params["sirius-db"],
+                            "--ions-considered",
+                            self.params["sirius-ions-considered"],
+                            "--elements-considered",
+                            self.params["sirius-elements-considered"],
+                            "--elements-enforced",
+                            self.params["sirius-elements-enforced"],
+                            "--ppm-max",
+                            self.params["sirius-ppm-max"],
+                            "--ppm-max-ms2",
+                            self.params["sirius-ppm-max-ms2"],
+                            "--profile",
+                            self.params["sirius-profile"],
+                            "--candidates",
+                            "1",
+                        ]
+                        if self.params["run-fingerid"] or self.params["run-canopus"]:
+                            command.append("fingerprint")
+                        if self.params["run-fingerid"]:
+                            command += [
+                                "structure",
+                                "--db",
+                                self.params["sirius-structure-db"],
+                            ]
+                        if self.params["run-canopus"]:
+                            command.append("canopus")
+                        command.append("write-summaries")
+                        commands.append(command)
+                if commands:
+                    self.logger.log("Running SIRIUS... (might take a VERY long time)")
+                    if len(commands) > 1:
+                        self.executor.run_multiple_commands(commands)
+                    else:
+                        self.executor.run_command(commands[0])
+                else:
+                    self.logger.log("No MS2 data for SIRIUS to process.")
+
         if self.params["export-gnps"] or self.params["annotate-ms2"]:
             self.logger.log("Exporting input files for GNPS.")
             # Map MS2 specs to features
@@ -372,7 +648,7 @@ class Workflow(WorkflowManager):
                 "export_consensus_df",
                 {"in": gnps_consensus, "out": consensus_df},
             )
-        
+
         if self.params["export-gnps"]:
             # Filter consensus features which have missing values
             self.executor.run_topp(
@@ -399,7 +675,7 @@ class Workflow(WorkflowManager):
                     ),
                 },
             )
-            
+
         # MS1 annotation
         if self.params["annotate-ms1"]:
             dir_path = Path(self.workflow_dir, "input-files", "ms1-library")
@@ -407,7 +683,9 @@ class Workflow(WorkflowManager):
                 files = [p for p in dir_path.iterdir()]
                 if files:
                     self.logger.log("Annotating consensus features on MS1 level.")
-                    self.executor.run_python("annotate-ms1", {"in": consensus_df, "in_lib": str(files[0])})
+                    self.executor.run_python(
+                        "annotate-ms1", {"in": consensus_df, "in_lib": str(files[0])}
+                    )
 
         if self.params["annotate-ms2"]:
             dir_path = Path(self.workflow_dir, "input-files", "ms2-library")
@@ -415,9 +693,21 @@ class Workflow(WorkflowManager):
                 files = [p for p in dir_path.iterdir()]
                 if files:
                     self.logger.log("Annotating consensus features on MS2 level.")
-                    ms2_matches = self.file_manager.get_files(mzML, "mzTab", "ms2-matches")
-                    self.executor.run_topp("MetaboliteSpectralMatcher", {"in": mzML, "database": self.file_manager.get_files(str(files[0])), "out": ms2_matches})
+                    ms2_matches = self.file_manager.get_files(
+                        mzML, "mzTab", "ms2-matches"
+                    )
+                    self.executor.run_topp(
+                        "MetaboliteSpectralMatcher",
+                        {
+                            "in": mzML,
+                            "database": self.file_manager.get_files(str(files[0])),
+                            "out": ms2_matches,
+                        },
+                    )
                     self.executor.run_python("annotate-ms2", {"in": consensus_df})
+
+        if run_sirius:
+            self.executor.run_python("annotate-sirius", {"in": consensus_df})
 
         # ZIP all relevant files for Download
         self.executor.run_python("zip-result-files", {"in": consensus_df})
@@ -429,9 +719,10 @@ class Workflow(WorkflowManager):
             else:
                 return pd.DataFrame()
 
-        
-        consensus_df_file = Path(self.workflow_dir, "results", "consensus-dfs", "feature-matrix.parquet")
-        
+        consensus_df_file = Path(
+            self.workflow_dir, "results", "consensus-dfs", "feature-matrix.parquet"
+        )
+
         if not Path(self.workflow_dir, "results").exists():
             st.info("No results yet.")
             return
@@ -449,10 +740,11 @@ class Workflow(WorkflowManager):
         )
 
         df_matrix = load_parquet(consensus_df_file)
+
         def quality_colors(value):
             # Ensure the value is within the expected range
             value = max(0, min(1, value))
-            
+
             # Adjust the components to emphasize yellow in the middle
             if value < 0.5:
                 # Increase green component towards the middle
@@ -462,14 +754,12 @@ class Workflow(WorkflowManager):
                 # Decrease red component after the middle
                 green = 255
                 red = 255 * ((1 - value) * 2)
-                
-            return f"background-color: rgba({red}, {green}, 0, 0.3);"
 
+            return f"background-color: rgba({red}, {green}, 0, 0.3);"
 
         feature_df_dir = Path(self.file_manager.workflow_dir, "results", "feature-dfs")
         if not feature_df_dir.exists():
             feature_df_dir = Path(self.file_manager.workflow_dir, "results", "ffm-df")
-
 
         with tabs[0]:
             c1, c2 = st.columns(2)
@@ -487,6 +777,28 @@ class Workflow(WorkflowManager):
                 df_matrix.apply(lambda row: [row[col] for col in sample_cols], axis=1),
             )
             df_matrix.set_index("metabolite", inplace=True)
+            sirius_samples = [
+                c.split("_")[1] for c in df_matrix.columns if "SIRIUS" in c
+            ]
+            sirius_cols = []
+            if sirius_samples:
+                show_sirius_results = c1.checkbox("show SIRIUS results", True)
+                if len(sirius_samples) > 1:
+                    sirius_sample = c2.selectbox(
+                        "Show SIRIUS results for sample", sirius_samples
+                    )
+                else:
+                    sirius_sample = sirius_samples[0]
+                if show_sirius_results:
+                    sirius_cols = [
+                        col
+                        for col in df_matrix.columns
+                        if (
+                            f"SIRIUS_{sirius_sample}" in col
+                            or f"CSI:FingerID_{sirius_sample}" in col
+                            or f"CANOPUS_{sirius_sample}" in col
+                        )
+                    ]
             st.dataframe(
                 df_matrix,
                 column_order=[
@@ -497,7 +809,7 @@ class Workflow(WorkflowManager):
                     "adduct",
                     "MS1 annotation",
                     "MS2 annotation",
-                ],
+                ]+sirius_cols,
                 hide_index=False,
                 column_config={
                     "intensity": st.column_config.BarChartColumn(
@@ -612,7 +924,9 @@ class Workflow(WorkflowManager):
                 format_func=lambda x: x.stem,
             )
             if feature_file != "None":
-                df = load_parquet(feature_file).style.map(quality_colors, subset=["quality ranked"])
+                df = load_parquet(feature_file).style.map(
+                    quality_colors, subset=["quality ranked"]
+                )
                 st.dataframe(
                     df,
                     hide_index=False,
@@ -640,7 +954,9 @@ class Workflow(WorkflowManager):
 
         with tabs[3]:
             if st.button("Prepare result files for download"):
-                with open(Path(self.workflow_dir, "results", "results.zip"), "rb") as fp:
+                with open(
+                    Path(self.workflow_dir, "results", "results.zip"), "rb"
+                ) as fp:
                     st.download_button(
                         label="Download Results",
                         type="primary",

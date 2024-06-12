@@ -4,12 +4,12 @@ from .workflow.WorkflowManager import WorkflowManager
 
 from src.common import show_fig
 
-# tmp imports
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from itertools import cycle
 import shutil
+import sys
 
 
 class Workflow(WorkflowManager):
@@ -136,7 +136,7 @@ class Workflow(WorkflowManager):
             self.ui.input_TOPP("SiriusExport")
 
             if "sirius-exists" not in st.session_state:
-                st.session_state["sirius-exists"] = shutil.which("sirius") is not None
+                st.session_state["sirius-exists"] = shutil.which(str(Path(sys.prefix, "bin", "sirius"))) is not None
 
             if st.session_state["sirius-exists"]:
                 st.markdown("**SIRIUS user login**")
@@ -554,7 +554,7 @@ class Workflow(WorkflowManager):
                 self.logger.log("Logging in to SIRIUS...")
                 self.executor.run_command(
                     [
-                        "sirius",
+                        str(Path(sys.prefix, "bin", "sirius")),
                         "login",
                         f"--email={self.params['sirius-user-email']}",
                         f"--password={self.params['sirius-user-password']}",
@@ -571,7 +571,7 @@ class Workflow(WorkflowManager):
                     if Path(ms).stat().st_size > 0:
                         project.mkdir(parents=True)
                         command = [
-                            "sirius",
+                            str(Path(sys.prefix, "bin", "sirius")),
                             "--input",
                             ms,
                             "--project",

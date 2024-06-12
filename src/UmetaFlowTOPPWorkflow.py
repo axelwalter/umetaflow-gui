@@ -600,7 +600,11 @@ class Workflow(WorkflowManager):
                         if self.params["run-fingerid"] or self.params["run-canopus"]:
                             command.append("fingerprint")
                         if self.params["run-fingerid"]:
-                            command += ["structure", "--db", self.params["sirius-structure-db"]]
+                            command += [
+                                "structure",
+                                "--db",
+                                self.params["sirius-structure-db"],
+                            ]
                         if self.params["run-canopus"]:
                             command.append("canopus")
                         command.append("write-summaries")
@@ -773,6 +777,28 @@ class Workflow(WorkflowManager):
                 df_matrix.apply(lambda row: [row[col] for col in sample_cols], axis=1),
             )
             df_matrix.set_index("metabolite", inplace=True)
+            sirius_samples = [
+                c.split("_")[1] for c in df_matrix.columns if "SIRIUS" in c
+            ]
+            sirius_cols = []
+            if sirius_samples:
+                show_sirius_results = c1.checkbox("show SIRIUS results", True)
+                if len(sirius_samples) > 1:
+                    sirius_sample = c2.selectbox(
+                        "Show SIRIUS results for sample", sirius_samples
+                    )
+                else:
+                    sirius_sample = sirius_samples[0]
+                if show_sirius_results:
+                    sirius_cols = [
+                        col
+                        for col in df_matrix.columns
+                        if (
+                            f"SIRIUS_{sirius_sample}" in col
+                            or f"CSI:FingerID_{sirius_sample}" in col
+                            or f"CANOPUS_{sirius_sample}" in col
+                        )
+                    ]
             st.dataframe(
                 df_matrix,
                 column_order=[
@@ -783,7 +809,7 @@ class Workflow(WorkflowManager):
                     "adduct",
                     "MS1 annotation",
                     "MS2 annotation",
-                ],
+                ]+sirius_cols,
                 hide_index=False,
                 column_config={
                     "intensity": st.column_config.BarChartColumn(

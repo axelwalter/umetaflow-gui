@@ -62,10 +62,9 @@ jobs:
 
     - name: Load contrib build
       # if: steps.cache-contrib-win.outputs.cache-hit != 'true'
-      # env:
-      #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        ls
         cd OpenMS/contrib
         # Download the file using the URL fetched from GitHub
         gh release download -R OpenMS/contrib --pattern 'contrib_build-Windows.tar.gz'

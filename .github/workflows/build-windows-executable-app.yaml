@@ -185,6 +185,7 @@ jobs:
         unzip python-${{ env.PYTHON_VERSION }}-embed-amd64.zip -d python-${{ env.PYTHON_VERSION }}
         rm python-${{ env.PYTHON_VERSION }}-embed-amd64.zip
 
+
     - name: Install pip
       run: |
         curl -O https://bootstrap.pypa.io/get-pip.py
@@ -202,6 +203,11 @@ jobs:
       run: |
         echo '@echo off' > UmetaFlow.bat
         echo '.\\python-${{ env.PYTHON_VERSION }}\\python -m streamlit run Home.py local' >> UmetaFlow.bat
+
+    - name: Download and extract SIRIUS
+      run: |
+        curl -L -O https://github.com/sirius-ms/sirius/releases/download/v5.8.6/sirius-5.8.6-win64.zip
+        unzip sirius-5.8.6-win64.zip
       
     - name: Create All-in-one executable folder
       run: |
@@ -215,6 +221,7 @@ jobs:
         cp -r .streamlit streamlit_exe
         cp -r openms-bin streamlit_exe/bin
         cp -r share streamlit_exe/share
+        cp -r sirius streamlit_exe/sirius
         cp Home.py streamlit_exe
 
     - name: Delete OpenMS bin artifact

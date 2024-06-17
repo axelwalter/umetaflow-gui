@@ -135,10 +135,18 @@ class Workflow(WorkflowManager):
             )
             self.ui.input_TOPP("SiriusExport")
 
-            if "sirius-exists" not in st.session_state:
-                st.session_state["sirius-exists"] = shutil.which(str(Path(sys.prefix, "bin", "sirius"))) is not None
+            if "sirius-path" not in st.session_state:
+                possible_paths = [ # potential SIRIUS locations in increasing priority
+                    str(Path("sirius")), # anywhere
+                    str(Path(sys.prefix, "bin", "sirius")), # in current conda environment
+                    str(Path(".", "sirius", "sirius.exe")), # in case of Windows executables
+                ]
+                st.session_state["sirius-path"] = ""
+                for path in possible_paths:
+                    if shutil.which(path) is not None:
+                        st.session_state["sirius-path"] = path
 
-            if st.session_state["sirius-exists"]:
+            if st.session_state["sirius-path"]:
                 st.markdown("**SIRIUS user login**")
                 cols = st.columns([0.25, 0.25, 0.5])
                 with cols[0]:
@@ -524,7 +532,7 @@ class Workflow(WorkflowManager):
             )
             mzML = sorted(mzML)
         run_sirius = False
-        if st.session_state["sirius-exists"]:
+        if st.session_state["sirius-path"]:
             if (
                 self.params["run-sirius"]
                 or self.params["run-fingerid"]
@@ -537,8 +545,8 @@ class Workflow(WorkflowManager):
                     self.logger.log(
                         "WARNING: SIRIUS account info incomplete. SIRIUS will not be executed and features not annotated."
                     )
-                else:
-                    run_sirius = True
+                    st.session_state["sirius-path"] = ""
+
         if self.params["export-sirius"] or run_sirius:
             self.logger.log("Exporting input files for SIRIUS.")
             sirius_ms_files = self.file_manager.get_files(mzML, "ms", "sirius-export")
@@ -554,7 +562,7 @@ class Workflow(WorkflowManager):
                 self.logger.log("Logging in to SIRIUS...")
                 self.executor.run_command(
                     [
-                        str(Path(sys.prefix, "bin", "sirius")),
+                        st.session_state["sirius-path"],
                         "login",
                         f"--email={self.params['sirius-user-email']}",
                         f"--password={self.params['sirius-user-password']}",
@@ -571,7 +579,7 @@ class Workflow(WorkflowManager):
                     if Path(ms).stat().st_size > 0:
                         project.mkdir(parents=True)
                         command = [
-                            str(Path(sys.prefix, "bin", "sirius")),
+                            st.session_state["sirius-path"],
                             "--input",
                             ms,
                             "--project",
@@ -809,7 +817,8 @@ class Workflow(WorkflowManager):
                     "adduct",
                     "MS1 annotation",
                     "MS2 annotation",
-                ]+sirius_cols,
+                ]
+                + sirius_cols,
                 hide_index=False,
                 column_config={
                     "intensity": st.column_config.BarChartColumn(

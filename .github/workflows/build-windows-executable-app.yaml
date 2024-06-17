@@ -10,15 +10,12 @@ jobs:
   build-openms:
     runs-on: windows-latest
 
-    env:
-      OPENMS_VERSION: 3.0.0 
-
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
         repository: OpenMS/OpenMS
-        ref: release/${{ env.OPENMS_VERSION }}
+        ref: develop
         path: 'OpenMS'
 
     - name: Install Qt

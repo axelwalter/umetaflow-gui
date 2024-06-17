@@ -71,7 +71,6 @@ jobs:
         # Extract the archive
         7z x contrib_build-Windows.tar.gz
         rm contrib_build-Windows.tar.gz
-        cd bin
         ls
 
     - name: Setup ccache cache
@@ -85,24 +84,6 @@ jobs:
           ${{ runner.os }}-ccache-${{ env.BASE_REF }}
           ${{ runner.os }}-ccache-
 
-    - name: Add THIRDPARTY
-      shell: bash
-      run: |
-          # initialize THIRDPARTY
-          cd OpenMS
-          git submodule update --init THIRDPARTY
-          cd ..
-          # add third-party binaries to PATH
-          # use flat THIRDPARTY structure
-          mkdir -p _thirdparty
-          cp -R OpenMS/THIRDPARTY/Windows/64bit/* _thirdparty/
-          cp -R OpenMS/THIRDPARTY/All/* _thirdparty/
-          # add third-party binaries to PATH
-          for thirdpartytool in ${{ github.workspace }}/_thirdparty/*
-          do
-            echo $thirdpartytool >> $GITHUB_PATH
-          done
-
     - name: Build Windows
       shell: bash
       run: |
@@ -110,7 +91,8 @@ jobs:
           ctest --output-on-failure -V -S $GITHUB_WORKSPACE/OpenMS/tools/ci/cibuild.cmake
       env:
           #OS_PREFIX_PATH: "${{ env.Qt5_DIR }}/lib/cmake;${{ env.Qt5_DIR }}"
-          CONTRIB_BUILD_DIRECTORY: "${{ github.workspace }}/OpenMS/contrib"
+          # CONTRIB_BUILD_DIRECTORY: "${{ github.workspace }}/OpenMS/contrib"
+          OPENMS_CONTRIB_LIBS: "${{ github.workspace }}/OpenMS/contrib"
           CI_PROVIDER: "GitHub-Actions"
           CMAKE_GENERATOR: "Ninja"
           SOURCE_DIRECTORY: "${{ github.workspace }}/OpenMS"
@@ -118,7 +100,7 @@ jobs:
           ENABLE_STYLE_TESTING: "OFF"
           ENABLE_TOPP_TESTING: "ON"
           ENABLE_CLASS_TESTING: "ON"
-          WITH_GUI: "ON"
+          WITH_GUI: "OFF"
           ADDRESS_SANITIZER: "OFF"
           # BUILD_TYPE: "Release"
           OPENMP: "OFF"

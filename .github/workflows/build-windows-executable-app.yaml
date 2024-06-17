@@ -71,6 +71,7 @@ jobs:
         # Extract the archive
         7z x contrib_build-Windows.tar.gz
         rm contrib_build-Windows.tar.gz
+        cd bin
         ls
 
     - name: Setup ccache cache
@@ -118,10 +119,10 @@ jobs:
           ENABLE_TOPP_TESTING: "ON"
           ENABLE_CLASS_TESTING: "ON"
           WITH_GUI: "ON"
-          ADDRESS_SANITIZER: "Off"
+          ADDRESS_SANITIZER: "OFF"
           # BUILD_TYPE: "Release"
-          OPENMP: "Off"
-          USE_STATIC_BOOST: "On"
+          OPENMP: "OFF"
+          USE_STATIC_BOOST: "ON"
           #  BUILD_FLAGS: "-p:CL_MPCount=2" # For VS Generator and MSBuild
           BUILD_FLAGS: "-j2" # Ninja will otherwise use all cores (doesn't go well in GHA)
           CMAKE_CCACHE_EXE: "ccache"

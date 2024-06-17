@@ -119,7 +119,7 @@ jobs:
           ENABLE_CLASS_TESTING: "ON"
           WITH_GUI: "ON"
           ADDRESS_SANITIZER: "Off"
-          BUILD_TYPE: "Release"
+          # BUILD_TYPE: "Release"
           OPENMP: "Off"
           USE_STATIC_BOOST: "On"
           #  BUILD_FLAGS: "-p:CL_MPCount=2" # For VS Generator and MSBuild

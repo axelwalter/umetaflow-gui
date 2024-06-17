@@ -713,7 +713,7 @@ class Workflow(WorkflowManager):
                     )
                     self.executor.run_python("annotate-ms2", {"in": consensus_df})
 
-        if run_sirius:
+        if st.session_state["sirius-path"]:
             self.executor.run_python("annotate-sirius", {"in": consensus_df})
 
         # ZIP all relevant files for Download

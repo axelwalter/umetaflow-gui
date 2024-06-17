@@ -531,7 +531,6 @@ class Workflow(WorkflowManager):
                 ]
             )
             mzML = sorted(mzML)
-        run_sirius = False
         if st.session_state["sirius-path"]:
             if (
                 self.params["run-sirius"]
@@ -547,7 +546,7 @@ class Workflow(WorkflowManager):
                     )
                     st.session_state["sirius-path"] = ""
 
-        if self.params["export-sirius"] or run_sirius:
+        if self.params["export-sirius"] or st.session_state["sirius-path"]:
             self.logger.log("Exporting input files for SIRIUS.")
             sirius_ms_files = self.file_manager.get_files(mzML, "ms", "sirius-export")
             self.executor.run_topp(
@@ -558,7 +557,7 @@ class Workflow(WorkflowManager):
                     "out": sirius_ms_files,
                 },
             )
-            if run_sirius:
+            if st.session_state["sirius-path"]:
                 self.logger.log("Logging in to SIRIUS...")
                 self.executor.run_command(
                     [

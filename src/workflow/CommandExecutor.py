@@ -141,13 +141,20 @@ class CommandExecutor:
         else:
             n_processes = max(io_lengths)
 
+        tool_full_path = tool # in case it is globally available (lowest priority)
+        possible_paths = [ # potential SIRIUS locations in increasing priority
+            str(Path(sys.prefix, "bin", tool)), # in current conda environment
+            str(Path(".", "bin", f"{tool}.exe")), # in case of Windows executables
+        ]
+        for path in possible_paths:
+            if shutil.which(path) is not None:
+                tool_full_path = path
         commands = []
-
         # Load parameters for non-defaults
         params = self.parameter_manager.get_parameters_from_json()
         # Construct commands for each process
         for i in range(n_processes):
-            command = [tool]
+            command = [tool_full_path]
             # Add input/output files
             for k in input_output.keys():
                 # add key as parameter name

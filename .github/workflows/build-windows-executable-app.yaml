@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: OpenMS/OpenMS
         ref: release/${{ env.OPENMS_VERSION }}
@@ -144,13 +144,13 @@ jobs:
           BUILD_NAME: "${{ env.RUN_NAME }}-Win64-class-topp-${{ github.run_number }}"
 
     - name: Upload TOPP tools as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: OpenMS-bin
         path: OpenMS/bld/bin
 
     - name: Upload share as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: OpenMS-share
         path: OpenMS/share
@@ -164,16 +164,16 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Download TOPP tools as artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: OpenMS-bin
         path: openms-bin
 
     - name: Download share as artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: OpenMS-share
         path: share
@@ -225,12 +225,12 @@ jobs:
         cp Home.py streamlit_exe
 
     - name: Delete OpenMS bin artifact
-      uses: geekyeggo/delete-artifact@v2
+      uses: geekyeggo/delete-artifact@v5
       with:
           name: OpenMS-bin
 
     - name: Delete OpenMS share artifact
-      uses: geekyeggo/delete-artifact@v2
+      uses: geekyeggo/delete-artifact@v5
       with:
           name: OpenMS-share
           
@@ -239,7 +239,7 @@ jobs:
         7z a UmetaFlow-App.zip ./streamlit_exe/* -r
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: UmetaFlow-App
         path: UmetaFlow-App.zip

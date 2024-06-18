@@ -63,14 +63,14 @@ if __name__ == "__main__":
                     if file.exists():
                         df_tmp = pd.read_csv(file, sep="\t")
                         df_tmp["id"] = df_tmp["id"].apply(
-                            lambda x: x.split("_")[3].split("-")[0]
+                            lambda x: x.split("_0_")[1].split("-")[0]
                         )
-                    for col in cols:
-                        df[
-                            f"{tool}_{result_directory.name}_{col.replace('NPC#', '').replace('ClassyFire#', '')}"
-                        ] = df[f"{result_directory.name}.mzML_IDs"].map(
-                            df_tmp.set_index("id")[col].to_dict()
-                        )
+                        for col in cols:
+                            df[
+                                f"{tool}_{result_directory.name}_{col.replace('NPC#', '').replace('ClassyFire#', '')}"
+                            ] = df[f"{result_directory.name}.mzML_IDs"].map(
+                                df_tmp.set_index("id")[col].to_dict()
+                            )
 
         df.to_parquet(params["in"][0])
         df.to_csv(Path(params["in"][0]).with_suffix(".tsv"), sep="\t")

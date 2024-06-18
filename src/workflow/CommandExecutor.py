@@ -142,7 +142,7 @@ class CommandExecutor:
             n_processes = max(io_lengths)
 
         tool_full_path = tool # in case it is globally available (lowest priority)
-        possible_paths = [ # potential SIRIUS locations in increasing priority
+        possible_paths = [ # potential TOPP tool locations in increasing priority
             str(Path(sys.prefix, "bin", tool)), # in current conda environment
             str(Path(".", "bin", f"{tool}.exe")), # in case of Windows executables
         ]

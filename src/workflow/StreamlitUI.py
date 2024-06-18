@@ -399,7 +399,15 @@ class StreamlitUI:
         # write defaults ini files
         ini_file_path = Path(self.parameter_manager.ini_dir, f"{topp_tool_name}.ini")
         if not ini_file_path.exists():
-            subprocess.call([topp_tool_name, "-write_ini", str(ini_file_path)])
+            tool_full_path = topp_tool_name # in case it is globally available (lowest priority)
+            possible_paths = [ # potential TOPP tool locations in increasing priority
+                str(Path(sys.prefix, "bin", topp_tool_name)), # in current conda environment
+                str(Path(".", "bin", f"{topp_tool_name}.exe")), # in case of Windows executables
+            ]
+            for path in possible_paths:
+                if shutil.which(path) is not None:
+                    tool_full_path = path
+            subprocess.call([tool_full_path, "-write_ini", str(ini_file_path)])
             # update custom defaults if necessary
             if custom_defaults:
                 param = poms.Param()

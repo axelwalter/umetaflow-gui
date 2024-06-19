@@ -91,7 +91,7 @@ jobs:
           ctest --output-on-failure -V -S $GITHUB_WORKSPACE/OpenMS/tools/ci/cibuild.cmake
       env:
           #OS_PREFIX_PATH: "${{ env.Qt5_DIR }}/lib/cmake;${{ env.Qt5_DIR }}"
-          # CONTRIB_BUILD_DIRECTORY: "${{ github.workspace }}/OpenMS/contrib"
+          CONTRIB_BUILD_DIRECTORY: "${{ github.workspace }}/OpenMS/contrib"
           OPENMS_CONTRIB_LIBS: "${{ github.workspace }}/OpenMS/contrib"
           CI_PROVIDER: "GitHub-Actions"
           CMAKE_GENERATOR: "Ninja"
@@ -102,7 +102,7 @@ jobs:
           ENABLE_CLASS_TESTING: "ON"
           WITH_GUI: "OFF"
           ADDRESS_SANITIZER: "OFF"
-          # BUILD_TYPE: "Release"
+          BUILD_TYPE: "Release"
           OPENMP: "OFF"
           USE_STATIC_BOOST: "ON"
           #  BUILD_FLAGS: "-p:CL_MPCount=2" # For VS Generator and MSBuild

@@ -170,7 +170,7 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
                 # Add intensity values to df
                 df[metabolite_name] = ints
                 # also insert the AUC in the auc dataframe
-                df_auc.loc[metabolite_name, Path(file).name] = sum(ints)
+                df_auc.loc[metabolite_name, Path(file).name] = np.trapz(ints, df["time"])
 
             # Save to feather dataframe for quick access
             df.to_feather(Path(results_dir, Path(file).stem + ".ftr"))

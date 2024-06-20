@@ -141,14 +141,18 @@ class CommandExecutor:
         else:
             n_processes = max(io_lengths)
 
-        tool_full_path = tool # in case it is globally available (lowest priority)
+        tool_full_path = ""
         possible_paths = [ # potential TOPP tool locations in increasing priority
+            str(Path(tool)), # in case it is globally available (lowest priority)
             str(Path(sys.prefix, "bin", tool)), # in current conda environment
-            str(Path(".", "bin", f"{tool}.exe")), # in case of Windows executables
         ]
         for path in possible_paths:
             if shutil.which(path) is not None:
                 tool_full_path = path
+        if not tool_full_path:
+            self.logger.log.warning(f"WARNING: {tool} not found, will not be executed and might lead to issues in workflow execution.")
+            return
+
         commands = []
         # Load parameters for non-defaults
         params = self.parameter_manager.get_parameters_from_json()

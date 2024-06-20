@@ -1,25 +1,24 @@
 name: Build executable for Windows
+
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main"]
   pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:
-
+    branches: [ "main"]
 
 jobs:
   build-openms:
     runs-on: windows-latest
 
     env:
-      OPENMS_VERSION: 3.1.0 
+      OPENMS_VERSION: 3.0.0 
 
     steps:
     - name: Checkout
       uses: actions/checkout@v3
       with:
         repository: OpenMS/OpenMS
-        ref: release/${{ env.OPENMS_VERSION }}
+        ref: develop
         path: 'OpenMS'
 
     - name: Install Qt
@@ -65,7 +64,7 @@ jobs:
         key: ${{ runner.os }}-contrib3
 
     - name: Load contrib build
-      # if: steps.cache-contrib-win.outputs.cache-hit != 'true'
+      if: steps.cache-contrib-win.outputs.cache-hit != 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -73,7 +72,7 @@ jobs:
         # Download the file using the URL fetched from GitHub
         gh release download -R OpenMS/contrib --pattern 'contrib_build-Windows.tar.gz'
         # Extract the archive
-        7z x contrib_build-Windows.tar.gz
+        tar -xzf contrib_build-Windows.tar.gz
         rm contrib_build-Windows.tar.gz
         ls
 
@@ -88,6 +87,24 @@ jobs:
           ${{ runner.os }}-ccache-${{ env.BASE_REF }}
           ${{ runner.os }}-ccache-
 
+    - name: Add THIRDPARTY
+      shell: bash
+      run: |
+          # initialize THIRDPARTY
+          cd OpenMS
+          git submodule update --init THIRDPARTY
+          cd ..
+          # add third-party binaries to PATH
+          # use flat THIRDPARTY structure
+          mkdir -p _thirdparty
+          cp -R OpenMS/THIRDPARTY/Windows/64bit/* _thirdparty/
+          cp -R OpenMS/THIRDPARTY/All/* _thirdparty/
+          # add third-party binaries to PATH
+          for thirdpartytool in ${{ github.workspace }}/_thirdparty/*
+          do
+            echo $thirdpartytool >> $GITHUB_PATH
+          done
+
     - name: Build Windows
       shell: bash
       run: |
@@ -95,7 +112,6 @@ jobs:
           ctest --output-on-failure -V -S $GITHUB_WORKSPACE/OpenMS/tools/ci/cibuild.cmake
       env:
           #OS_PREFIX_PATH: "${{ env.Qt5_DIR }}/lib/cmake;${{ env.Qt5_DIR }}"
-          CONTRIB_BUILD_DIRECTORY: "${{ github.workspace }}/OpenMS/contrib"
           OPENMS_CONTRIB_LIBS: "${{ github.workspace }}/OpenMS/contrib"
           CI_PROVIDER: "GitHub-Actions"
           CMAKE_GENERATOR: "Ninja"
@@ -104,11 +120,11 @@ jobs:
           ENABLE_STYLE_TESTING: "OFF"
           ENABLE_TOPP_TESTING: "ON"
           ENABLE_CLASS_TESTING: "ON"
-          WITH_GUI: "OFF"
-          ADDRESS_SANITIZER: "OFF"
+          WITH_GUI: "ON"
+          ADDRESS_SANITIZER: "Off"
           BUILD_TYPE: "Release"
-          OPENMP: "OFF"
-          USE_STATIC_BOOST: "ON"
+          OPENMP: "Off"
+          USE_STATIC_BOOST: "On"
           #  BUILD_FLAGS: "-p:CL_MPCount=2" # For VS Generator and MSBuild
           BUILD_FLAGS: "-j2" # Ninja will otherwise use all cores (doesn't go well in GHA)
           CMAKE_CCACHE_EXE: "ccache"
@@ -118,46 +134,37 @@ jobs:
           CCACHE_COMPRESSLEVEL: 12
           CCACHE_MAXSIZE: 400M
 
-    - name: Test Windows
-      shell: bash
-      run: $LAUNCHER ctest --output-on-failure -V -S $GITHUB_WORKSPACE/OpenMS/tools/ci/citest.cmake
-      env:
-          LAUNCHER: ""
-          SOURCE_DIRECTORY: "${{ github.workspace }}/OpenMS"
-          CI_PROVIDER: "GitHub-Actions"
-          BUILD_NAME: "${{ env.RUN_NAME }}-Win64-class-topp-${{ github.run_number }}"
-
     - name: Upload TOPP tools as artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: OpenMS-bin
         path: OpenMS/bld/bin
 
     - name: Upload share as artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: OpenMS-share
         path: OpenMS/share
 
   build-executable:
     runs-on: windows-latest
-    needs: build-openms
+    needs: [build-openms]
 
     env:
       PYTHON_VERSION: 3.11.0
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
 
     - name: Download TOPP tools as artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v3
       with:
         name: OpenMS-bin
         path: openms-bin
 
     - name: Download share as artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v3
       with:
         name: OpenMS-share
         path: share
@@ -168,7 +175,6 @@ jobs:
         curl -O https://www.python.org/ftp/python/${{ env.PYTHON_VERSION }}/python-${{ env.PYTHON_VERSION }}-embed-amd64.zip
         unzip python-${{ env.PYTHON_VERSION }}-embed-amd64.zip -d python-${{ env.PYTHON_VERSION }}
         rm python-${{ env.PYTHON_VERSION }}-embed-amd64.zip
-
 
     - name: Install pip
       run: |
@@ -183,15 +189,10 @@ jobs:
     - name: Install Required Packages
       run: .\python-${{ env.PYTHON_VERSION }}\python -m pip install --force-reinstall -r requirements.txt --no-warn-script-location
 
-    - name: Create run_app.bat file
+    - name: Create UmetaFlow.bat file
       run: |
         echo '@echo off' > UmetaFlow.bat
         echo '.\\python-${{ env.PYTHON_VERSION }}\\python -m streamlit run Home.py local' >> UmetaFlow.bat
-
-    - name: Download and extract SIRIUS
-      run: |
-        curl -L -O https://github.com/sirius-ms/sirius/releases/download/v5.8.6/sirius-5.8.6-win64.zip
-        unzip sirius-5.8.6-win64.zip
       
     - name: Create All-in-one executable folder
       run: |
@@ -203,28 +204,34 @@ jobs:
         cp -r assets streamlit_exe
         cp -r example-data streamlit_exe
         cp -r .streamlit streamlit_exe
-        cp -r openms-bin streamlit_exe/bin
+        cp openms-bin/*.dll streamlit_exe
+        cp openms-bin/FileFilter.exe streamlit_exe
+        cp openms-bin/HighResPrecursorMassCorrector.exe streamlit_exe
+        cp openms-bin/FeatureFinderMetabo.exe streamlit_exe
+        cp openms-bin/FeatureFinderMetaboIdent.exe streamlit_exe
+        cp openms-bin/MetaboliteAdductDecharger.exe streamlit_exe
+        cp openms-bin/MapAlignerPoseClustering.exe streamlit_exe
+        cp openms-bin/MapRTTransformer.exe streamlit_exe
+        cp openms-bin/FeatureLinkerUnlabeledKD.exe streamlit_exe
+        cp openms-bin/IDMapper.exe streamlit_exe
+        cp openms-bin/GNPSExport.exe streamlit_exe
+        cp openms-bin/SiriusExport.exe streamlit_exe
+        cp openms-bin/MetaboliteSpectralMatcher.exe streamlit_exe
         cp -r share streamlit_exe/share
-        cp -r sirius streamlit_exe/sirius
         cp Home.py streamlit_exe
 
     - name: Delete OpenMS bin artifact
-      uses: geekyeggo/delete-artifact@v5
+      uses: geekyeggo/delete-artifact@v2
       with:
           name: OpenMS-bin
 
     - name: Delete OpenMS share artifact
-      uses: geekyeggo/delete-artifact@v5
+      uses: geekyeggo/delete-artifact@v2
       with:
           name: OpenMS-share
-          
-    - name: Compress streamlit_exe folder to UmetaFlow-App.zip
-      run: |
-        7z a UmetaFlow-App.zip ./streamlit_exe/* -r
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: UmetaFlow-App
-        path: UmetaFlow-App.zip
-
+        path: streamlit_exe

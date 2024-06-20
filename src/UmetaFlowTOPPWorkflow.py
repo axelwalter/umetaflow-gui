@@ -126,15 +126,24 @@ class Workflow(WorkflowManager):
                 )
                 self.ui.input_TOPP("MetaboliteSpectralMatcher")
         with tabs[3]:
-            st.markdown("**Pre-processing and file export**")
-            self.ui.input_widget(
-                "export-sirius",
-                False,
-                "export files for SIRIUS",
-                help="Generate input files for SIRIUS from raw data and feature information using the OpenMS TOPP tool *SiriusExport*.",
-            )
-            self.ui.input_TOPP("SiriusExport")
-
+            if "SiriusExport-path" not in st.session_state:
+                possible_paths = [ # potential SIRIUS locations in increasing priority
+                    str(Path("SiriusExport")), # anywhere
+                    str(Path(sys.prefix, "bin", "SiriusExport")), # in current conda environment
+                ]
+                st.session_state["SiriusExport-path"] = ""
+                for path in possible_paths:
+                    if shutil.which(path) is not None:
+                        st.session_state["SiriusExport-path"] = path
+            if st.session_state["SiriusExport-path"]:
+                st.markdown("**Pre-processing and file export**")
+                self.ui.input_widget(
+                    "export-sirius",
+                    False,
+                    "export files for SIRIUS",
+                    help="Generate input files for SIRIUS from raw data and feature information using the OpenMS TOPP tool *SiriusExport*.",
+                )
+                self.ui.input_TOPP("SiriusExport")
             if "sirius-path" not in st.session_state:
                 possible_paths = [ # potential SIRIUS locations in increasing priority
                     str(Path("sirius")), # anywhere

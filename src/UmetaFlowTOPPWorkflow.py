@@ -391,8 +391,8 @@ class Workflow(WorkflowManager):
         )
 
         # Adduct Detection
-        self.logger.log("Detecting adducts.")
         if self.params["adduct-detection"]:
+            self.logger.log("Detecting adducts.")
             # Run MetaboliteAdductDecharger for adduct detection, with disabled logs.
             self.executor.run_topp(
                 "MetaboliteAdductDecharger",
@@ -474,8 +474,8 @@ class Workflow(WorkflowManager):
             )
 
             # Perform Adduct detection on re-quantified features
-            self.logger.log("Detecting adducts for re-quantified features.")
             if self.params["adduct-detection"]:
+                self.logger.log("Detecting adducts for re-quantified features.")
                 # Run MetaboliteAdductDecharger for adduct detection.
                 self.executor.run_topp(
                     "MetaboliteAdductDecharger",
@@ -554,6 +554,8 @@ class Workflow(WorkflowManager):
                         "WARNING: SIRIUS account info incomplete. SIRIUS will not be executed and features not annotated."
                     )
                     st.session_state["sirius-path"] = ""
+            else:
+                st.session_state["sirius-path"] = ""
 
         if self.params["export-sirius"] or st.session_state["sirius-path"]:
             self.logger.log("Exporting input files for SIRIUS.")
@@ -727,6 +729,7 @@ class Workflow(WorkflowManager):
 
         # ZIP all relevant files for Download
         self.executor.run_python("zip-result-files", {"in": consensus_df})
+
 
     def results(self) -> None:
         def load_parquet(file):

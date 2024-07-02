@@ -1,7 +1,7 @@
 
 <img src="assets/umetaflow-app-overview.png" alt="overview"/>
 
-[**Click to open app!**](https://abi-services.cs.uni-tuebingen.de/umetaflow)
+[**Click to open app!**](https://abi-services.cs.uni-tuebingen.de/umetaflow/)
 
 ## What is UmetaFlow?
 

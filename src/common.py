@@ -105,6 +105,7 @@ def page_setup(page: str = "", help_text: str = "") -> dict[str, Any]:
                 max-width: 500px;
                 font-size: 1rem;
             }
+            div[data-testid='stSidebarNav'] ul {max-height:none}
         </style>
         """, unsafe_allow_html=True)
 

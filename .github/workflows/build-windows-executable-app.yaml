@@ -192,7 +192,7 @@ jobs:
     - name: Create UmetaFlow.bat file
       run: |
         echo '@echo off' > UmetaFlow.bat
-        echo '.\\python-${{ env.PYTHON_VERSION }}\\python -m streamlit run Home.py local' >> UmetaFlow.bat
+        echo '.\\python-${{ env.PYTHON_VERSION }}\\python -m streamlit run app.py local' >> UmetaFlow.bat
       
     - name: Create All-in-one executable folder
       run: |
@@ -218,7 +218,7 @@ jobs:
         cp openms-bin/SiriusExport.exe streamlit_exe
         cp openms-bin/MetaboliteSpectralMatcher.exe streamlit_exe
         cp -r share streamlit_exe/share
-        cp Home.py streamlit_exe
+        cp app.py streamlit_exe
 
     - name: Delete OpenMS bin artifact
       uses: geekyeggo/delete-artifact@v2

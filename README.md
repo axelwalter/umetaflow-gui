@@ -34,7 +34,7 @@ UmetaFlow is further implemented as a [snakemake pipeline](https://github.com/NB
 
 4. Launch the streamlit app locally in your browser
 
-`streamlit run Home.py local`
+`streamlit run app.py local`
 
 ### Windows
 1. Visit the [UmetaFlow web app](https://abi-services.cs.uni-tuebingen.de/umetaflow/)

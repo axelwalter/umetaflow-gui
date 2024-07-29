@@ -1,6 +1,6 @@
 import streamlit as st
 from src.common import *
-from src.common import page_setup, save_params
+from src.common import page_setup
 
 params = page_setup(page="main")
 
@@ -92,5 +92,3 @@ with open("assets/default-params.json", "r") as f:
 for key, value in default_params.items():
     if key not in params.keys():
         params[key] = value
-
-save_params(params)

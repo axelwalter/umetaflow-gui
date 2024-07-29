@@ -109,7 +109,7 @@ FROM compile-openms AS run-app
 
 # note: specifying folder with slash as suffix and repeating the folder name seems important to preserve directory structure
 WORKDIR /app
-COPY Home.py /app/Home.py 
+COPY app.py /app/app.py 
 COPY src/ /app/src
 COPY assets/ /app/assets
 COPY example-data/ /app/example-data
@@ -123,7 +123,7 @@ RUN echo "0 3 * * * /root/mambaforge/envs/streamlit-env/bin/python /app/clean-up
 # create entrypoint script to start cron service and launch streamlit app
 RUN echo "#!/bin/bash" > /app/entrypoint.sh
 RUN echo "service cron start" >> /app/entrypoint.sh
-RUN echo "mamba run --no-capture-output -n streamlit-env streamlit run Home.py" >> /app/entrypoint.sh
+RUN echo "mamba run --no-capture-output -n streamlit-env streamlit run app.py" >> /app/entrypoint.sh
 # make the script executable
 RUN chmod +x /app/entrypoint.sh
 

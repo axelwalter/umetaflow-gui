@@ -244,10 +244,10 @@ You can share this unique workspace ID with other people.
             )
         if help_text:
             st.info(help_text)
-        c1, c2 = st.columns(2)
-        c1.image("assets/umetaflow-logo.png")
-        c2.markdown("##")
-        c2.image("assets/pyopenms_transparent_background.png")
+        # c1, c2 = st.columns(2)
+        # c1.image("assets/umetaflow-logo.png")
+        # c2.markdown("##")
+        # c2.image("assets/pyopenms-logo.png")
     return params
 
 def v_space(n: int, col=None) -> None:

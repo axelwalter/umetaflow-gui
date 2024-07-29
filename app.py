@@ -8,7 +8,7 @@ pages = {
         st.Page(Path("content", "raw_data_viewer.py"), title="View MS data", icon="👀"),
     ],
     "Untargeted" : [
-        st.Page(Path("content", "umetaflow_pyopenms.py"), title="UmetaFlow pyOpenMS", icon="🧪"),
+        st.Page(Path("content", "umetaflow_pyopenms.py"), title="UmetaFlow pyOpenMS", icon="🐍"),
         st.Page(Path("content", "umetaflow_topp.py"), title="UmetaFlow TOPP", icon="🚀"),
     ],
     "Targeted": [

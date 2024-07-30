@@ -96,10 +96,11 @@ def page_setup(page: str = "", help_text: str = "") -> dict[str, Any]:
         page_icon="assets/umetaflow-logo.png",
         layout="wide",
         initial_sidebar_state="auto",
-        menu_items=None
+        menu_items=None,
     )
 
-    st.markdown("""
+    st.markdown(
+        """
         <style>
             .stMultiSelect [data-baseweb=select] span{
                 max-width: 500px;
@@ -107,7 +108,9 @@ def page_setup(page: str = "", help_text: str = "") -> dict[str, Any]:
             }
             div[data-testid='stSidebarNav'] ul {max-height:none}
         </style>
-        """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Determine the workspace for the current session
     if "workspace" not in st.session_state:
@@ -125,7 +128,7 @@ def page_setup(page: str = "", help_text: str = "") -> dict[str, Any]:
         if "windows" in sys.argv:
             os.chdir("../umetaflow-gui-main")
         # Define the directory where all workspaces will be stored
-        workspaces_dir = Path("..", "workspaces-"+REPOSITORY_NAME)
+        workspaces_dir = Path("..", "workspaces-" + REPOSITORY_NAME)
         if st.session_state.location == "online":
             st.session_state.workspace = Path(workspaces_dir, str(uuid.uuid1()))
         else:
@@ -138,12 +141,12 @@ def page_setup(page: str = "", help_text: str = "") -> dict[str, Any]:
 
     # Make sure the necessary directories exist
     st.session_state.workspace.mkdir(parents=True, exist_ok=True)
-    Path(st.session_state.workspace,
-         "mzML-files").mkdir(parents=True, exist_ok=True)
+    Path(st.session_state.workspace, "mzML-files").mkdir(parents=True, exist_ok=True)
 
     # Render the sidebar
     params = render_sidebar(page, help_text)
     return params
+
 
 def render_sidebar(page: str = "", help_text: str = "") -> None:
     """
@@ -168,14 +171,20 @@ def render_sidebar(page: str = "", help_text: str = "") -> None:
         if page == "main":
             st.markdown("🖥️ **Workspaces**")
             # Define workspaces directory outside of repository
-            workspaces_dir = Path("..", "workspaces-"+REPOSITORY_NAME)
+            workspaces_dir = Path("..", "workspaces-" + REPOSITORY_NAME)
             # Online: show current workspace name in info text and option to change to other existing workspace
             if st.session_state.location == "online":
                 # Change workspace...
                 new_workspace = st.text_input("enter workspace", "")
-                if st.button("**Enter Workspace**", type="primary", disabled= not new_workspace) and new_workspace:
-                    path = Path(
-                        workspaces_dir, new_workspace)
+                if (
+                    st.button(
+                        "**Enter Workspace**",
+                        type="primary",
+                        disabled=not new_workspace,
+                    )
+                    and new_workspace
+                ):
+                    path = Path(workspaces_dir, new_workspace)
                     if path.exists():
                         st.session_state.workspace = path
                         st.success(f"Switched to workspace **{new_workspace}**")
@@ -201,24 +210,26 @@ You can share this unique workspace ID with other people.
                     st.session_state.workspace = Path(
                         workspaces_dir, st.session_state["chosen-workspace"]
                     )
+
                 # Get all available workspaces as options
-                options = [file.name for file in workspaces_dir.iterdir()
-                           if file.is_dir()]
+                options = [
+                    file.name for file in workspaces_dir.iterdir() if file.is_dir()
+                ]
                 # Let user chose an already existing workspace
                 st.selectbox(
                     "choose existing workspace",
                     options,
-                    index=options.index(
-                        str(st.session_state.workspace.stem)),
+                    index=options.index(str(st.session_state.workspace.stem)),
                     on_change=change_workspace,
-                    key="chosen-workspace"
+                    key="chosen-workspace",
                 )
                 # Create or Remove workspaces
-                create_remove = st.text_input(
-                    "create/remove workspace", "")
+                create_remove = st.text_input("create/remove workspace", "")
                 path = Path(workspaces_dir, create_remove)
                 # Create new workspace
-                if st.button("**Create Workspace**", type="primary", disabled=not create_remove):
+                if st.button(
+                    "**Create Workspace**", type="primary", disabled=not create_remove
+                ):
                     path.mkdir(parents=True, exist_ok=True)
                     st.session_state.workspace = path
                     st.rerun()
@@ -226,29 +237,29 @@ You can share this unique workspace ID with other people.
                 if st.button("⚠️ Delete Workspace", disabled=not create_remove):
                     if path.exists():
                         shutil.rmtree(path)
-                        st.session_state.workspace = Path(
-                            workspaces_dir, "default"
-                        )
+                        st.session_state.workspace = Path(workspaces_dir, "default")
                         st.rerun()
 
         # All pages have settings, workflow indicator and logo
         if page != "main":
-            st.success(
-                f"**{Path(st.session_state['workspace']).stem}**")
+            st.success(f"**{Path(st.session_state['workspace']).stem}**")
         with st.expander("⚙️ **Settings**"):
             img_formats = ["svg", "png", "jpeg", "webp"]
             st.selectbox(
                 "image export format",
                 img_formats,
-                img_formats.index(params["image-format"]), key="image-format"
+                img_formats.index(params["image-format"]),
+                key="image-format",
             )
         if help_text:
-            st.info(help_text)
+            with st.expander("📖 **About this page**"):
+                st.markdown(help_text)
         # c1, c2 = st.columns(2)
         # c1.image("assets/umetaflow-logo.png")
         # c2.markdown("##")
         # c2.image("assets/pyopenms-logo.png")
     return params
+
 
 def v_space(n: int, col=None) -> None:
     """
@@ -292,7 +303,12 @@ def show_table(df: pd.DataFrame, download_name: str = "") -> None:
     return df
 
 
-def show_fig(fig, download_name: str, container_width: bool = True) -> None:
+def show_fig(
+    fig,
+    download_name: str,
+    container_width: bool = True,
+    selection_session_state_key: str = "",
+) -> None:
     """
     Displays a Plotly chart and adds a download button to the plot.
 
@@ -300,32 +316,58 @@ def show_fig(fig, download_name: str, container_width: bool = True) -> None:
         fig (plotly.graph_objs._figure.Figure): The Plotly figure to display.
         download_name (str): The name for the downloaded file.
         container_width (bool, optional): If True, the figure will use the container width. Defaults to True.
+        selection_session_state_key (str, optional): If set, save the rectangular selection to session state with this key.
 
     Returns:
         None
     """
-    # Display plotly chart using container width and removed controls except for download
-    st.plotly_chart(
-        fig,
-        use_container_width=container_width,
-        config={
-            "displaylogo": False,
-            "modeBarButtonsToRemove": [
-                "zoom",
-                "pan",
-                "select",
-                "lasso",
-                "zoomin",
-                "autoscale",
-                "zoomout",
-                "resetscale",
-            ],
-            "toImageButtonOptions": {
-                "filename": download_name,
-                "format": st.session_state["image-format"],
+    if not selection_session_state_key:
+        st.plotly_chart(
+            fig,
+            use_container_width=container_width,
+            config={
+                "displaylogo": False,
+                "modeBarButtonsToRemove": [
+                    "zoom",
+                    "pan",
+                    "select",
+                    "lasso",
+                    "zoomin",
+                    "autoscale",
+                    "zoomout",
+                    "resetscale",
+                ],
+                "toImageButtonOptions": {
+                    "filename": download_name,
+                    "format": st.session_state["image-format"],
+                },
             },
-        },
-    )
+        )
+    else:
+        st.plotly_chart(
+            fig,
+            key=selection_session_state_key,
+            selection_mode=["points", "box"],
+            on_select="rerun",
+            config={
+                "displaylogo": False,
+                "modeBarButtonsToRemove": [
+                    "zoom",
+                    "pan",
+                    "lasso",
+                    "zoomin",
+                    "autoscale",
+                    "zoomout",
+                    "resetscale",
+                    "select",
+                ],
+                "toImageButtonOptions": {
+                    "filename": download_name,
+                    "format": st.session_state["image-format"],
+                },
+            },
+            use_container_width=True,
+        )
 
 
 def reset_directory(path: Path) -> None:

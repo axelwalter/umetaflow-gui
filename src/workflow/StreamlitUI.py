@@ -13,6 +13,7 @@ import zipfile
 import pandas as pd
 from datetime import datetime
 
+
 class StreamlitUI:
     """
     Provides an interface for Streamlit applications to handle file uploads,
@@ -140,7 +141,9 @@ class StreamlitUI:
             ):
                 shutil.rmtree(files_dir)
                 del self.params[key]
-                with open(self.parameter_manager.params_file, "w", encoding="utf-8") as f:
+                with open(
+                    self.parameter_manager.params_file, "w", encoding="utf-8"
+                ) as f:
                     json.dump(self.params, f, indent=4)
                 st.rerun()
         elif not fallback:
@@ -148,7 +151,9 @@ class StreamlitUI:
 
     def simple_file_uploader(self, key: str, file_type: str, name: str = "") -> None:
         c1, c2 = st.columns(2)
-        upload = c1.file_uploader(name, file_type, False, help="Save paramters after uploading.")
+        upload = c1.file_uploader(
+            name, file_type, False, help="Save paramters after uploading."
+        )
         dir_path = Path(self.workflow_dir, "input-files", key)
         if upload:
             if dir_path.exists():
@@ -367,7 +372,9 @@ class StreamlitUI:
                     help=help,
                 )
             elif isinstance(value, bool):
-                self.input_widget(key, value, widget_type="checkbox", name=name, help=help)
+                self.input_widget(
+                    key, value, widget_type="checkbox", name=name, help=help
+                )
             else:
                 self.input_widget(key, value, widget_type="text", name=name, help=help)
 
@@ -400,9 +407,13 @@ class StreamlitUI:
         ini_file_path = Path(self.parameter_manager.ini_dir, f"{topp_tool_name}.ini")
         if not ini_file_path.exists():
             tool_full_path = ""
-            possible_paths = [ # potential TOPP tool locations in increasing priority
-                str(Path(topp_tool_name)), # in case it is globally available (lowest priority)
-                str(Path(sys.prefix, "bin", topp_tool_name)), # in current conda environment
+            possible_paths = [  # potential TOPP tool locations in increasing priority
+                str(
+                    Path(topp_tool_name)
+                ),  # in case it is globally available (lowest priority)
+                str(
+                    Path(sys.prefix, "bin", topp_tool_name)
+                ),  # in current conda environment
             ]
             for path in possible_paths:
                 if shutil.which(path) is not None:
@@ -425,7 +436,11 @@ class StreamlitUI:
         param = poms.Param()
         poms.ParamXMLFile().load(str(ini_file_path), param)
         if include_parameters:
-            valid_keys = [key for key in param.keys() if any([k.encode() in key for k in include_parameters])]
+            valid_keys = [
+                key
+                for key in param.keys()
+                if any([k.encode() in key for k in include_parameters])
+            ]
         else:
             excluded_keys = [
                 "log",
@@ -436,10 +451,16 @@ class StreamlitUI:
                 "version",
                 "test",
             ] + exclude_parameters
-            valid_keys = [key for key in param.keys() if not (b"input file" in param.getTags(key)
-                                                            or b"output file" in param.getTags(key)
-                                                            or any([k.encode() in key for k in excluded_keys]))]
-        
+            valid_keys = [
+                key
+                for key in param.keys()
+                if not (
+                    b"input file" in param.getTags(key)
+                    or b"output file" in param.getTags(key)
+                    or any([k.encode() in key for k in excluded_keys])
+                )
+            ]
+
         params_decoded = []
         for key in valid_keys:
             entry = param.getEntry(key)
@@ -452,7 +473,7 @@ class StreamlitUI:
                 "advanced": (b"advanced" in param.getTags(key)),
             }
             params_decoded.append(tmp)
-                    
+
         # for each parameter in params_decoded
         # if a parameter with custom default value exists, use that value
         # else check if the parameter is already in self.params, if yes take the value from self.params
@@ -469,7 +490,7 @@ class StreamlitUI:
         # show input widgets
         cols = st.columns(num_cols)
         i = 0
-        
+
         for p in params_decoded:
             # skip avdanced parameters if not selected
             if not st.session_state["advanced"] and p["advanced"]:
@@ -489,7 +510,11 @@ class StreamlitUI:
                     cols[i].markdown("##")
                     cols[i].checkbox(
                         name,
-                        value=(p["value"] == "true") if type(p["value"]) == str else p["value"],
+                        value=(
+                            (p["value"] == "true")
+                            if type(p["value"]) == str
+                            else p["value"]
+                        ),
                         help=p["description"],
                         key=key,
                     )
@@ -552,22 +577,22 @@ class StreamlitUI:
         num_cols: int = 3,
     ) -> None:
         """
-    Dynamically generates and displays input widgets based on the DEFAULTS 
-    dictionary defined in a specified Python script file.
+        Dynamically generates and displays input widgets based on the DEFAULTS
+        dictionary defined in a specified Python script file.
 
-    For each entry in the DEFAULTS dictionary, an input widget is displayed, 
-    allowing the user to specify values for the parameters defined in the 
-    script. The widgets are arranged in a grid with a specified number of 
-    columns. Parameters can be marked as hidden or advanced within the DEFAULTS 
-    dictionary; hidden parameters are not displayed, and advanced parameters 
-    are displayed only if the user has selected to view advanced options.
+        For each entry in the DEFAULTS dictionary, an input widget is displayed,
+        allowing the user to specify values for the parameters defined in the
+        script. The widgets are arranged in a grid with a specified number of
+        columns. Parameters can be marked as hidden or advanced within the DEFAULTS
+        dictionary; hidden parameters are not displayed, and advanced parameters
+        are displayed only if the user has selected to view advanced options.
 
-    Args:
-    script_file (str): The file name or path to the Python script containing 
-                       the DEFAULTS dictionary. If the path is omitted, the method searches in 
-                       src/python-tools/'.
-    num_cols (int, optional): The number of columns to use for displaying input widgets. Defaults to 3.
-    """
+        Args:
+        script_file (str): The file name or path to the Python script containing
+                           the DEFAULTS dictionary. If the path is omitted, the method searches in
+                           src/python-tools/'.
+        num_cols (int, optional): The number of columns to use for displaying input widgets. Defaults to 3.
+        """
 
         # Check if script file exists (can be specified without path and extension)
         # default location: src/python-tools/script_file
@@ -647,7 +672,7 @@ class StreamlitUI:
         Args:
             directory (str): The directory whose files are to be zipped.
         """
-       # Ensure directory is a Path object and check if directory is empty
+        # Ensure directory is a Path object and check if directory is empty
         directory = Path(directory)
         if not any(directory.iterdir()):
             st.error("No files to compress.")
@@ -668,7 +693,9 @@ class StreamlitUI:
 
         with zipfile.ZipFile(bytes_io, "w", zipfile.ZIP_DEFLATED) as zip_file:
             for i, file_path in enumerate(files):
-                if file_path.is_file():  # Ensure we're only adding files, not directories
+                if (
+                    file_path.is_file()
+                ):  # Ensure we're only adding files, not directories
                     # Preserve directory structure relative to the original directory
                     zip_file.write(file_path, file_path.relative_to(directory.parent))
                     my_bar.progress((i + 1) / n_files)  # Update progress bar
@@ -682,10 +709,9 @@ class StreamlitUI:
             data=bytes_io,
             file_name="input-files.zip",
             mime="application/zip",
-            use_container_width=True
+            use_container_width=True,
         )
-        
-        
+
     def file_upload_section(self, custom_upload_function) -> None:
         custom_upload_function()
         if st.button("⬇️ Download all uploaded files", use_container_width=True):
@@ -719,17 +745,25 @@ class StreamlitUI:
         self.parameter_manager.save_parameters()
 
     def execution_section(self, start_workflow_function) -> None:
-        num_files = pd.read_csv(Path(st.session_state.workspace, 'mzML-files.tsv'), sep='\t')['use in workflows'].sum()
-        st.info(f"**{num_files}** mzML files selected")
+        df_path = Path(st.session_state.workspace, "mzML-files.tsv")
+        if df_path.exists():
+            num_files = pd.read_csv(df_path, sep="\t")["use in workflows"].sum()
+        else:
+            num_files = 0
+
         if num_files > 1:
-            with st.expander("💡 **Parameter Summary**"):
-                st.write(self.params)
+            st.info(f"**{num_files}** mzML files selected")
         else:
             st.warning("⚠️ Select at least **two** mzML files to run this workflow.")
             return
+
+        with st.expander("💡 **Parameter Summary**"):
+            st.write(self.params)
         c1, c2 = st.columns(2)
         # Select log level, this can be changed at run time or later without re-running the workflow
-        log_level = c1.selectbox("log details", ["minimal", "commands and run times", "all"], key="log_level")
+        log_level = c1.selectbox(
+            "log details", ["minimal", "commands and run times", "all"], key="log_level"
+        )
         c2.markdown("######")
         if self.executor.pid_dir.exists():
             if c2.button("Stop Workflow", type="primary", use_container_width=True):
@@ -751,7 +785,9 @@ class StreamlitUI:
                     time.sleep(2)
                 st.rerun()
             else:
-                st.markdown(f"**Workflow log file: {datetime.fromtimestamp(log_path.stat().st_ctime).strftime('%Y-%m-%d %H:%M')} CET**")
+                st.markdown(
+                    f"**Workflow log file: {datetime.fromtimestamp(log_path.stat().st_ctime).strftime('%Y-%m-%d %H:%M')} CET**"
+                )
                 with open(log_path, "r", encoding="utf-8") as f:
                     content = f.read()
                     # Check if workflow finished successfully

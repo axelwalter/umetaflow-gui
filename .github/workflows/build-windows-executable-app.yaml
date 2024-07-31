@@ -11,7 +11,7 @@ jobs:
     runs-on: windows-latest
 
     env:
-      OPENMS_VERSION: 3.0.0 
+      OPENMS_VERSION: 3.0.0
 
     steps:
     - name: Checkout
@@ -193,14 +193,14 @@ jobs:
       run: |
         echo '@echo off' > UmetaFlow.bat
         echo '.\\python-${{ env.PYTHON_VERSION }}\\python -m streamlit run app.py local' >> UmetaFlow.bat
-      
+
     - name: Create All-in-one executable folder
       run: |
         mkdir streamlit_exe
         mv python-${{ env.PYTHON_VERSION }} streamlit_exe
         mv UmetaFlow.bat streamlit_exe
         cp -r src streamlit_exe
-        cp -r pages streamlit_exe
+        cp -r content streamlit_exe
         cp -r assets streamlit_exe
         cp -r example-data streamlit_exe
         cp -r .streamlit streamlit_exe

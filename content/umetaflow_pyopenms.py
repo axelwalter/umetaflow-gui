@@ -4,18 +4,18 @@ from src.umetaflow import run_umetaflow, HELP
 from src.viewmetabolomics import *
 from pathlib import Path
 
-
 params = page_setup(page="workflow", help_text=HELP)
 
-c1, c2 = st.columns([0.7, 0.3])
-c1.title("UmetaFlow pyOpenMS")
-v_space(1, c2)
-results_only = c2.toggle("view results only")
-st.info("💡Minimal interface with **pyOpenMS** only. For more advanced use cases and fast execution times use **UmetaFlow TOPP**. Requires OpenMS TOPP tools to be installed.")
+st.title("UmetaFlow pyOpenMS")
+
+results_only = st.toggle("view results only")
+st.info(
+    "💡Minimal interface with **pyOpenMS** only. For more advanced use cases and fast execution times use **UmetaFlow TOPP**. Requires OpenMS TOPP tools to be installed."
+)
 
 results_dir = Path(st.session_state.workspace, "umetaflow-results")
 
-        
+
 if not results_only:
     df_path = Path(st.session_state.workspace, "mzML-files.tsv")
 
@@ -23,56 +23,92 @@ if not results_only:
         mzML_files = []
     else:
         df = pd.read_csv(df_path, sep="\t")
-        
+
         # Filter the DataFrame for files where "use in workflow" is True
         selected_files = df[df["use in workflows"] == True]["file name"].tolist()
-        
+
         # Construct full file paths
-        mzML_files = [Path(st.session_state.workspace, "mzML-files", file_name) for file_name in selected_files]
+        mzML_files = [
+            Path(st.session_state.workspace, "mzML-files", file_name)
+            for file_name in selected_files
+        ]
     if not mzML_files:
         st.warning("No mzML files selected.")
     with st.form("umetaflow-form"):
         st.markdown("**1. Pre-Processing**")
-        tabs = st.tabs(["Feature Detection",
-                        "Blank Removal",
-                        "Map Alignement",
-                        "Adduct Detection",
-                        "Feature Linking"])
+        tabs = st.tabs(
+            [
+                "Feature Detection",
+                "Blank Removal",
+                "Map Alignement",
+                "Adduct Detection",
+                "Feature Linking",
+            ]
+        )
         with tabs[0]:
             c1, c2, c3, c4 = st.columns(4)
             c1.number_input(
-                "**mass error ppm**", 1.0, 1000.0, params["ffm_mass_error"], key="ffm_mass_error"
+                "**mass error ppm**",
+                1.0,
+                1000.0,
+                params["ffm_mass_error"],
+                key="ffm_mass_error",
             )
 
             c2.number_input(
-                "**noise threshold**", 10, 1000000000, int(
-                    params["ffm_noise"]), 100, key="ffm_noise"
+                "**noise threshold**",
+                10,
+                1000000000,
+                int(params["ffm_noise"]),
+                100,
+                key="ffm_noise",
             )
             v_space(1, c3)
-            c3.checkbox("remove single traces",
-                        params["ffm_single_traces"], key="ffm_single_traces")
+            c3.checkbox(
+                "remove single traces",
+                params["ffm_single_traces"],
+                key="ffm_single_traces",
+            )
 
             c4.number_input(
                 "min S/N ratio", 1.0, 20.0, params["ffm_snr"], 1.0, key="ffm_snr"
             )
             c1, c2, c3, c4 = st.columns(4)
             c1.number_input(
-                "min peak width at FWHM", 0.1, 60.0, params["ffm_min_fwhm"],  key="ffm_min_fwhm"
+                "min peak width at FWHM",
+                0.1,
+                60.0,
+                params["ffm_min_fwhm"],
+                key="ffm_min_fwhm",
             )
             c2.number_input(
-                "peak width at FWHM", 0.1, 120.0, params["ffm_peak_width"], 1.0, key="ffm_peak_width"
+                "peak width at FWHM",
+                0.1,
+                120.0,
+                params["ffm_peak_width"],
+                1.0,
+                key="ffm_peak_width",
             )
             c3.number_input(
-                "max peak width at FWHM", 0.2, 60.0, params["ffm_max_fwhm"], key="ffm_max_fwhm"
+                "max peak width at FWHM",
+                0.2,
+                60.0,
+                params["ffm_max_fwhm"],
+                key="ffm_max_fwhm",
             )
             if not (
-                st.session_state["ffm_min_fwhm"] <= st.session_state["ffm_peak_width"] <= st.session_state["ffm_max_fwhm"]
-            ):  
+                st.session_state["ffm_min_fwhm"]
+                <= st.session_state["ffm_peak_width"]
+                <= st.session_state["ffm_max_fwhm"]
+            ):
                 c4.warning("Check your peak width settings.")
 
         with tabs[1]:
             st.checkbox(
-                "remove blank features", params["remove_blanks"], key="remove_blanks", help="Useful to filter out features which are present in blank sample/s or e.g. for differential feature detection to remove features which are present in control, but not in treatment samples."
+                "remove blank features",
+                params["remove_blanks"],
+                key="remove_blanks",
+                help="Useful to filter out features which are present in blank sample/s or e.g. for differential feature detection to remove features which are present in control, but not in treatment samples.",
             )
             # if st.session_state["remove_blanks"]:
             c1, c2 = st.columns(2)
@@ -94,7 +130,9 @@ if not results_only:
             )
 
         with tabs[2]:
-            st.checkbox("align feature map retention times", params["use_ma"], key="use_ma")
+            st.checkbox(
+                "align feature map retention times", params["use_ma"], key="use_ma"
+            )
             # if st.session_state["use_ma"]:
             c1, c2, c3 = st.columns(3)
             c1.number_input(
@@ -104,17 +142,22 @@ if not results_only:
                 params["ma_mz_max"],
                 step=1.0,
                 format="%.2f",
-                key="ma_mz_max"
+                key="ma_mz_max",
             )
             c2.radio(
                 "mz distance unit",
                 ["ppm", "Da"],
                 ["ppm", "Da"].index(params["ma_mz_unit"]),
-                key="ma_mz_unit"
+                key="ma_mz_unit",
             )
 
             c3.number_input(
-                "RT max difference", 1, 1000, int(params["ma_rt_max"]), 10, key="ma_rt_max"
+                "RT max difference",
+                1,
+                1000,
+                int(params["ma_rt_max"]),
+                10,
+                key="ma_rt_max",
             )
 
         with tabs[3]:
@@ -146,15 +189,15 @@ Good starting options for negative mode with water loss and formic acid addition
 H-1:-:1\n
 H-2O-1:0:0.5\n
 CH2O2:0:0.5
-"""
-                )
+""",
+            )
             c3.number_input(
                 "charge min",
                 -3,
                 3,
                 params["ad_charge_min"],
                 key="ad_charge_min",
-                help="e.g. for negative mode -3, for positive mode 1"
+                help="e.g. for negative mode -3, for positive mode 1",
             )
             c3.number_input(
                 "charge max",
@@ -184,17 +227,18 @@ CH2O2:0:0.5
                 params["fl_mz_tol"],
                 step=1.0,
                 format="%.2f",
-                key="fl_mz_tol"
+                key="fl_mz_tol",
             )
             c2.radio(
                 "mz tolerance unit",
                 ["ppm", "Da"],
                 ["ppm", "Da"].index(params["fl_mz_unit"]),
-                key="fl_mz_unit"
+                key="fl_mz_unit",
             )
 
-            c3.number_input("RT tolerance", 1, 200, int(
-                params["fl_rt_tol"]), 5, key="fl_rt_tol")
+            c3.number_input(
+                "RT tolerance", 1, 200, int(params["fl_rt_tol"]), 5, key="fl_rt_tol"
+            )
 
         st.markdown("**2. Re-Quantification**")
         st.checkbox(
@@ -239,8 +283,7 @@ CH2O2:0:0.5
                 "Select library for MS1 annotations.", type=["tsv"]
             )
             if ms1_annotation_file_upload:
-                path = Path(st.session_state.workspace,
-                            ms1_annotation_file_upload.name)
+                path = Path(st.session_state.workspace, ms1_annotation_file_upload.name)
                 with open(path, "wb") as f:
                     f.write(ms1_annotation_file_upload.getbuffer())
                 params["ms1_annotation_file"] = str(path)
@@ -249,12 +292,20 @@ CH2O2:0:0.5
                     st.info(params["ms1_annotation_file"])
             c2.number_input(
                 "retention time window for annotation in seconds",
-                1, 240, params["annoation_rt_window_sec"], 10,
+                1,
+                240,
+                params["annoation_rt_window_sec"],
+                10,
                 key="annoation_rt_window_sec",
                 help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.",
             )
             params["annotation_mz_window_ppm"] = c2.number_input(
-                "mz window for annotation in ppm", 1, 100, params["annotation_mz_window_ppm"], 1, key="annotation_mz_window_ppm"
+                "mz window for annotation in ppm",
+                1,
+                100,
+                params["annotation_mz_window_ppm"],
+                1,
+                key="annotation_mz_window_ppm",
             )
 
         with tabs[1]:
@@ -271,8 +322,7 @@ CH2O2:0:0.5
                 "Select library for MS2 annotations", type=["mgf"]
             )
             if ms2_annotation_file_upload:
-                path = Path(st.session_state.workspace,
-                            ms2_annotation_file_upload.name)
+                path = Path(st.session_state.workspace, ms2_annotation_file_upload.name)
                 with open(path, "wb") as f:
                     f.write(ms2_annotation_file_upload.getbuffer())
                 params["ms2_annotation_file"] = str(path)
@@ -283,7 +333,9 @@ CH2O2:0:0.5
         c1, c2 = st.columns(2)
         if c1.form_submit_button("💾 Save Parameters", use_container_width=True):
             save_params(params)
-        run_button = c2.form_submit_button("Run UmetaFlow", type="primary", use_container_width=True)
+        run_button = c2.form_submit_button(
+            "Run UmetaFlow", type="primary", use_container_width=True
+        )
 
     if run_button:
         save_params(params)
@@ -304,9 +356,7 @@ if results_dir.exists():
             [(df[col] == 0).sum() for col in df.columns]
         )
     if Path(results_dir, "FeatureMatrixRequantified.tsv").is_file():
-        df = pd.read_csv(
-            Path(results_dir, "FeatureMatrixRequantified.tsv"), sep="\t"
-        )
+        df = pd.read_csv(Path(results_dir, "FeatureMatrixRequantified.tsv"), sep="\t")
         st.session_state["missing_values_after"] = sum(
             [(df[col] == 0).sum() for col in df.columns]
         )
@@ -314,7 +364,7 @@ if results_dir.exists():
     if not df.empty:
         # id number integers too large for st dataframe, convert to string
         if "id" in df.columns:
-            df['id'] = df['id'].astype(str)
+            df["id"] = df["id"].astype(str)
 
         if Path(results_dir, "interim", "FFM_aligned_df").exists():
             ffm_path = Path(results_dir, "interim", "FFM_aligned_df")
@@ -340,12 +390,10 @@ if results_dir.exists():
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("number of features", df.shape[0])
             col2.metric(
-                "number of samples", len(
-                    [col for col in df.columns if "mzML" in col])
+                "number of samples", len([col for col in df.columns if "mzML" in col])
             )
             if "missing_values_before" in st.session_state:
-                col3.metric("missing values",
-                            st.session_state.missing_values_before)
+                col3.metric("missing values", st.session_state.missing_values_before)
             if "missing_values_after" in st.session_state:
                 col4.metric(
                     "missing values after re-quantification",
@@ -362,27 +410,24 @@ if results_dir.exists():
                     feature_dir = Path(results_dir, "interim", "FFM_aligned_df")
             display_consensus_map(
                 pd.read_feather(Path(results_dir, "FeatureMatrix.ftr")),
-                {file.stem: pd.read_feather(file)
-                 for file in feature_dir.iterdir()},
+                {file.stem: pd.read_feather(file) for file in feature_dir.iterdir()},
             )
 
         with tabs[tab_options.index("📈 Feature Detection")]:
             display_feature_data(
-                {
-                    f.stem: pd.read_feather(f)
-                    for f in ffm_path.iterdir()
-                },
-                {
-                    f.stem: pd.read_feather(f)
-                    for f in mzML_path.iterdir()
-                },
+                {f.stem: pd.read_feather(f) for f in ffm_path.iterdir()},
+                {f.stem: pd.read_feather(f) for f in mzML_path.iterdir()},
             )
 
         if Path(results_dir, "interim", "FFM_aligned_df").exists():
             with tabs[tab_options.index("📈 Map alignement")]:
                 display_map_alignement(
-                    {f.stem: pd.read_feather(
-                        f)[["mz", "RT", "original_rt"]]for f in Path(results_dir, "interim", "FFM_aligned_df").iterdir()}
+                    {
+                        f.stem: pd.read_feather(f)[["mz", "RT", "original_rt"]]
+                        for f in Path(
+                            results_dir, "interim", "FFM_aligned_df"
+                        ).iterdir()
+                    }
                 )
 
         if Path(results_dir, "interim", "FFMID_df").exists():
@@ -401,7 +446,7 @@ if results_dir.exists():
                         ).iterdir()
                     },
                     {file.stem: pd.read_feather(file) for file in mzML_dir.iterdir()},
-                    "FFMID"
+                    "FFMID",
                 )
 
         with tabs[-1]:
@@ -430,12 +475,11 @@ if results_dir.exists():
                         file_name="ExportGNPS.zip",
                         mime="application/zip",
                     )
-            df_md = pd.read_csv(os.path.join(
-                results_dir, "MetaData.tsv"), sep="\t")
+            df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
             c2.markdown(
-                "**Add new attributes to meta data** (hover on bottom border to add more rows)")
-            md = c2.data_editor(
-                df_md.T, use_container_width=True, num_rows="dynamic")
+                "**Add new attributes to meta data** (hover on bottom border to add more rows)"
+            )
+            md = c2.data_editor(df_md.T, use_container_width=True, num_rows="dynamic")
             c1.download_button(
                 "Meta Data",
                 md.T.to_csv(sep="\t", index=False),

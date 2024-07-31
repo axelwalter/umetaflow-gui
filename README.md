@@ -34,7 +34,7 @@ UmetaFlow is further implemented as a [snakemake pipeline](https://github.com/NB
 
 4. Launch the streamlit app locally in your browser
 
-`streamlit run Home.py local`
+`streamlit run app.py local`
 
 ### Windows
 1. Visit the [UmetaFlow web app](https://abi-services.cs.uni-tuebingen.de/umetaflow/)
@@ -54,23 +54,22 @@ Locally there is no limit in files. However, it is recommended to upload large n
 Your uploaded files will be shown in the sidebar of all tabs dealing with the files, e.g. the **Metabolomics** tab. Checked file names will be used for analysis.
 
 Result files are available via specified download buttons or, if run locally, within the workspace directory.
-### Workflows
 
-#### 📟 m/z Calculator
+### Targeted Metabolomics
+
+##### 📟 m/z Calculator
 
 The m/z calculator facilitates the calculation of mass-to-charge ratios (m/z) for metabolites and includes a method to easily combine metabolites into large molecules.
 
 This table can be used as input for the Extracted Ion Chromatograms workflow.
 
-#### 🔍 Extracted Ion Chromatograms
+##### 🔍 Extracted Ion Chromatograms
 
 Simple workflow for the extraction of chromatograms by `m/z` (and optionally `RT` range) value. Produces a **Feature Matrix** file with area under the curve intensities as well as a **Meta Data** template and the chromatogram data for each file.
 
 Area intensities of different variants (e.g. adducts or neutral losses) of a metabolite can be combined. Put a `#` with the name first and variant second (e.g. `glucose` and `glucose#[M+Na]+`).  
 
-#### 🧪 Metabolomics (UmetaFlow)
-
-The core UmetaFlow pipeline with some tweaks.
+#### Untargeted Metabolomics
 
 1. **Pre-Processing**
 Converting your raw data to a table of metabolic features with a series of algorithms. Produces a table of consensus metabolite intensities across your samples.
@@ -79,12 +78,23 @@ Converting your raw data to a table of metabolic features with a series of algor
 One of the unique and great features of UmetaFlow. For missing value imputation go back into the raw data and double check. Never miss a feature any more! 
 
 3. **GNPS and SIRIUS**
-Export all files required to run GNPS Feature Based Molecular Networking and SIRIUS externally. Also offers the possibility to annotate from the complete GNPS library. For manual annotation of SIRIUS results a unique ID is provied in the **Feature Matrix**.
+Run SIRIUS and automatically annotate features with sum formula, identification and compound classes (**UmetaFlow TOPP**) or export files to run SIRIUS externally (**UmetaFlow pyOpenMS**). Export files to run GNPS externally (**both**).
 
 4. **Annotation via in-house libraries**
 Load your in-house data for MS1 (`tsv` file with metabolite `m/z` and `RT` values) and MS2 (`mgf` file) annotations.
 
-#### 📈 Statistics
+##### 🐍 UmetaFlow pyOpenMS
+
+Using pyOpenMS. Recommended if OpenMS TOPP tools are not installed.
+
+##### 🚀 UmetaFlow TOPP
+
+A high performance workflow with OpenMS TOPP tools running in parallel.
+
+#### Downstream Processing
+
+##### 📈 Statistics
+
 Here, you can do basic statistics right away such as calculating mean intensities, fold changes, clustering and heatmaps all with nice visualizations.
 
 For an advanced and complete workflow visit the [app for statistical analysis of metabolomics data](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/).

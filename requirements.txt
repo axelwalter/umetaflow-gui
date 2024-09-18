@@ -1,11 +1,9 @@
-streamlit
+streamlit>=1.38.0
+pyopenms==3.1.0
+numpy==1.26.4 # pandas and numpy are dependencies of pyopenms, however, pyopenms needs numpy<=1.26.4
+plotly==5.22.0
+captcha==0.5.0
 streamlit-plotly-events
-pyopenms
-pandas
-numpy
-plotly
 pyteomics
 scikit-learn
 scipy
-captcha
-wget

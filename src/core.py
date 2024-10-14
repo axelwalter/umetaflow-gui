@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 from pyopenms import *
-from .common.common import reset_directory
+from src.common.common import reset_directory
 
 
 class FeatureMapHelper:

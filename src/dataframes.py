@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 from pathlib import Path
-from .common.common import reset_directory
+from src.common.common import reset_directory
 from pyteomics import mztab, mgf
 
 

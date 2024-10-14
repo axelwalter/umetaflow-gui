@@ -1,7 +1,7 @@
 import streamlit as st
 import shutil
 from pathlib import Path
-from .common.common import reset_directory
+from src.common.common import reset_directory
 from .core import *
 from .sirius import Sirius
 from .gnps import GNPSExport

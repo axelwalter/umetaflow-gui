@@ -1,6 +1,6 @@
 import streamlit as st
 
-from .common.common import *
+from src.common.common import *
 
 from pathlib import Path
 

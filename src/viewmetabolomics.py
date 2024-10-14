@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-from .common.common import show_fig
+from src.common.common import show_fig
 
 """
 Functions to generate individual plots.

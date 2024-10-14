@@ -1,7 +1,7 @@
 import os
 import shutil
 from pyopenms import *
-from .common.common import reset_directory
+from src.common.common import reset_directory
 from pathlib import Path
 
 

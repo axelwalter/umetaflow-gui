@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 from pathlib import Path
-from src.common import *
+from src.common.common import *
 from src.masscalculator import (
     create_compound,
     build_compound,
@@ -11,7 +10,10 @@ from src.masscalculator import (
     validate_dataframe,
 )
 
-params = page_setup(page="workflow", help_text=HELP)
+params = page_setup(page="workflow")
+
+with st.sidebar:
+    st.markdown(HELP)
 
 st.title("m/z calculator")
 results_only = st.toggle("view results only")

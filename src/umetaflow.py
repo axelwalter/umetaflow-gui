@@ -1,7 +1,7 @@
 import streamlit as st
 import shutil
 from pathlib import Path
-from .common import reset_directory
+from .common.common import reset_directory
 from .core import *
 from .sirius import Sirius
 from .gnps import GNPSExport
@@ -426,7 +426,7 @@ CH2O2:0:0.5
 }
 
 HELP = """
-It is designed to help you analyze mass spectrometry data for untargeted metabolomics.
+This page lets you analyze mass spectrometry data for untargeted metabolomics.
 
 Below are the main steps and options available in the tool:
 

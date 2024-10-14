@@ -2,7 +2,7 @@ import streamlit as st
 from pathlib import Path
 from .workflow.WorkflowManager import WorkflowManager
 
-from src.common import show_fig
+from src.common.common import show_fig
 
 import pandas as pd
 import plotly.express as px
@@ -805,6 +805,7 @@ class Workflow(WorkflowManager):
             ]
             sirius_cols = []
             if sirius_samples:
+                c1, c2 = st.columns(2)
                 show_sirius_results = c1.checkbox("show SIRIUS results", True)
                 if len(sirius_samples) > 1:
                     sirius_sample = c2.selectbox(
@@ -825,7 +826,7 @@ class Workflow(WorkflowManager):
 
             @st.fragment
             def feature_matrix_results():
-                c1, c2 = st.columns([0.5, 0.5])
+                c1, c2 = st.columns(2)
                 event = c1.dataframe(
                     df_matrix,
                     column_order=[

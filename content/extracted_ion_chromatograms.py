@@ -7,7 +7,10 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-params = page_setup(page="workflow", help_text=HELP)
+params = page_setup(page="workflow")
+
+with st.sidebar:
+    st.markdown(HELP)
 
 # c1, c2 = st.columns([0.7, 0.3])
 st.title("Extracted Ion Chromatograms")

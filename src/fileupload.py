@@ -4,7 +4,7 @@ import shutil
 import zipfile
 from pathlib import Path
 from io import BytesIO
-from src.common import reset_directory
+from src.common.common import reset_directory
 
 
 @st.cache_data

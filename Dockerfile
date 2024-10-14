@@ -14,9 +14,9 @@ ARG PORT=8501
 # GitHub token to download latest OpenMS executable for Windows from Github action artifact.
 ARG GITHUB_TOKEN
 # Streamlit app Gihub user name (to download artifact from).
-ARG GITHUB_USER=axelwalter
+ARG GITHUB_USER=OpenMS
 # Streamlit app Gihub repository name (to download artifact from).
-ARG GITHUB_REPO=umetaflow-gui
+ARG GITHUB_REPO=streamlit-template
 
 USER root
 
@@ -32,12 +32,12 @@ RUN apt-get install -y --no-install-recommends --no-install-suggests libboost-da
                                                                      libboost-random1.74-dev
 RUN apt-get install -y --no-install-recommends --no-install-suggests qtbase5-dev libqt5svg5-dev libqt5opengl5-dev
 
-# Download and install mamba.
-ENV PATH="/root/mambaforge/bin:${PATH}"
+# Download and install miniforge.
+ENV PATH="/root/miniforge3/bin:${PATH}"
 RUN wget -q \
-    https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh \
-    && bash Mambaforge-Linux-x86_64.sh -b \
-    && rm -f Mambaforge-Linux-x86_64.sh
+    https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh \
+    && bash Miniforge3-Linux-x86_64.sh -b \
+    && rm -f Miniforge3-Linux-x86_64.sh
 RUN mamba --version
 
 # Setup mamba environment.
@@ -109,16 +109,22 @@ FROM compile-openms AS run-app
 
 # note: specifying folder with slash as suffix and repeating the folder name seems important to preserve directory structure
 WORKDIR /app
-COPY app.py /app/app.py
-COPY src/ /app/src
 COPY assets/ /app/assets
-COPY example-data/ /app/example-data
 COPY content/ /app/content
+COPY docs/ /app/docs
+COPY example-data/ /app/example-data
+COPY gdpr_consent/ /app/gdpr_consent
+COPY src/ /app/src
+COPY app.py /app/app.py
+COPY settings.json /app/settings.json
+COPY default-parameters.json /app/default-parameters.json
+
+# For streamlit configuration
 COPY .streamlit/config.toml /app/.streamlit/config.toml
 COPY clean-up-workspaces.py /app/clean-up-workspaces.py
 
 # add cron job to the crontab
-RUN echo "0 3 * * * /root/mambaforge/envs/streamlit-env/bin/python /app/clean-up-workspaces.py >> /app/clean-up-workspaces.log 2>&1" | crontab -
+RUN echo "0 3 * * * /root/miniforge3/envs/streamlit-env/bin/python /app/clean-up-workspaces.py >> /app/clean-up-workspaces.log 2>&1" | crontab -
 
 # create entrypoint script to start cron service and launch streamlit app
 RUN echo "#!/bin/bash" > /app/entrypoint.sh
@@ -130,8 +136,8 @@ RUN chmod +x /app/entrypoint.sh
 # Download latest OpenMS App executable for Windows from Github actions workflow.
 RUN WORKFLOW_ID=$(curl -s "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/actions/workflows" | jq -r '.workflows[] | select(.name == "Build executable for Windows") | .id') \
     && SUCCESSFUL_RUNS=$(curl -s "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/actions/runs?workflow_id=$WORKFLOW_ID&status=success" | jq -r '.workflow_runs[0].id') \
-    && ARTIFACT_ID=$(curl -s "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/actions/runs/$SUCCESSFUL_RUNS/artifacts" | jq -r '.artifacts[] | select(.name == "UmetaFlow-App") | .id') \
-    && curl -LJO -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/actions/artifacts/$ARTIFACT_ID/zip" -o /app/UmetaFlow-App
+    && ARTIFACT_ID=$(curl -s "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/actions/runs/$SUCCESSFUL_RUNS/artifacts" | jq -r '.artifacts[] | select(.name == "OpenMS-App") | .id') \
+    && curl -LJO -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/actions/artifacts/$ARTIFACT_ID/zip" -o /app/OpenMS-App
 
 # Run app as container entrypoint.
 EXPOSE $PORT

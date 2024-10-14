@@ -1,28 +1,28 @@
 name: Build executable for Windows
-
 on:
   push:
-    branches: [ "main"]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main"]
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build-openms:
     runs-on: windows-latest
 
     env:
-      OPENMS_VERSION: 3.0.0
+      OPENMS_VERSION: 3.0.0 
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: OpenMS/OpenMS
-        ref: develop
+        ref: release/${{ env.OPENMS_VERSION }}
         path: 'OpenMS'
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         version: '5.15.2' # 5.12.7 is broken https://bugreports.qt.io/browse/QTBUG-81715, > 5.15.2 is not available on official archives (https://github.com/miurahr/aqtinstall/issues/636)
         host: 'windows' # default: win64_msvc2017_64
@@ -58,7 +58,7 @@ jobs:
 
     - name: Cache contrib
       id: cache-contrib-win
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ github.workspace }}/OpenMS/contrib
         key: ${{ runner.os }}-contrib3
@@ -72,12 +72,12 @@ jobs:
         # Download the file using the URL fetched from GitHub
         gh release download -R OpenMS/contrib --pattern 'contrib_build-Windows.tar.gz'
         # Extract the archive
-        tar -xzf contrib_build-Windows.tar.gz
+        7z x -so contrib_build-Windows.tar.gz | 7z x -si -ttar
         rm contrib_build-Windows.tar.gz
         ls
 
     - name: Setup ccache cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: .ccache
         key: ${{ runner.os }}-ccache-${{ env.RUN_NAME }}-${{ github.run_number }}
@@ -112,7 +112,7 @@ jobs:
           ctest --output-on-failure -V -S $GITHUB_WORKSPACE/OpenMS/tools/ci/cibuild.cmake
       env:
           #OS_PREFIX_PATH: "${{ env.Qt5_DIR }}/lib/cmake;${{ env.Qt5_DIR }}"
-          OPENMS_CONTRIB_LIBS: "${{ github.workspace }}/OpenMS/contrib"
+          CONTRIB_BUILD_DIRECTORY: "${{ github.workspace }}/OpenMS/contrib"
           CI_PROVIDER: "GitHub-Actions"
           CMAKE_GENERATOR: "Ninja"
           SOURCE_DIRECTORY: "${{ github.workspace }}/OpenMS"
@@ -134,37 +134,46 @@ jobs:
           CCACHE_COMPRESSLEVEL: 12
           CCACHE_MAXSIZE: 400M
 
+    - name: Test Windows
+      shell: bash
+      run: $LAUNCHER ctest --output-on-failure -V -S $GITHUB_WORKSPACE/OpenMS/tools/ci/citest.cmake
+      env:
+          LAUNCHER: ""
+          SOURCE_DIRECTORY: "${{ github.workspace }}/OpenMS"
+          CI_PROVIDER: "GitHub-Actions"
+          BUILD_NAME: "${{ env.RUN_NAME }}-Win64-class-topp-${{ github.run_number }}"
+
     - name: Upload TOPP tools as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: OpenMS-bin
         path: OpenMS/bld/bin
 
     - name: Upload share as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: OpenMS-share
         path: OpenMS/share
 
   build-executable:
     runs-on: windows-latest
-    needs: [build-openms]
+    needs: build-openms
 
     env:
       PYTHON_VERSION: 3.11.0
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Download TOPP tools as artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: OpenMS-bin
         path: openms-bin
 
     - name: Download share as artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: OpenMS-share
         path: share
@@ -189,49 +198,42 @@ jobs:
     - name: Install Required Packages
       run: .\python-${{ env.PYTHON_VERSION }}\python -m pip install --force-reinstall -r requirements.txt --no-warn-script-location
 
-    - name: Create UmetaFlow.bat file
+    - name: Create run_app.bat file
       run: |
-        echo '@echo off' > UmetaFlow.bat
-        echo '.\\python-${{ env.PYTHON_VERSION }}\\python -m streamlit run app.py local' >> UmetaFlow.bat
-
+        echo '@echo off' > run_app.bat
+        echo '.\\python-${{ env.PYTHON_VERSION }}\\python -m streamlit run app.py local' >> run_app.bat
+      
     - name: Create All-in-one executable folder
       run: |
         mkdir streamlit_exe
         mv python-${{ env.PYTHON_VERSION }} streamlit_exe
-        mv UmetaFlow.bat streamlit_exe
+        mv run_app.bat streamlit_exe
         cp -r src streamlit_exe
         cp -r content streamlit_exe
         cp -r assets streamlit_exe
         cp -r example-data streamlit_exe
         cp -r .streamlit streamlit_exe
-        cp openms-bin/*.dll streamlit_exe
-        cp openms-bin/FileFilter.exe streamlit_exe
-        cp openms-bin/HighResPrecursorMassCorrector.exe streamlit_exe
-        cp openms-bin/FeatureFinderMetabo.exe streamlit_exe
-        cp openms-bin/FeatureFinderMetaboIdent.exe streamlit_exe
-        cp openms-bin/MetaboliteAdductDecharger.exe streamlit_exe
-        cp openms-bin/MapAlignerPoseClustering.exe streamlit_exe
-        cp openms-bin/MapRTTransformer.exe streamlit_exe
-        cp openms-bin/FeatureLinkerUnlabeledKD.exe streamlit_exe
-        cp openms-bin/IDMapper.exe streamlit_exe
-        cp openms-bin/GNPSExport.exe streamlit_exe
-        cp openms-bin/SiriusExport.exe streamlit_exe
-        cp openms-bin/MetaboliteSpectralMatcher.exe streamlit_exe
+        cp -r openms-bin streamlit_exe/bin
         cp -r share streamlit_exe/share
         cp app.py streamlit_exe
 
     - name: Delete OpenMS bin artifact
-      uses: geekyeggo/delete-artifact@v2
+      uses: geekyeggo/delete-artifact@v5
       with:
           name: OpenMS-bin
 
     - name: Delete OpenMS share artifact
-      uses: geekyeggo/delete-artifact@v2
+      uses: geekyeggo/delete-artifact@v5
       with:
           name: OpenMS-share
+          
+    - name: Compress streamlit_exe folder to OpenMS-App.zip
+      run: |
+        7z a OpenMS-App.zip ./streamlit_exe/* -r
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: UmetaFlow-App
-        path: streamlit_exe
+        name: OpenMS-App
+        path: OpenMS-App.zip
+

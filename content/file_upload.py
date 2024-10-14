@@ -1,9 +1,8 @@
 from pathlib import Path
 
 import streamlit as st
-import pandas as pd
 
-from src.common import *
+from src.common.common import *
 from src.fileupload import *
 
 params = page_setup()

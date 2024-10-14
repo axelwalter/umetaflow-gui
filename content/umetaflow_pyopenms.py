@@ -1,10 +1,13 @@
 import streamlit as st
-from src.common import *
+from src.common.common import *
 from src.umetaflow import run_umetaflow, HELP
 from src.viewmetabolomics import *
 from pathlib import Path
 
-params = page_setup(page="workflow", help_text=HELP)
+params = page_setup(page="workflow")
+
+with st.sidebar:
+    st.markdown(HELP)
 
 st.title("UmetaFlow pyOpenMS")
 

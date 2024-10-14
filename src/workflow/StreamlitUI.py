@@ -5,14 +5,16 @@ import shutil
 import subprocess
 from typing import Any, Union, List
 import json
+import os
 import sys
 import importlib.util
 import time
 from io import BytesIO
 import zipfile
-import pandas as pd
 from datetime import datetime
 
+
+from src.common.common import OS_PLATFORM, TK_AVAILABLE, tk_directory_dialog, tk_file_dialog
 
 class StreamlitUI:
     """
@@ -33,9 +35,9 @@ class StreamlitUI:
     def upload_widget(
         self,
         key: str,
-        file_type: str,
+        file_types: Union[str, List[str]],
         name: str = "",
-        fallback: Union[List, str] = None,
+        fallback: Union[List, str] = None
     ) -> None:
         """
         Handles file uploads through the Streamlit interface, supporting both direct
@@ -44,79 +46,181 @@ class StreamlitUI:
 
         Args:
             key (str): A unique identifier for the upload component.
-            file_type (str): Expected file type for the uploaded files.
+            file_types (Union[str, List[str]]): Expected file type(s) for the uploaded files.
             name (str, optional): Display name for the upload component. Defaults to the key if not provided.
             fallback (Union[List, str], optional): Default files to use if no files are uploaded.
         """
-        # streamlit uploader can't handle file types with upper and lower case letters
         files_dir = Path(self.workflow_dir, "input-files", key)
+
+        # create the files dir
+        files_dir.mkdir(exist_ok=True, parents=True)
+
+        # check if only fallback files are in files_dir, if yes, reset the directory before adding new files
+        if [Path(f).name for f in Path(files_dir).iterdir()] == [
+            Path(f).name for f in fallback
+        ]:
+            shutil.rmtree(files_dir)
+            files_dir.mkdir()
 
         if not name:
             name = key.replace("-", " ")
 
         c1, c2 = st.columns(2)
         c1.markdown("**Upload file(s)**")
-        with c1.form(f"{key}-upload", clear_on_submit=True):
-            if any(c.isupper() for c in file_type) and (c.islower() for c in file_type):
-                file_type_for_uploader = None
-            else:
-                file_type_for_uploader = [file_type]
-            files = st.file_uploader(
-                f"{name}",
-                accept_multiple_files=(st.session_state.location == "local"),
-                type=file_type_for_uploader,
-                label_visibility="collapsed",
-            )
-            if st.form_submit_button(
-                f"Add **{name}**", use_container_width=True, type="primary"
-            ):
-                if files:
-                    files_dir.mkdir(parents=True, exist_ok=True)
-                    # in case of online mode a single file is returned -> put in list
-                    if not isinstance(files, list):
-                        files = [files]
-                    for f in files:
-                        if f.name not in [
-                            f.name for f in files_dir.iterdir()
-                        ] and f.name.endswith(file_type):
-                            with open(Path(files_dir, f.name), "wb") as fh:
-                                fh.write(f.getbuffer())
-                    st.success("Successfully added uploaded files!")
+
+        if st.session_state.location == "local":
+            c2_text, c2_checkbox = c2.columns([1.5, 1], gap="large")
+            c2_text.markdown("**OR add files from local folder**")
+            use_copy = c2_checkbox.checkbox("Make a copy of files", key=f"{key}-copy_files", value=True, help="Create a copy of files in workspace.")
+        else:
+            use_copy = True
+
+        # Convert file_types to a list if it's a string
+        if isinstance(file_types, str):
+            file_types = [file_types]
+            
+        if use_copy:
+            with c1.form(f"{key}-upload", clear_on_submit=True):
+                # Streamlit file uploader accepts file types as a list or None
+                file_type_for_uploader = file_types if file_types else None
+
+                files = st.file_uploader(
+                    f"{name}",
+                    accept_multiple_files=(st.session_state.location == "local"),
+                    type=file_type_for_uploader,
+                    label_visibility="collapsed",
+                )
+                if st.form_submit_button(
+                    f"Add **{name}**", use_container_width=True, type="primary"
+                ):
+                    if files:
+                        # in case of online mode a single file is returned -> put in list
+                        if not isinstance(files, list):
+                            files = [files]
+                        for f in files:
+                            # Check if file type is in the list of accepted file types
+                            if f.name not in [f.name for f in files_dir.iterdir()] and any(
+                                f.name.endswith(ft) for ft in file_types
+                            ):
+                                with open(Path(files_dir, f.name), "wb") as fh:
+                                    fh.write(f.getbuffer())
+                        st.success("Successfully added uploaded files!")
+                    else:
+                        st.error("Nothing to add, please upload file.")
+        else:
+            # Create a temporary file to store the path to the local directories
+            external_files = Path(files_dir, "external_files.txt")
+            # Check if the file exists, if not create it
+            if not external_files.exists():
+                external_files.touch()
+            c1.write("\n")
+            with c1.container(border=True):
+                dialog_button = st.button(
+                    rf"$\textsf{{\Large 📁 Add }} \textsf{{ \Large \textbf{{{name}}} }}$",
+                    type="primary",
+                    use_container_width=True,
+                    key="local_browse_single",
+                    help="Browse for your local MS data files.",
+                    disabled=not TK_AVAILABLE,
+                )
+                
+                # Tk file dialog requires file types to be a list of tuples
+                if isinstance(file_types, str):
+                    tk_file_types = [(f"{file_types}", f"*.{file_types}")]
+                elif isinstance(file_types, list):
+                    tk_file_types = [(f"{ft}", f"*.{ft}") for ft in file_types]
                 else:
-                    st.error("Nothing to add, please upload file.")
+                    raise ValueError("'file_types' must be either of type str or list")
+                
+                
+                if dialog_button:
+                    local_files = tk_file_dialog(
+                        "Select your local MS data files",
+                        tk_file_types,
+                        st.session_state["previous_dir"],
+                    )
+                    if local_files:
+                        my_bar = st.progress(0)
+                        for i, f in enumerate(local_files):
+                            with open(external_files, "a") as f_handle:
+                                f_handle.write(f"{f}\n")
+                        my_bar.empty()
+                        st.success("Successfully added files!")
+                        
+                        st.session_state["previous_dir"] = Path(local_files[0]).parent
 
         # Local file upload option: via directory path
         if st.session_state.location == "local":
-            c2.markdown("**OR copy files from local folder**")
-            with c2.form(f"{key}-local-file-upload"):
-                local_dir = st.text_input(f"path to folder with **{name}** files")
-                if st.form_submit_button(
-                    f"Copy **{name}** files from local folder", use_container_width=True
-                ):
-                    # raw string for file paths
-                    if not any(Path(local_dir).glob(f"*.{file_type}")):
+            # c2_text, c2_checkbox = c2.columns([1.5, 1], gap="large")
+            # c2_text.markdown("**OR add files from local folder**")
+            # use_copy = c2_checkbox.checkbox("Make a copy of files", key=f"{key}-copy_files", value=True, help="Create a copy of files in workspace.")
+            with c2.container(border=True):
+                st_cols = st.columns([0.05, 0.55], gap="small")
+                with st_cols[0]:
+                    st.write("\n")
+                    st.write("\n")
+                    dialog_button = st.button("📁", key='local_browse', help="Browse for your local directory with MS data.", disabled=not TK_AVAILABLE)
+                    if dialog_button:
+                        st.session_state["local_dir"] = tk_directory_dialog("Select directory with your MS data", st.session_state["previous_dir"])
+                        st.session_state["previous_dir"] = st.session_state["local_dir"]
+
+                with st_cols[1]:
+                    local_dir = st.text_input(f"path to folder with **{name}** files", value=st.session_state["local_dir"])
+
+                if c2.button(f"Add **{name}** files from local folder", use_container_width=True):
+                    files = []
+                    local_dir = Path(
+                        local_dir
+                    ).expanduser()  # Expand ~ to full home directory path
+
+                    for ft in file_types:
+                        # Search for both files and directories with the specified extension
+                        for path in local_dir.iterdir():
+                            if path.is_file() and path.name.endswith(f".{ft}"):
+                                files.append(path)
+                            elif path.is_dir() and path.name.endswith(f".{ft}"):
+                                files.append(path)
+
+                    if not files:
                         st.warning(
-                            f"No files with type **{file_type}** found in specified folder."
+                            f"No files with type **{', '.join(file_types)}** found in specified folder."
                         )
                     else:
-                        files_dir.mkdir(parents=True, exist_ok=True)
-                        # Copy all mzML files to workspace mzML directory, add to selected files
-                        files = list(Path(local_dir).glob("*.mzML"))
                         my_bar = st.progress(0)
                         for i, f in enumerate(files):
                             my_bar.progress((i + 1) / len(files))
-                            shutil.copy(f, Path(files_dir, f.name))
+                            if use_copy:
+                                if os.path.isfile(f):
+                                    shutil.copy(f, Path(files_dir, f.name))
+                                elif os.path.isdir(f):
+                                    shutil.copytree(f, Path(files_dir, f.name), dirs_exist_ok=True)
+                            else:
+                                # Write the path to the local directories to the file
+                                with open(external_files, "a") as f_handle:
+                                    f_handle.write(f"{f}\n")
                         my_bar.empty()
                         st.success("Successfully copied files!")
 
-        if fallback:
-            files_dir.mkdir(parents=True, exist_ok=True)
+            if not TK_AVAILABLE:
+                c2.warning("**Warning**: Failed to import tkinter, either it is not installed, or this is being called from a cloud context. " "This function is not available in a Streamlit Cloud context. "
+                "You will have to manually enter the path to the folder with the MS files."
+                           )
+
+            if not use_copy:
+                c2.warning(
+        "**Warning**: You have deselected the `Make a copy of files` option. "
+        "This **_assumes you know what you are doing_**. "
+        "This means that the original files will be used instead. "
+    )
+
+        if fallback and not any(Path(files_dir).iterdir()):
             if isinstance(fallback, str):
                 fallback = [fallback]
             for f in fallback:
+                c1, _ = st.columns(2)
                 if not Path(files_dir, f).exists():
                     shutil.copy(f, Path(files_dir, Path(f).name))
-                    st.info(f"Adding default file: **{f}**")
+                    c1.info(f"Adding default file: **{f}**")
             current_files = [
                 f.name
                 for f in files_dir.iterdir()
@@ -124,17 +228,26 @@ class StreamlitUI:
             ]
         else:
             if files_dir.exists():
-                current_files = [f.name for f in files_dir.iterdir()]
+                current_files = [f.name for f in files_dir.iterdir() if "external_files.txt" not in f.name]
+
+                # Check if local files are available
+                external_files = Path(self.workflow_dir, "input-files", key, "external_files.txt")
+
+                if external_files.exists():
+                    with open(external_files, "r") as f:
+                        external_files_list = f.read().splitlines()
+                    # Only make files available that still exist
+                    current_files += [f"(local) {Path(f).name}" for f in external_files_list if os.path.exists(f)]            
             else:
                 current_files = []
 
         if files_dir.exists() and not any(files_dir.iterdir()):
             shutil.rmtree(files_dir)
 
-        c1, c2 = st.columns(2)
+        c1, _ = st.columns(2)
         if current_files:
             c1.info(f"Current **{name}** files:\n\n" + "\n\n".join(current_files))
-            if c2.button(
+            if c1.button(
                 f"🗑️ Remove all **{name}** files.",
                 use_container_width=True,
                 key=f"remove-files-{key}",
@@ -148,25 +261,6 @@ class StreamlitUI:
                 st.rerun()
         elif not fallback:
             st.warning(f"No **{name}** files!")
-
-    def simple_file_uploader(self, key: str, file_type: str, name: str = "") -> None:
-        c1, c2 = st.columns(2)
-        upload = c1.file_uploader(
-            name, file_type, False, help="Save paramters after uploading."
-        )
-        dir_path = Path(self.workflow_dir, "input-files", key)
-        if upload:
-            if dir_path.exists():
-                shutil.rmtree(dir_path)
-            dir_path.mkdir(parents=True, exist_ok=True)
-            path = Path(dir_path, upload.name)
-            with open(path, "wb") as f:
-                f.write(upload.getbuffer())
-        c2.markdown("##")
-        if dir_path.exists():
-            c2.info([p.name for p in dir_path.iterdir()][0])
-        else:
-            c2.warning(f"Not found in workspace: {name}")
 
     def select_input_file(
         self,
@@ -191,8 +285,17 @@ class StreamlitUI:
         if not path.exists():
             st.warning(f"No **{name}** files!")
             return
-        options = [str(f) for f in path.iterdir()]
-        if key in self.params.keys():
+        options = [str(f) for f in path.iterdir() if "external_files.txt" not in str(f)]
+
+        # Check if local files are available
+        external_files = Path(self.workflow_dir, "input-files", key, "external_files.txt")
+
+        if external_files.exists():
+            with open(external_files, "r") as f:
+                external_files_list = f.read().splitlines()
+            # Only make files available that still exist
+            options += [f for f in external_files_list if os.path.exists(f)]
+        if (key in self.params.keys()) and isinstance(self.params[key], list):
             self.params[key] = [f for f in self.params[key] if f in options]
 
         widget_type = "multiselect" if multiple else "selectbox"
@@ -372,9 +475,7 @@ class StreamlitUI:
                     help=help,
                 )
             elif isinstance(value, bool):
-                self.input_widget(
-                    key, value, widget_type="checkbox", name=name, help=help
-                )
+                self.input_widget(key, value, widget_type="checkbox", name=name, help=help)
             else:
                 self.input_widget(key, value, widget_type="text", name=name, help=help)
 
@@ -388,6 +489,7 @@ class StreamlitUI:
         exclude_parameters: List[str] = [],
         include_parameters: List[str] = [],
         display_full_parameter_names: bool = False,
+        display_subsections: bool = False,
         custom_defaults: dict = {},
     ) -> None:
         """
@@ -400,28 +502,14 @@ class StreamlitUI:
             num_cols (int, optional): Number of columns to use for the layout. Defaults to 3.
             exclude_parameters (List[str], optional): List of parameter names to exclude from the widget. Defaults to an empty list.
             include_parameters (List[str], optional): List of parameter names to include in the widget. Defaults to an empty list.
-            display_full_parameter_names (bool, optional): Whether to display the full parameter names. Defaults to True.
+            display_full_parameter_names (bool, optional): Whether to display the full parameter names. Defaults to False.
+            display_subsections (bool, optional): Whether to split parameters into subsections based on the prefix (disables display_full_parameter_names). Defaults to False.
             custom_defaults (dict, optional): Dictionary of custom defaults to use. Defaults to an empty dict.
         """
         # write defaults ini files
         ini_file_path = Path(self.parameter_manager.ini_dir, f"{topp_tool_name}.ini")
         if not ini_file_path.exists():
-            tool_full_path = ""
-            possible_paths = [  # potential TOPP tool locations in increasing priority
-                str(
-                    Path(topp_tool_name)
-                ),  # in case it is globally available (lowest priority)
-                str(
-                    Path(sys.prefix, "bin", topp_tool_name)
-                ),  # in current conda environment
-            ]
-            for path in possible_paths:
-                if shutil.which(path) is not None:
-                    tool_full_path = path
-            if not tool_full_path:
-                st.warning(f"{topp_tool_name} not found.")
-                return
-            subprocess.call([tool_full_path, "-write_ini", str(ini_file_path)])
+            subprocess.call([topp_tool_name, "-write_ini", str(ini_file_path)])
             # update custom defaults if necessary
             if custom_defaults:
                 param = poms.Param()
@@ -436,11 +524,7 @@ class StreamlitUI:
         param = poms.Param()
         poms.ParamXMLFile().load(str(ini_file_path), param)
         if include_parameters:
-            valid_keys = [
-                key
-                for key in param.keys()
-                if any([k.encode() in key for k in include_parameters])
-            ]
+            valid_keys = [key for key in param.keys() if any([k.encode() in key for k in include_parameters])]
         else:
             excluded_keys = [
                 "log",
@@ -451,16 +535,9 @@ class StreamlitUI:
                 "version",
                 "test",
             ] + exclude_parameters
-            valid_keys = [
-                key
-                for key in param.keys()
-                if not (
-                    b"input file" in param.getTags(key)
-                    or b"output file" in param.getTags(key)
-                    or any([k.encode() in key for k in excluded_keys])
-                )
-            ]
-
+            valid_keys = [key for key in param.keys() if not (b"input file" in param.getTags(key)
+                                                            or b"output file" in param.getTags(key)
+                                                            or any([k.encode() in key for k in excluded_keys]))]
         params_decoded = []
         for key in valid_keys:
             entry = param.getEntry(key)
@@ -471,6 +548,7 @@ class StreamlitUI:
                 "valid_strings": [v.decode() for v in entry.valid_strings],
                 "description": entry.description.decode(),
                 "advanced": (b"advanced" in param.getTags(key)),
+                "section_description": param.getSectionDescription(':'.join(key.decode().split(':')[:-1]))
             }
             params_decoded.append(tmp)
 
@@ -488,6 +566,7 @@ class StreamlitUI:
                 p["value"] = custom_defaults[name]
 
         # show input widgets
+        section_description = None
         cols = st.columns(num_cols)
         i = 0
 
@@ -497,7 +576,17 @@ class StreamlitUI:
                 continue
 
             key = f"{self.parameter_manager.topp_param_prefix}{p['key'].decode()}"
-            if display_full_parameter_names:
+            if display_subsections:
+                name = p["name"]
+                if section_description is None:
+                    section_description = p['section_description']
+
+                elif section_description != p['section_description']:
+                    section_description = p['section_description']
+                    st.markdown(f"**{section_description}**")
+                    cols = st.columns(num_cols)
+                    i = 0
+            elif display_full_parameter_names:
                 name = key.split(":1:")[1].replace("algorithm:", "").replace(":", " : ")
             else:
                 name = p["name"]
@@ -510,11 +599,7 @@ class StreamlitUI:
                     cols[i].markdown("##")
                     cols[i].checkbox(
                         name,
-                        value=(
-                            (p["value"] == "true")
-                            if type(p["value"]) == str
-                            else p["value"]
-                        ),
+                        value=(p["value"] == "true") if type(p["value"]) == str else p["value"],
                         help=p["description"],
                         key=key,
                     )
@@ -558,7 +643,7 @@ class StreamlitUI:
                     ]
                     cols[i].text_area(
                         name,
-                        value="\n".join(p["value"]),
+                        value="\n".join([str(val) for val in p["value"]]),
                         help=p["description"],
                         key=key,
                     )
@@ -568,8 +653,9 @@ class StreamlitUI:
                 if i == num_cols:
                     i = 0
                     cols = st.columns(num_cols)
-            except:
+            except Exception as e:
                 cols[i].error(f"Error in parameter **{p['name']}**.")
+                print("Error parsing \""+ p['name'] + "\": " + str(e))
 
     def input_python(
         self,
@@ -577,22 +663,22 @@ class StreamlitUI:
         num_cols: int = 3,
     ) -> None:
         """
-        Dynamically generates and displays input widgets based on the DEFAULTS
-        dictionary defined in a specified Python script file.
+    Dynamically generates and displays input widgets based on the DEFAULTS 
+    dictionary defined in a specified Python script file.
 
-        For each entry in the DEFAULTS dictionary, an input widget is displayed,
-        allowing the user to specify values for the parameters defined in the
-        script. The widgets are arranged in a grid with a specified number of
-        columns. Parameters can be marked as hidden or advanced within the DEFAULTS
-        dictionary; hidden parameters are not displayed, and advanced parameters
-        are displayed only if the user has selected to view advanced options.
+    For each entry in the DEFAULTS dictionary, an input widget is displayed, 
+    allowing the user to specify values for the parameters defined in the 
+    script. The widgets are arranged in a grid with a specified number of 
+    columns. Parameters can be marked as hidden or advanced within the DEFAULTS 
+    dictionary; hidden parameters are not displayed, and advanced parameters 
+    are displayed only if the user has selected to view advanced options.
 
-        Args:
-        script_file (str): The file name or path to the Python script containing
-                           the DEFAULTS dictionary. If the path is omitted, the method searches in
-                           src/python-tools/'.
-        num_cols (int, optional): The number of columns to use for displaying input widgets. Defaults to 3.
-        """
+    Args:
+    script_file (str): The file name or path to the Python script containing 
+                       the DEFAULTS dictionary. If the path is omitted, the method searches in 
+                       src/python-tools/'.
+    num_cols (int, optional): The number of columns to use for displaying input widgets. Defaults to 3.
+    """
 
         # Check if script file exists (can be specified without path and extension)
         # default location: src/python-tools/script_file
@@ -693,9 +779,7 @@ class StreamlitUI:
 
         with zipfile.ZipFile(bytes_io, "w", zipfile.ZIP_DEFLATED) as zip_file:
             for i, file_path in enumerate(files):
-                if (
-                    file_path.is_file()
-                ):  # Ensure we're only adding files, not directories
+                if file_path.is_file():  # Ensure we're only adding files, not directories
                     # Preserve directory structure relative to the original directory
                     zip_file.write(file_path, file_path.relative_to(directory.parent))
                     my_bar.progress((i + 1) / n_files)  # Update progress bar
@@ -709,13 +793,14 @@ class StreamlitUI:
             data=bytes_io,
             file_name="input-files.zip",
             mime="application/zip",
-            use_container_width=True,
+            use_container_width=True
         )
 
     def file_upload_section(self, custom_upload_function) -> None:
         custom_upload_function()
-        if st.button("⬇️ Download all uploaded files", use_container_width=True):
-            self.ui.zip_and_download_files(Path(self.workflow_dir, "input-files"))
+        c1, _ = st.columns(2)
+        if c1.button("⬇️ Download all uploaded files", use_container_width=True):
+            self.zip_and_download_files(Path(self.workflow_dir, "input-files"))
 
     def parameter_section(self, custom_paramter_function) -> None:
         st.toggle("Show advanced parameters", value=False, key="advanced")
@@ -745,37 +830,37 @@ class StreamlitUI:
         self.parameter_manager.save_parameters()
 
     def execution_section(self, start_workflow_function) -> None:
-        df_path = Path(st.session_state.workspace, "mzML-files.tsv")
-        if df_path.exists():
-            num_files = pd.read_csv(df_path, sep="\t")["use in workflows"].sum()
-        else:
-            num_files = 0
+        # Display a summary of non-default TOPP paramters and all others (custom and python scripts)
+        summary_text = ""
+        for key, value in self.params.items():
+            if not isinstance(value, dict):
+                summary_text += f"""
 
-        if num_files > 1:
-            st.info(f"**{num_files}** mzML files selected")
-        else:
-            st.warning("⚠️ Select at least **two** mzML files to run this workflow.")
-            return
+{key}: **{value}**                
+""" 
+            elif value:
+                summary_text += f"""
+**{key}**:
 
-        with st.expander("💡 **Parameter Summary**"):
-            st.write(self.params)
+"""                 
+                for k, v in value.items():
+                    summary_text += f"""
+{key}: **{v}**
+
+"""     
+        with st.expander("**Parameter Summary**"):
+            st.markdown(summary_text)
+
         c1, c2 = st.columns(2)
         # Select log level, this can be changed at run time or later without re-running the workflow
-        log_level = c1.selectbox(
-            "log details", ["minimal", "commands and run times", "all"], key="log_level"
-        )
-        c2.markdown("######")
+        log_level = c1.selectbox("log details", ["minimal", "commands and run times", "all"], key="log_level")
         if self.executor.pid_dir.exists():
-            if c2.button("Stop Workflow", type="primary", use_container_width=True):
+            if c1.button("Stop Workflow", type="primary", use_container_width=True):
                 self.executor.stop()
                 st.rerun()
-        else:
-            c2.button(
-                "Start Workflow",
-                type="primary",
-                use_container_width=True,
-                on_click=start_workflow_function,
-            )
+        elif c1.button("Start Workflow", type="primary", use_container_width=True):
+            start_workflow_function()
+            st.rerun()
         log_path = Path(self.workflow_dir, "logs", log_level.replace(" ", "-") + ".log")
         if log_path.exists():
             if self.executor.pid_dir.exists():
@@ -785,9 +870,7 @@ class StreamlitUI:
                     time.sleep(2)
                 st.rerun()
             else:
-                st.markdown(
-                    f"**Workflow log file: {datetime.fromtimestamp(log_path.stat().st_ctime).strftime('%Y-%m-%d %H:%M')} CET**"
-                )
+                st.markdown(f"**Workflow log file: {datetime.fromtimestamp(log_path.stat().st_ctime).strftime('%Y-%m-%d %H:%M')} CET**")
                 with open(log_path, "r", encoding="utf-8") as f:
                     content = f.read()
                     # Check if workflow finished successfully
@@ -797,3 +880,22 @@ class StreamlitUI:
 
     def results_section(self, custom_results_function) -> None:
         custom_results_function()
+
+    def simple_file_uploader(self, key: str, file_type: str, name: str = "") -> None:
+        c1, c2 = st.columns(2)
+        upload = c1.file_uploader(
+            name, file_type, False, help="Save paramters after uploading."
+        )
+        dir_path = Path(self.workflow_dir, "input-files", key)
+        if upload:
+            if dir_path.exists():
+                shutil.rmtree(dir_path)
+            dir_path.mkdir(parents=True, exist_ok=True)
+            path = Path(dir_path, upload.name)
+            with open(path, "wb") as f:
+                f.write(upload.getbuffer())
+        c2.markdown("##")
+        if dir_path.exists():
+            c2.info([p.name for p in dir_path.iterdir()][0])
+        else:
+            c2.warning(f"Not found in workspace: {name}")

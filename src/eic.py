@@ -4,7 +4,7 @@ from src.common.common import *
 
 from pathlib import Path
 
-from pyopenms import *
+import pyopenms as oms
 
 import pandas as pd
 import numpy as np
@@ -84,8 +84,8 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
         for file in mzML_files:
             st.write(f"Extracting chromatograms from {Path(file).name} ...")
             # Load mzML file into exp
-            exp = MSExperiment()
-            MzMLFile().load(str(file), exp)
+            exp = oms.MSExperiment()
+            oms.MzMLFile().load(str(file), exp)
 
             # Create an empty dataframe to collect chromatogram data in
             df = pd.DataFrame()
@@ -115,6 +115,10 @@ def extract_chromatograms(results_dir, mzML_files, df_input, mz_unit, mz_ppm, mz
                     metabolite_name = name
                 else:
                     metabolite_name = str(mass)
+
+                # Initialize rt_min and rt_max to None
+                rt_min = rt-5
+                rt_max = rt+5
 
                 # If RT information is given, determine RT borders
                 if rt:

@@ -266,9 +266,8 @@ def create_compound(formula, charge, adducts, neutral_loss, name, add_adduct_inf
         elif charge < -1:
             adduct_notation += f"-{abs(charge)}H"
         # determine charge sign
-        if charge == 1:
-            charge_sign = "+"
-        elif charge > 1: 
+        charge_sign = "+"
+        if charge > 1: 
             charge_sign = f"{charge}+"
         elif charge == -1:
             charge_sign = "-"

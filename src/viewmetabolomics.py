@@ -276,8 +276,8 @@ def display_feature_data(feature_maps, spectra, feature_detection_method="FFM"):
         int_cutoff = df["intensity"].sort_values(ascending=False).iloc[index]
 
         df = df[df["intensity"] > int_cutoff]
-        df.sort_values(by=["intensity"], inplace=True)
-        df.fillna(0, inplace=True)
+        df = df.sort_values(by=["intensity"], inplace=True)
+        df = df.fillna(0, inplace=True)
         # 2D feature map
         fig = plot_feature_map(df)
         show_fig(fig, f"feature-map-{name}")
@@ -308,7 +308,7 @@ def display_feature_data(feature_maps, spectra, feature_detection_method="FFM"):
             return filtered_mz, filtered_int
 
         # Apply the filter_entries function to the DataFrame and create new columns with the filtered results
-        df_peaks[['filtered_mzarray', 'filtered_intarray']] = df_peaks.apply(filter_entries, axis=1, result_type='expand')
+        df_peaks.loc[:, ['filtered_mzarray', 'filtered_intarray']] = df_peaks.apply(filter_entries, axis=1, result_type='expand')
 
         # If you only want the entries that have some values in both 'mzarray' and 'intarray'
         # you can drop rows with empty arrays in the filtered columns

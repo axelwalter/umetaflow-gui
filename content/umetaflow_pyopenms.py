@@ -9,12 +9,12 @@ params = page_setup(page="workflow")
 with st.sidebar:
     st.markdown(HELP)
 
-st.title("UmetaFlow pyOpenMS")
+st.title("UmetaFlow")
+st.info(
+    "💡Workflow using **pyOpenMS** with limited functionality. Consider using **UmetaFlow TOPP** for complete functionality and fast execution times."
+)
 
 results_only = st.toggle("view results only")
-st.info(
-    "💡Minimal interface with **pyOpenMS** only. For more advanced use cases and fast execution times use **UmetaFlow TOPP**. Requires OpenMS TOPP tools to be installed."
-)
 
 results_dir = Path(st.session_state.workspace, "umetaflow-results")
 
@@ -42,7 +42,6 @@ if not results_only:
         tabs = st.tabs(
             [
                 "Feature Detection",
-                "Blank Removal",
                 "Map Alignement",
                 "Adduct Detection",
                 "Feature Linking",
@@ -105,32 +104,6 @@ if not results_only:
                 <= st.session_state["ffm_max_fwhm"]
             ):
                 c4.warning("Check your peak width settings.")
-
-        with tabs[1]:
-            st.checkbox(
-                "remove blank features",
-                params["remove_blanks"],
-                key="remove_blanks",
-                help="Useful to filter out features which are present in blank sample/s or e.g. for differential feature detection to remove features which are present in control, but not in treatment samples.",
-            )
-            # if st.session_state["remove_blanks"]:
-            c1, c2 = st.columns(2)
-            c1.multiselect(
-                "select blank samples",
-                [Path(f).stem for f in mzML_files],
-                params["blank_mzML_files"],
-                key="blank_mzML_files",
-                help="The selected samples will be used to calculate avarage feature blank intensities and will not be further processed.",
-            )
-            c2.number_input(
-                "ratio blank/sample average intensity cutoff",
-                0.05,
-                0.9,
-                params["blank_cutoff"],
-                0.05,
-                key="blank_cutoff",
-                help="Features that have an intensity ratio below (avagera blank) to (average samples) will be removed. Set low for strict blank removal.",
-            )
 
         with tabs[2]:
             st.checkbox(
@@ -220,7 +193,7 @@ CH2O2:0:0.5
                 help="Groups features with slightly different RT.",
             )
 
-        with tabs[4]:
+        with tabs[3]:
             st.markdown("link consensus features")
             c1, c2, c3 = st.columns(3)
             c1.number_input(
@@ -251,87 +224,6 @@ CH2O2:0:0.5
             help="Go back into the raw data to re-quantify consensus features that have missing values.",
         )
 
-        st.markdown("**3. File Export**")
-        c1, c2, c3 = st.columns(3)
-        c1.checkbox(
-            "Export files for SIRIUS",
-            params["use_sirius_manual"],
-            key="use_sirius_manual",
-            help="Export files for formula and structure predictions. Run Sirius with these pre-processed .ms files, can be found in results -> SIRIUS.",
-        )
-        c2.checkbox(
-            "Export files for GNPS",
-            params["use_gnps"],
-            key="use_gnps",
-            help="Run GNPS Feature Based Molecular Networking and Ion Identity Molecular Networking with these files, can be found in results -> GNPS.",
-        )
-        c3.checkbox(
-            "annotate with GNPS library",
-            params["annotate_gnps_library"],
-            key="annotate_gnps_library",
-            help="UmetaFlow contains the complete GNPS library in mgf file format. Check to annotate.",
-        )
-
-        st.markdown("**4. Annotation**")
-        tabs = st.tabs(["MS1", "MS2"])
-        with tabs[0]:
-            c1, c2 = st.columns(2)
-            c1.checkbox(
-                "MS1 annotation by m/z and RT",
-                value=params["annotate_ms1"],
-                key="annotate_ms1",
-                help="Annotate features on MS1 level with known m/z and retention times values.",
-            )
-            ms1_annotation_file_upload = c1.file_uploader(
-                "Select library for MS1 annotations.", type=["tsv"]
-            )
-            if ms1_annotation_file_upload:
-                path = Path(st.session_state.workspace, ms1_annotation_file_upload.name)
-                with open(path, "wb") as f:
-                    f.write(ms1_annotation_file_upload.getbuffer())
-                params["ms1_annotation_file"] = str(path)
-            else:
-                if params["ms1_annotation_file"]:
-                    st.info(params["ms1_annotation_file"])
-            c2.number_input(
-                "retention time window for annotation in seconds",
-                1,
-                240,
-                params["annoation_rt_window_sec"],
-                10,
-                key="annoation_rt_window_sec",
-                help="Checks around peak apex, e.g. window of 60 s will check left and right 30 s.",
-            )
-            params["annotation_mz_window_ppm"] = c2.number_input(
-                "mz window for annotation in ppm",
-                1,
-                100,
-                params["annotation_mz_window_ppm"],
-                1,
-                key="annotation_mz_window_ppm",
-            )
-
-        with tabs[1]:
-            st.checkbox(
-                "MS2 annotation via fragmentation patterns",
-                params["annotate_ms2"],
-                key="annotate_ms2",
-                help="Annotate features on MS2 level based on their fragmentation patterns. The library has to be in mgf file format.",
-            )
-            c1, c2 = st.columns(2)
-            v_space(1, c2)
-            # if st.session_state["annotate_ms2"]:
-            ms2_annotation_file_upload = c1.file_uploader(
-                "Select library for MS2 annotations", type=["mgf"]
-            )
-            if ms2_annotation_file_upload:
-                path = Path(st.session_state.workspace, ms2_annotation_file_upload.name)
-                with open(path, "wb") as f:
-                    f.write(ms2_annotation_file_upload.getbuffer())
-                params["ms2_annotation_file"] = str(path)
-            else:
-                if params["ms2_annotation_file"]:
-                    st.info(params["ms2_annotation_file"])
 
         c1, c2 = st.columns(2)
         if c1.form_submit_button("💾 Save Parameters", use_container_width=True):
@@ -342,11 +234,8 @@ CH2O2:0:0.5
 
     if run_button:
         save_params(params)
-        if len(mzML_files) > len(params["blank_mzML_files"]):
-            reset_directory(results_dir)
-            run_umetaflow(params, mzML_files, results_dir)
-        else:
-            st.warning("Check your mzML and blank file selection.")
+        reset_directory(results_dir)
+        run_umetaflow(params, mzML_files, results_dir)
 
 if results_dir.exists():
     v_space(1)
@@ -454,30 +343,11 @@ if results_dir.exists():
 
         with tabs[-1]:
             c1, c2 = st.columns([0.2, 0.8])
-            v_space(1, c1)
             c1.download_button(
                 "Feature Matrix",
                 df.to_csv(sep="\t", index=False),
                 "FeatureMatrix.tsv",
             )
-            path = Path(results_dir, "ExportSIRIUS.zip")
-            if path.is_file():
-                with open(path, "rb") as fp:
-                    c1.download_button(
-                        label="Files for Sirius",
-                        data=fp,
-                        file_name="ExportSIRIUS.zip",
-                        mime="application/zip",
-                    )
-            path = Path(results_dir, "ExportGNPS.zip")
-            if path.is_file():
-                with open(path, "rb") as fp:
-                    c1.download_button(
-                        label="Files for GNPS",
-                        data=fp,
-                        file_name="ExportGNPS.zip",
-                        mime="application/zip",
-                    )
             df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
             c2.markdown(
                 "**Add new attributes to meta data** (hover on bottom border to add more rows)"

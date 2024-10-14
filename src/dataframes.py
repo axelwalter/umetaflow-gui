@@ -1,4 +1,4 @@
-from pyopenms import *
+import pyopenms as oms
 import pandas as pd
 import numpy as np
 import os
@@ -7,10 +7,10 @@ from src.common.common import reset_directory
 from pyteomics import mztab, mgf
 
 
-class DataFrames:
+class DataFrames():
     def create_consensus_table(self, consensusXML_file, table_file, sirius_ms_dir=""):
-        consensus_map = ConsensusMap()
-        ConsensusXMLFile().load(consensusXML_file, consensus_map)
+        consensus_map = oms.ConsensusMap()
+        oms.ConsensusXMLFile().load(consensusXML_file, consensus_map)
         df = consensus_map.get_df().drop(["sequence"], axis=1)
         for cf in consensus_map:
             if cf.metaValueExists("best ion"):
@@ -100,8 +100,8 @@ class DataFrames:
         time_factor = 1
         if time_unit == "minutes":
             time_factor = 60
-        fm = FeatureMap()
-        FeatureXMLFile().load(featureXML_file, fm)
+        fm = oms.FeatureMap()
+        oms.FeatureXMLFile().load(featureXML_file, fm)
         chroms = {}
         for f in fm:
             for i, sub in enumerate(f.getSubordinates()):
@@ -120,8 +120,8 @@ class DataFrames:
             df.reset_index().to_feather(table_file)
 
     def FFMID_auc_to_df(self, featureXML_file, table_file):
-        fm = FeatureMap()
-        FeatureXMLFile().load(featureXML_file, fm)
+        fm = oms.FeatureMap()
+        oms.FeatureXMLFile().load(featureXML_file, fm)
         aucs = {}
         for f in fm:
             aucs[f.getMetaValue("label")] = [int(f.getIntensity())]
@@ -309,9 +309,9 @@ class DataFrames:
             features["metabolite"] = metabolites
         features.to_csv(feature_matrix_df_file, sep="\t", index=False)
 
-    def mzML_to_ftr(mzML_file_path, ftr_dir):
-        exp = MSExperiment()
-        MzMLFile().load(str(mzML_file_path), exp)
+    def mzML_to_ftr(self, mzML_file_path, ftr_dir):
+        exp = oms.MSExperiment()
+        oms.MzMLFile().load(str(mzML_file_path), exp)
         df = exp.get_df()
         df.insert(0, "mslevel", [spec.getMSLevel() for spec in exp])
         df.insert(
@@ -324,9 +324,9 @@ class DataFrames:
         )
         df.to_feather(Path(ftr_dir, mzML_file_path.stem + ".ftr"))
 
-    def featureXML_to_ftr(featureXML_file_path, ftr_dir, requant=False):
-        fm = FeatureMap()
-        FeatureXMLFile().load(str(featureXML_file_path), fm)
+    def featureXML_to_ftr(self, featureXML_file_path, ftr_dir, requant=False):
+        fm = oms.FeatureMap()
+        oms.FeatureXMLFile().load(str(featureXML_file_path), fm)
         df = fm.get_df(export_peptide_identifications=False).reset_index()
         df["adduct"] = [f.getMetaValue("dc_charge_adducts") for f in fm]
         df["original_rt"] = [f.getMetaValue("original_RT") for f in fm]
@@ -377,13 +377,13 @@ class DataFrames:
         df.to_feather(Path(ftr_dir, featureXML_file_path.stem + ".ftr"))
 
     def consensus_df_additional_annotations(
-        tsv_file_path, ftr_file_path, consensusXML_file_path
+        self, tsv_file_path, ftr_file_path, consensusXML_file_path
     ):
         df = pd.read_csv(tsv_file_path, sep="\t")
 
         # load ConsensusMap to extract additional info that should go into the ftr file only
-        cm = ConsensusMap()
-        ConsensusXMLFile().load(str(consensusXML_file_path), cm)
+        cm = oms.ConsensusMap()
+        oms.ConsensusXMLFile().load(str(consensusXML_file_path), cm)
 
         # to map feature map file names to feature ids create a map
         map = {

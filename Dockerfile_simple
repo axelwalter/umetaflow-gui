@@ -13,10 +13,10 @@ ARG OPENMS_BRANCH=develop
 ARG PORT=8501
 # GitHub token to download latest OpenMS executable for Windows from Github action artifact.
 ARG GITHUB_TOKEN
-# Streamlit app Gihub user name (to download artifact from).
-ARG GITHUB_USER=OpenMS
-# Streamlit app Gihub repository name (to download artifact from).
-ARG GITHUB_REPO=streamlit-template
+# Streamlit app Github user name (to download artifact from).
+ARG GITHUB_USER=axelwalter
+# Streamlit app Github repository name (to download artifact from).
+ARG GITHUB_REPO=umetaflow-gui
 
 
 # Step 1: set up a sane build system

@@ -228,9 +228,6 @@ def run_umetaflow(params, mzML_files, results_dir):
             umetaflow.link_feature_maps()
             umetaflow.consensus_df()
 
-        # export metadata
-        umetaflow.export_metadata()
-
         umetaflow.additional_data_for_consensus_df()
 
         status.update(label="UmetaFlow run complete!", state="complete", expanded=False)

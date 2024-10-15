@@ -342,19 +342,8 @@ if results_dir.exists():
                 )
 
         with tabs[-1]:
-            c1, c2 = st.columns([0.2, 0.8])
-            c1.download_button(
+            st.download_button(
                 "Feature Matrix",
                 df.to_csv(sep="\t", index=False),
                 "FeatureMatrix.tsv",
-            )
-            df_md = pd.read_csv(os.path.join(results_dir, "MetaData.tsv"), sep="\t")
-            c2.markdown(
-                "**Add new attributes to meta data** (hover on bottom border to add more rows)"
-            )
-            md = c2.data_editor(df_md.T, use_container_width=True, num_rows="dynamic")
-            c1.download_button(
-                "Meta Data",
-                md.T.to_csv(sep="\t", index=False),
-                "MetaData.tsv",
             )

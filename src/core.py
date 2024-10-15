@@ -421,6 +421,7 @@ class FeatureFinderMetaboIdent:
         if not featureXML.endswith(".featureXML"):  # -> it is a directory
             reset_directory(featureXML)
 
+        metabo_table = []
         if Path(library).is_file():
             metabo_table = self.load_library(library)
         for mzML_file in mzML_files:
@@ -438,11 +439,7 @@ class FeatureFinderMetaboIdent:
                 if key.encode() in ffmid_params.keys():
                     ffmid_params.setValue(key, value)
             ffmid.setParameters(ffmid_params)
-            if Path(library).is_dir():
-                metabo_table = self.load_library(
-                    os.path.join(library, os.path.basename(
-                        mzML_file)[:-4] + "tsv")
-                )
+
             # run the FeatureFinderMetaboIdent with the metabo_table and aligned mzML file path
             ffmid.run(metabo_table, feature_map, mzML_file)
             print(feature_map.size())

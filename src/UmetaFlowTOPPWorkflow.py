@@ -91,7 +91,6 @@ class Workflow(WorkflowManager):
             with t[4]:
                 self.ui.input_TOPP(
                     "FeatureLinkerUnlabeledKD",
-                    display_full_parameter_names=True,
                 )
         with tabs[1]:
             self.ui.input_widget(
@@ -180,6 +179,7 @@ class Workflow(WorkflowManager):
                         help="Password from a valid SIRIUS account. **Not encrypted**, will be stored in **plain text** in parameters and show up in log files.",
                         widget_type="password",
                     )
+                st.markdown("**SIRIUS**")
                 self.ui.input_widget(
                     "run-sirius",
                     False,

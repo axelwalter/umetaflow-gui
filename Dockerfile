@@ -113,6 +113,7 @@ COPY assets/ /app/assets
 COPY content/ /app/content
 COPY example-data/ /app/example-data
 COPY gdpr_consent/ /app/gdpr_consent
+COPY hooks/ /app/hooks
 COPY src/ /app/src
 COPY app.py /app/app.py
 COPY settings.json /app/settings.json

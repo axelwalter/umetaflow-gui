@@ -1,4 +1,7 @@
 {
+    "app-name": "UmetaFlow",
+    "github-user": "axelwalter",
+    "repository-name": "umetaflow-gui",
     "analytics": {
         "google-analytics": {
             "enabled": false,

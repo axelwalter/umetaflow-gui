@@ -54,7 +54,19 @@ Your uploaded files will be shown in the sidebar of all tabs dealing with the fi
 
 Result files are available via specified download buttons or, if run locally, within the workspace directory.
 
-## Targeted Metabolomics
+
+## UmetaFlow: Untargeted Quantification & Identification
+
+1. **Pre-Processing**
+This initial step transforms raw data into a  feature quantification matrix (FeatureMatrix) containing metabolite intensities across all samples. Includes steps such as RT alignment, adduct detection and mapping of MS2 spectra top features for subsequent annotation.
+
+2. **Re-Quantification**
+Unique to UmetaFlow, this optional step is designed to detect low-abundance features that may be missed during pre-processing (e.g. features below the noise-threshold intensity). By re-evaluating the data for subtle signals, this step enhances sensitivity, improving the quantification of minor metabolites.
+
+3. **Annotation**
+UmetaFlow offers complementary annotation methods in order to maximize meaningful biological interpretation. Best annotations are from spectral matching with in-house libraries, generated from authentic standards, followed by querying publicly available databases for metabolite identification and structure prediction by CSI:FingerID and GNPS. If no specific compound was found, analog search by MS2Query and compound class prediction by CANOPUS can still provide valuable insights.
+
+## Targeted Quantification: Extracted Ion Chromatograms
 
 #### 📟 m/z Calculator
 
@@ -67,28 +79,6 @@ This table can be used as input for the Extracted Ion Chromatograms workflow.
 Simple workflow for the extraction of chromatograms by `m/z` (and optionally `RT` range) value. Produces a **Feature Matrix** file with area under the curve intensities as well as a **Meta Data** template and the chromatogram data for each file.
 
 Area intensities of different variants (e.g. adducts or neutral losses) of a metabolite can be combined. Put a `#` with the name first and variant second (e.g. `glucose` and `glucose#[M+Na]+`).  
-
-### Untargeted Metabolomics
-
-1. **Pre-Processing**
-Converting your raw data to a table of metabolic features with a series of algorithms. Produces a table of consensus metabolite intensities across your samples.
-
-2. **Re-Quantification**
-One of the unique and great features of UmetaFlow. For missing value imputation go back into the raw data and double check. Never miss a feature any more! 
-
-3. **GNPS and SIRIUS**
-Run SIRIUS and automatically annotate features with sum formula, identification and compound classes (**UmetaFlow TOPP**) or export files to run SIRIUS externally (**UmetaFlow pyOpenMS**). Export files to run GNPS externally (**both**).
-
-4. **Annotation via in-house libraries**
-Load your in-house data for MS1 (`tsv` file with metabolite `m/z` and `RT` values) and MS2 (`mgf` file) annotations.
-
-#### 🐍 UmetaFlow pyOpenMS
-
-Using pyOpenMS. Recommended if OpenMS TOPP tools are not installed.
-
-#### 🚀 UmetaFlow TOPP
-
-A high performance workflow with OpenMS TOPP tools running in parallel.
 
 ### Downstream Processing
 

@@ -352,6 +352,7 @@ class StreamlitUI:
             display_file_path=display_file_path,
         )
 
+    @st.fragment
     def input_widget(
         self,
         key: str,
@@ -528,6 +529,7 @@ class StreamlitUI:
 
         else:
             st.error(f"Unsupported widget type '{widget_type}'")
+        self.parameter_manager.save_parameters()
 
     @st.fragment
     def input_TOPP(
@@ -931,7 +933,8 @@ class StreamlitUI:
             self.zip_and_download_files(Path(self.workflow_dir, "input-files"))
 
     def parameter_section(self, custom_parameter_function) -> None:
-        st.toggle("Show advanced parameters", value=False, key="advanced")
+        if Path(self.workflow_dir).stem != "umetaflow":
+            st.toggle("Show advanced parameters", value=False, key="advanced")
 
         custom_parameter_function()
 
@@ -1115,9 +1118,8 @@ The workflow includes the **OpenMS {version}** TOPP tools {tools} as well as Pyt
         return "\n".join(markdown)
     
     def simple_file_uploader(self, key: str, file_type: str, name: str = "") -> None:
-        c1, c2 = st.columns(2)
-        upload = c1.file_uploader(
-            name, file_type, False, help="Save paramters after uploading."
+        upload = st.file_uploader(
+            name, file_type, False, help="Save parameters after uploading."
         )
         dir_path = Path(self.workflow_dir, "input-files", key)
         if upload:
@@ -1127,8 +1129,7 @@ The workflow includes the **OpenMS {version}** TOPP tools {tools} as well as Pyt
             path = Path(dir_path, upload.name)
             with open(path, "wb") as f:
                 f.write(upload.getbuffer())
-        c2.markdown("##")
         if dir_path.exists():
-            c2.info([p.name for p in dir_path.iterdir()][0])
-        else:
-            c2.warning(f"Not found in workspace: {name}")
+            st.info([p.name for p in dir_path.iterdir()][0])
+        # else:
+        #     st.warning(f"⚠️ **Missing:** {name}")

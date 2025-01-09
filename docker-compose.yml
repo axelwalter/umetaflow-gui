@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  openms-streamlit-template:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GITHUB_TOKEN: $GITHUB_TOKEN
+    image: umetaflow_app
+    container_name: umetaflow-app
+    restart: always
+    ports:
+      - 8501:8501
+    volumes:
+      - workspaces-streamlit-template:/workspaces-streamlit-template
+    command: streamlit run umetaflow-gui/app.py
+volumes:
+  workspaces-umetaflow-gui:

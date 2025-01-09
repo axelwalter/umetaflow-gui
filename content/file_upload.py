@@ -11,7 +11,7 @@ st.title("mzML Files")
 df_path = Path(st.session_state.workspace, "mzML-files.tsv")
 mzML_dir = Path(st.session_state.workspace, "mzML-files")
 
-tabs = ["File Upload", "Example Data"]
+tabs = ["⬆️ File Upload", "Example Data"]
 if st.session_state.location == "local":
     tabs.append("Files from local folder")
 elif st.session_state.location == "online":
@@ -57,7 +57,7 @@ if st.session_state.location == "local":
 elif st.session_state.location == "online":
     with tabs[2]:
         c1, c2 = st.columns(2)
-        if c1.button("Get all mzML files in workspace as zip file.", type="primary", use_container_width=True):
+        if c1.button("Get all mzML files in workspace as zip file.", use_container_width=True):
             zip_buffer = zip_files(Path(st.session_state.workspace, "mzML-files"))
             c2.download_button(
                 label="⬇️ Download Now",
@@ -71,16 +71,17 @@ elif st.session_state.location == "online":
 
 df = update_mzML_df(df_path, mzML_dir)
 
-if any(Path(mzML_dir).iterdir()):
-    with st.form("select-mzML-files"):
-        c1, c2 = st.columns(2)
-        # Display all mzML files currently in workspace
-        c1.markdown("##### select mzML files for analysis:")
-        select_submit = c2.form_submit_button("💾 Save file selection", type="primary", use_container_width=True)
-        edited = st.data_editor(df, hide_index=True, use_container_width=True, disabled=["file name"], key="mzML-files-df")
-    if select_submit and (st.session_state["mzML-files-df"]["edited_rows"] or st.session_state["mzML-files-df"]["deleted_rows"] or st.session_state["mzML-files-df"]["added_rows"]):
+@st.fragment
+def file_selection_section():
+    c1, c2 = st.columns(2)
+    # Display all mzML files currently in workspace
+    c1.markdown("##### select mzML files for analysis:")
+    edited = st.data_editor(df, hide_index=True, use_container_width=True, disabled=["file name"], key="mzML-files-df")
+    if (st.session_state["mzML-files-df"]["edited_rows"] or st.session_state["mzML-files-df"]["deleted_rows"] or st.session_state["mzML-files-df"]["added_rows"]):
         edited.to_csv(df_path, sep="\t", index=False)
 
+if any(Path(mzML_dir).iterdir()):
+    file_selection_section()
     # Remove files
     with st.form("remove-mzML-files"):
         st.markdown("🗑️ Remove mzML files")

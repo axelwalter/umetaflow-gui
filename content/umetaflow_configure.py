@@ -15,7 +15,7 @@ def update_expert_mode():
         flag_file.unlink(missing_ok=True)
 
 st.toggle(
-    "⚙️ **Expert Mode**",
+    "⚠️ **Expert Mode**",
     flag_file.exists(),
     key="umetaflow-expert-mode",
     on_change=update_expert_mode

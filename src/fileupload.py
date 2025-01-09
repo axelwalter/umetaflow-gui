@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 
 import streamlit as st
+import pandas as pd
 
 from src.common.common import reset_directory
 
@@ -129,3 +130,30 @@ def remove_all_mzML_files(params: dict) -> dict:
             params[k] = []
     st.success("All mzML files removed!")
     return params
+
+
+def update_mzML_df(df_path, mzML_dir):
+    if not df_path.exists():
+        files = [f.name for f in Path(mzML_dir).iterdir() if f.is_file()]
+        df = pd.DataFrame({"file name": files, "use in workflows": [True] * len(files)})
+    else:
+        df = pd.read_csv(df_path, sep="\t")
+
+        # Get list of files currently in mzML_dir
+        current_files = set(f.name for f in Path(mzML_dir).iterdir() if f.is_file())
+
+        # Keep only rows in DataFrame for files that are in the directory
+        df = df[df["file name"].isin(current_files)]
+
+        # Create a set of existing file names for quick lookup
+        existing_files = set(df["file name"])
+
+        # Iterate through mzML_dir and check for new .mzML files
+        new_files = [f.name for f in Path(mzML_dir).iterdir() if f.is_file() and f.suffix == ".mzML" and f.name not in existing_files]
+
+        # Add new files to the DataFrame
+        if new_files:
+            new_df = pd.DataFrame({"file name": new_files, "use in workflows": [True] * len(new_files)})
+            df = pd.concat([df, new_df])
+    # Sort the DataFrame alphabetically by file name
+    return df.sort_values(by="file name").reset_index(drop=True)

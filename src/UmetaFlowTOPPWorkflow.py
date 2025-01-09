@@ -12,6 +12,8 @@ import shutil
 import json
 import sys
 
+from rdkit import Chem
+from rdkit.Chem import Draw
 
 class Workflow(WorkflowManager):
     # Setup pages for upload, parameter, execution and results.
@@ -1164,6 +1166,7 @@ class Workflow(WorkflowManager):
             [
                 "📊 **FeatureMatrix**",
                 "📁 **Sample Features**",
+                "🔖 Annotations",
                 "⬇️ Downloads",
             ]
         )
@@ -1206,29 +1209,6 @@ class Workflow(WorkflowManager):
                 lambda intensities: [i / max(intensities) for i in intensities]
             )
             df_matrix.set_index("metabolite", inplace=True)
-            sirius_samples = [
-                c.split("_")[1] for c in df_matrix.columns if "SIRIUS" in c
-            ]
-            sirius_cols = []
-            if sirius_samples:
-                c1, c2 = st.columns(2)
-                show_sirius_results = c1.checkbox("show SIRIUS results", True)
-                if len(sirius_samples) > 1:
-                    sirius_sample = c2.selectbox(
-                        "Show SIRIUS results for sample", sirius_samples
-                    )
-                else:
-                    sirius_sample = sirius_samples[0]
-                if show_sirius_results:
-                    sirius_cols = [
-                        col
-                        for col in df_matrix.columns
-                        if (
-                            f"SIRIUS_{sirius_sample}" in col
-                            or f"CSI:FingerID_{sirius_sample}" in col
-                            or f"CANOPUS_{sirius_sample}" in col
-                        )
-                    ]
 
             @st.fragment
             def feature_matrix_results():
@@ -1240,11 +1220,8 @@ class Workflow(WorkflowManager):
                         "RT",
                         "mz",
                         "charge",
-                        "adduct",
-                        "MS1 annotation",
-                        "MS2 annotation",
-                    ]
-                    + sirius_cols,
+                        "adduct"
+                    ],
                     hide_index=False,
                     column_config={
                         "intensity": st.column_config.BarChartColumn(
@@ -1409,7 +1386,82 @@ class Workflow(WorkflowManager):
 
             feature_file_results()
 
+        @st.fragment
+        def sirius_results():
+            sirius_samples = [
+                c.split("_")[1] for c in df_matrix.columns if "SIRIUS" in c
+            ]
+            sirius_cols = []
+            if sirius_samples:
+                c1, c2 = st.columns(2)
+                if len(sirius_samples) > 1:
+                    sirius_sample = c1.selectbox(
+                        "Show SIRIUS results for sample", sirius_samples
+                    )
+                else:
+                    sirius_sample = sirius_samples[0]
+                st.markdown(f"SIRIUS results for: **{sirius_sample}.mzML**")
+                sirius_cols = [
+                    col
+                    for col in df_matrix.columns
+                    if (
+                        f"SIRIUS_{sirius_sample}" in col
+                        or f"CSI:FingerID_{sirius_sample}" in col
+                        or f"CANOPUS_{sirius_sample}" in col
+                    )
+                ]
+            else:
+                st.info("No SIRIUS results found.")
+                return
+            df = df_matrix[sirius_cols].dropna()
+            df = df.rename(columns={col: col.replace(f"_{sirius_sample}", "") for col in df.columns})
+            event = st.dataframe(
+                df,
+                hide_index=False,
+                column_config={
+                    "intensity": st.column_config.BarChartColumn(
+                        width="small",
+                        help=", ".join(
+                            [
+                                str(Path(col).stem)
+                                for col in sorted(df_matrix.columns)
+                                if col.endswith(".mzML")
+                            ]
+                        ),
+                    ),
+                    # "quality ranked": st.column_config.Column(width="small", help="Evenly spaced quality values between 0 and 1."),
+                },
+                height=510,
+                use_container_width=True,
+                on_select="rerun",
+                selection_mode="single-row",
+            )
+            rows = event.selection.rows
+            if rows:
+                metabolite = df.index[rows[0]]
+                st.markdown(f"{metabolite}: **{df.loc[metabolite, 'CSI:FingerID_name']}**")
+                st.markdown(f"molecular formula: **{df.loc[metabolite, 'CSI:FingerID_molecularFormula']}**")
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    # SMILES
+                    smiles = df.loc[metabolite, "CSI:FingerID_smiles"]
+                    molecule = Chem.MolFromSmiles(smiles)
+                    img = Draw.MolToImage(molecule)
+                    st.image(img)
+                    st.markdown("SMILES")
+                with c2:
+                    # InChI
+                    inchi = df.loc[metabolite, "CSI:FingerID_InChI"]
+                    molecule = Chem.MolFromInchi(inchi)
+                    img = Draw.MolToImage(molecule)
+                    st.image(img)
+                    st.markdown("InChI")
+
         with tabs[2]:
+            sirius_results()
+
+        with tabs[3]:
             if st.button("Prepare result files for download"):
                 with open(
                     Path(self.workflow_dir, "results", "results.zip"), "rb"

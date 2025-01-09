@@ -89,11 +89,11 @@ if any(Path(mzML_dir).iterdir()):
                                 options=[f.stem for f in sorted(mzML_dir.iterdir())])
         c1, c2 = st.columns(2)
         if c2.form_submit_button("Remove **selected**", use_container_width=True):
-            remove_selected_mzML_files(to_remove)
+            remove_selected_mzML_files(to_remove, params)
             update_mzML_df(df_path, mzML_dir).to_csv(df_path, sep="\t", index=False)
             st.rerun()
 
         if c1.form_submit_button("⚠️ Remove **all**", use_container_width=True):
-            remove_all_mzML_files()
+            remove_all_mzML_files(params)
             update_mzML_df(df_path, mzML_dir).to_csv(df_path, sep="\t", index=False)
             st.rerun()

@@ -1,5 +1,7 @@
 import shutil
+import zipfile
 from pathlib import Path
+from io import BytesIO
 
 import streamlit as st
 import pandas as pd
@@ -157,3 +159,21 @@ def update_mzML_df(df_path, mzML_dir):
             df = pd.concat([df, new_df])
     # Sort the DataFrame alphabetically by file name
     return df.sort_values(by="file name").reset_index(drop=True)
+
+def zip_files(directory):
+    directory = Path(directory)  # Ensure directory is a Path object
+    bytes_io = BytesIO()
+    my_bar = st.progress(0, text="Compressing mzML files...")
+
+    # List all files in the directory (ignoring subdirectories)
+    files = [file for file in directory.iterdir() if file.is_file()]
+    n_files = len(files) - 1
+
+    with zipfile.ZipFile(bytes_io, 'w') as zip_file:
+        for i, file_path in enumerate(files):
+            zip_file.write(file_path, file_path.name)
+            my_bar.progress(i / n_files)
+    
+    my_bar.empty()
+    bytes_io.seek(0)
+    return bytes_io

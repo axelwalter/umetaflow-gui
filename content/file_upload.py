@@ -11,7 +11,7 @@ st.title("mzML Files")
 df_path = Path(st.session_state.workspace, "mzML-files.tsv")
 mzML_dir = Path(st.session_state.workspace, "mzML-files")
 
-tabs = ["File Upload", "Example Data"]
+tabs = ["⬆️ File Upload", "Example Data"]
 if st.session_state.location == "local":
     tabs.append("Files from local folder")
 elif st.session_state.location == "online":
@@ -57,7 +57,7 @@ if st.session_state.location == "local":
 elif st.session_state.location == "online":
     with tabs[2]:
         c1, c2 = st.columns(2)
-        if c1.button("Get all mzML files in workspace as zip file.", type="primary", use_container_width=True):
+        if c1.button("Get all mzML files in workspace as zip file.", use_container_width=True):
             zip_buffer = zip_files(Path(st.session_state.workspace, "mzML-files"))
             c2.download_button(
                 label="⬇️ Download Now",

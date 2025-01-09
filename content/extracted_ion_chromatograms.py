@@ -24,10 +24,9 @@ if not results_only:
         # Read dataframe from path (defined in src.eic)
         df = pd.read_csv(input_table_path)
     else:
-        # Load a default example df
-        df = pd.DataFrame(
-            {"name": [""], "mz": [np.nan], "RT": [np.nan], "peak width": [np.nan]}
-        )
+        # Create an empty DataFrame and set default column types
+        df = pd.DataFrame(columns=["name", "mz", "RT", "peak width"])
+        df = df.astype({"name": "str", "mz": "float64", "RT": "float64", "peak width": "float64"})
 
     use_mz_calculator_table = st.toggle(
         "Use metabolite table from m/z calculator",
@@ -48,7 +47,8 @@ RT and peak width can be entered in seconds or minutes, depending on the time un
 
 New metabolites can be entered by entering sum formula and adduct information as well.
 
-💡 Combine intensities of metabolite variants (e.g. different adducts) using the `#` symbol in the metabolite name. E.g. `GlcNAc#[M+H]+` and `GlcNAc#[M+Na]+`. Make sure to check the **combine variants** box in the result section.
+#` symbol in the metabolite name. E.g. `GlcNAc#[M+H]+` and `GlcNAc#[M+Na]+`. Make sure to check the **combine variants** box in the result section.
+💡 Combine intensities of metabolite variants (e.g. different adducts) using the `
 
 To download the modified table, click on the **Download** button which appears in the top right corner hovering over the table.
 
@@ -183,7 +183,8 @@ To paste a data table from Excel simply select all the cells in Excel, select th
             df = pd.read_csv(df_path, sep="\t")
 
             # Filter the DataFrame for files where "use in workflow" is True
-            selected_files = df[df["use in workflows"] == True]["file name"].tolist()
+            selected_files = df[df["use in workflows"]
+                                == True]["file name"].tolist()
 
             # Construct full file paths
             mzML_files = [
@@ -295,7 +296,8 @@ if path.exists():
                 "ATTRIBUTE_Sample_Type": ["Sample"] * df_auc.shape[1],
             }
         ).set_index("filename")
-        data = st.data_editor(md.T, num_rows="dynamic", use_container_width=True)
+        data = st.data_editor(md.T, num_rows="dynamic",
+                              use_container_width=True)
         st.download_button(
             "Download Table",
             data.T.to_csv(sep="\t").encode("utf-8"),

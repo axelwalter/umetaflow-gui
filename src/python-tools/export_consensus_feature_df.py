@@ -1,5 +1,7 @@
 import json
 import sys
+from pyopenms import ConsensusXMLFile, ConsensusMap
+from pathlib import Path
 
 ############################
 # default paramter values #
@@ -21,35 +23,7 @@ import sys
 # advanced: whether or not the parameter is advanced (default: False)
 
 DEFAULTS = [
-    {"key": "in", "value": [], "help": "Input files for Python Script.", "hide": True},
-    {"key": "out", "value": [], "help": "Output files for Python Script.", "hide": True},
-    {
-        "key": "number-slider",
-        "name": "number of features",
-        "value": 6,
-        "min": 2,
-        "max": 10,
-        "help": "How many features to consider.",
-        "widget_type": "slider",
-        "step_size": 2,
-    },
-    {
-        "key": "selectbox-example",
-        "name": "select something",
-        "value": "a",
-        "options": ["a", "b", "c"],
-    },
-    {
-        "key": "adavanced-input",
-        "name": "advanced parameter",
-        "value": 5,
-        "step_size": 5,
-        "help": "An advanced example parameter.",
-        "advanced": True,
-    },
-    {
-        "key": "checkbox", "value": True, "name": "boolean"
-    }
+    {"key": "in", "value": "", "help": "Input consensusXML file.", "hide": True},
 ]
 
 def get_params():
@@ -62,6 +36,11 @@ def get_params():
 if __name__ == "__main__":
     params = get_params()
     # Add code here:
-    print("Writing stdout which will get logged...")
-    print("Parameters for this example Python tool:")
-    print(json.dumps(params, indent=4))
+    cm = ConsensusMap()
+    ConsensusXMLFile().load(params["in"], cm)
+    df = cm.get_df()
+    df = df.rename(columns={col: Path(col).name for col in df.columns})
+    df = df.reset_index()
+    df = df.drop(columns=["id", "sequence"])
+    df.insert(0, "metabolite", df.apply(lambda x: f"{round(x['mz'], 4)}@{round(x['RT'], 2)}", axis=1))
+    df.to_csv(Path(params["in"]).with_suffix(".tsv"), sep="\t", index=False)

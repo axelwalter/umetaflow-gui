@@ -1007,7 +1007,7 @@ class StreamlitUI:
                 with st.spinner("**Workflow running...**"):
                     with open(log_path, "r", encoding="utf-8") as f:
                         st.code(
-                            "".join(f.readlines()[-30:]),
+                            f.read(),
                             language="neon",
                             line_numbers=False,
                         )

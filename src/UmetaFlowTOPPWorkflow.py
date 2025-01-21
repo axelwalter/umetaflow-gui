@@ -15,6 +15,7 @@ import sys
 from rdkit import Chem
 from rdkit.Chem import Draw
 
+
 class Workflow(WorkflowManager):
     # Setup pages for upload, parameter, execution and results.
     # For layout use any streamlit components such as tabs (as shown in example), columns, or even expanders.
@@ -195,17 +196,15 @@ class Workflow(WorkflowManager):
                 st.image(str(Path("assets", "sirius.png")), width=200)
             # SiriusExport
             if "sirius-path" not in st.session_state:
-                possible_paths = (
-                    [  # potential SIRIUS locations in increasing priority
-                        str(Path("sirius")),  # anywhere
-                        str(
-                            Path(sys.prefix, "bin", "sirius")
-                        ),  # in current conda environment
-                        str(
-                            Path(".", "sirius", "sirius.exe")
-                        ),  # in case of Windows executables
-                    ]
-                )
+                possible_paths = [  # potential SIRIUS locations in increasing priority
+                    str(Path("sirius")),  # anywhere
+                    str(
+                        Path(sys.prefix, "bin", "sirius")
+                    ),  # in current conda environment
+                    str(
+                        Path(".", "sirius", "sirius.exe")
+                    ),  # in case of Windows executables
+                ]
                 st.session_state["sirius-path"] = ""
                 for path in possible_paths:
                     if shutil.which(path) is not None:
@@ -242,11 +241,11 @@ class Workflow(WorkflowManager):
                     self.ui.input_widget(
                         "sirius-maxmz",
                         500,
-                        "max *m/z* for structure prediction",
+                        "max *m/z*",
                         min_value=50,
                         max_value=1000,
                         step_size=50,
-                        help="Only considers compounds with a precursor m/z lower or equal. All other compounds in the input will be skipped. Recommended to be below 600, otherwise very long execution times are expected.",
+                        help="Only considers compounds with a precursor m/z lower or equal for **structure predictions**. All other compounds in the input will be skipped. Recommended to be below 600, otherwise very long execution times are expected.",
                     )
                 db_options = [
                     "none",
@@ -655,17 +654,19 @@ class Workflow(WorkflowManager):
     def format_simple_params(self) -> dict:
         """Takes the paramter file from simple configuration page and translate into one useable in this workflow."""
         with open(
-            Path(st.session_state.workspace, "umetaflow", "params.json"),
-            "r"
+            Path(st.session_state.workspace, "umetaflow", "params.json"), "r"
         ) as f:
             simple = json.load(f)
 
-        with open(
-            Path(st.session_state.workspace, "umetaflow-expert", "params.json"),
-            "r"
-        ) as f:
-            expert = json.load(f)
-
+        expert_params_path = Path(
+            st.session_state.workspace, "umetaflow-expert", "params.json"
+        )
+        if expert_params_path.exists():
+            with open(expert_params_path, "r") as f:
+                expert = json.load(f)
+        else:
+            with open("default-parameters.json", "r") as f:
+                expert = json.load(f)["umetaflow-expert"]
 
         new = expert.copy()
 
@@ -675,15 +676,17 @@ class Workflow(WorkflowManager):
         for k, v in simple.items():
             if k in new.keys():
                 new[k] = v
-            elif "ffm:" in k:
-                if "FeatureFinderMetabo" not in new.keys():
-                    new["FeatureFinderMetabo"] = {}
+            if "ffm:" in k:
                 new["FeatureFinderMetabo"][k[4:]] = v
 
         # mz and RT tolerances
-        new["HighResPrecursorMassCorrector"]["highest_intensity_peak:mz_tolerance"] = 100.0
+        new["HighResPrecursorMassCorrector"][
+            "highest_intensity_peak:mz_tolerance"
+        ] = 100.0
 
-        new["FeatureFinderMetabo"]["algorithm:mtd:mass_error_ppm"] = simple["mz_tolerance"]
+        new["FeatureFinderMetabo"]["algorithm:mtd:mass_error_ppm"] = simple[
+            "mz_tolerance"
+        ]
         new["FeatureFinderMetabo"]["algorithm:ffm:isotope_filtering_model"] = "none"
         new["FeatureFinderMetabo"]["algorithm:ffm:report_convex_hulls"] = "true"
 
@@ -693,8 +696,12 @@ class Workflow(WorkflowManager):
         new["MapAlignerPoseClustering"]["algorithm:pairfinder:distance_MZ:unit"] = "ppm"
 
         new["FeatureLinkerUnlabeledKD"]["algorithm:warp:enabled"] = "false"
-        new["FeatureLinkerUnlabeledKD"]["algorithm:link:rt_tol"] = simple["RT_tolerance"]
-        new["FeatureLinkerUnlabeledKD"]["algorithm:link:mz_tol"] = simple["mz_tolerance"]
+        new["FeatureLinkerUnlabeledKD"]["algorithm:link:rt_tol"] = simple[
+            "RT_tolerance"
+        ]
+        new["FeatureLinkerUnlabeledKD"]["algorithm:link:mz_tol"] = simple[
+            "mz_tolerance"
+        ]
 
         new["sirius-ppm-max"] = simple["mz_tolerance"]
         new["sirius-ppm-max-ms2"] = simple["mz_tolerance"]
@@ -708,7 +715,9 @@ class Workflow(WorkflowManager):
         new["MetaboliteAdductDecharger"][
             "algorithm:MetaboliteFeatureDeconvolution:potential_adducts"
         ] = (
-            simple["adducts_pos"] if simple["ion_mode"] == "positive" else simple["adducts_neg"]
+            simple["adducts_pos"]
+            if simple["ion_mode"] == "positive"
+            else simple["adducts_neg"]
         )
         new["MetaboliteAdductDecharger"][
             "algorithm:MetaboliteFeatureDeconvolution:negative_mode"
@@ -748,12 +757,14 @@ class Workflow(WorkflowManager):
         for k, v in new.items():
             if isinstance(v, dict):
                 new[k]["threads"] = simple["num_threads"]
-        
-        self.parameter_manager.params_file = Path(Path(self.parameter_manager.params_file).parent, "params-translated.json")
+
+        self.parameter_manager.params_file = Path(
+            Path(self.parameter_manager.params_file).parent, "params-translated.json"
+        )
         with open(self.parameter_manager.params_file, "w") as f:
             json.dump(new, f, indent=4)
         return new
-    
+
     def execution(self) -> None:
         # Check if run in expert mode, if not paramters need to be formatted to be compatible with this framework.
         if self.expert_mode:
@@ -1215,13 +1226,7 @@ class Workflow(WorkflowManager):
                 c1, c2 = st.columns(2)
                 event = c1.dataframe(
                     df_matrix,
-                    column_order=[
-                        "intensity",
-                        "RT",
-                        "mz",
-                        "charge",
-                        "adduct"
-                    ],
+                    column_order=["intensity", "RT", "mz", "charge", "adduct"],
                     hide_index=False,
                     column_config={
                         "intensity": st.column_config.BarChartColumn(
@@ -1414,7 +1419,11 @@ class Workflow(WorkflowManager):
                 st.info("No SIRIUS results found.")
                 return
             df = df_matrix[sirius_cols].dropna()
-            df = df.rename(columns={col: col.replace(f"_{sirius_sample}", "") for col in df.columns})
+            df = df.rename(
+                columns={
+                    col: col.replace(f"_{sirius_sample}", "") for col in df.columns
+                }
+            )
             event = st.dataframe(
                 df,
                 hide_index=False,
@@ -1439,8 +1448,12 @@ class Workflow(WorkflowManager):
             rows = event.selection.rows
             if rows:
                 metabolite = df.index[rows[0]]
-                st.markdown(f"{metabolite}: **{df.loc[metabolite, 'CSI:FingerID_name']}**")
-                st.markdown(f"molecular formula: **{df.loc[metabolite, 'CSI:FingerID_molecularFormula']}**")
+                st.markdown(
+                    f"{metabolite}: **{df.loc[metabolite, 'CSI:FingerID_name']}**"
+                )
+                st.markdown(
+                    f"molecular formula: **{df.loc[metabolite, 'CSI:FingerID_molecularFormula']}**"
+                )
 
                 c1, c2 = st.columns(2)
                 with c1:

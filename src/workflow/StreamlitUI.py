@@ -940,7 +940,8 @@ class StreamlitUI:
             self.zip_and_download_files(Path(self.workflow_dir, "input-files"))
 
     def parameter_section(self, custom_parameter_function) -> None:
-        st.toggle("Show advanced parameters", value=False, key="advanced")
+        if st.session_state["umetaflow-expert-mode"]:
+            st.toggle("Show advanced parameters", value=False, key="advanced")
 
         custom_parameter_function()
 

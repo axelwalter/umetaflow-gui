@@ -36,6 +36,24 @@ class Workflow(WorkflowManager):
     def upload(self) -> None:
         return
 
+    def add_sirius_path_to_session_state(self):
+        if "sirius-path" not in st.session_state:
+            possible_paths = (
+                [  # potential SIRIUS locations in increasing priority
+                    str(Path("sirius")),  # anywhere
+                    str(
+                        Path(sys.prefix, "bin", "sirius")
+                    ),  # in current conda environment
+                    str(
+                        Path(".", "sirius", "sirius.exe")
+                    ),  # in case of Windows executables
+                ]
+            )
+            st.session_state["sirius-path"] = ""
+            for path in possible_paths:
+                if shutil.which(path) is not None:
+                    st.session_state["sirius-path"] = path
+
     def configure_simple(self) -> None:
         cols = st.columns(4)
         with cols[0]:
@@ -440,22 +458,7 @@ class Workflow(WorkflowManager):
                         help="Generate input files for SIRIUS from raw data and feature information using the OpenMS TOPP tool *SiriusExport*.",
                     )
                     self.ui.input_TOPP("SiriusExport")
-                if "sirius-path" not in st.session_state:
-                    possible_paths = (
-                        [  # potential SIRIUS locations in increasing priority
-                            str(Path("sirius")),  # anywhere
-                            str(
-                                Path(sys.prefix, "bin", "sirius")
-                            ),  # in current conda environment
-                            str(
-                                Path(".", "sirius", "sirius.exe")
-                            ),  # in case of Windows executables
-                        ]
-                    )
-                    st.session_state["sirius-path"] = ""
-                    for path in possible_paths:
-                        if shutil.which(path) is not None:
-                            st.session_state["sirius-path"] = path
+                self.add_sirius_path_to_session_state()
 
                 if st.session_state["sirius-path"]:
                     st.markdown("**SIRIUS user login**")
@@ -974,6 +977,7 @@ class Workflow(WorkflowManager):
                 ]
             )
             mzML = sorted(mzML)
+        self.add_sirius_path_to_session_state()
         if st.session_state["sirius-path"]:
             if (
                 self.params["run-sirius"]

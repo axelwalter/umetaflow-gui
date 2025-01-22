@@ -748,7 +748,7 @@ class Workflow(WorkflowManager):
             ] = 0
 
         # SIRIUS logic
-        if not simple["export-sirius"] or simple["run-fingerid"]:
+        if not simple["run-sirius"] and simple["run-fingerid"]:
             new["run-sirius"] = True
             if new["run-fingerid"]:
                 new["run-canopus"] = True

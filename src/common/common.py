@@ -561,6 +561,11 @@ def tk_file_dialog(
     root.destroy()
     return file_path
 
+def load_parquet(file):
+    if Path(file).exists():
+        return pd.read_parquet(file)
+    else:
+        return pd.DataFrame()
 
 # General warning/error messages
 WARNINGS = {

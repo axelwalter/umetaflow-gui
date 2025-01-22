@@ -11,6 +11,10 @@ from itertools import cycle
 
 from src.common.common import show_fig, load_parquet
 
+def add_color_column(df):
+    color_cycle = cycle(px.colors.qualitative.Plotly)
+    df["color"] = [next(color_cycle) for _ in range(len(df))]
+    return df
 
 def metabolite_selection():
     st.session_state.results_metabolite = "none"
@@ -65,30 +69,28 @@ def metabolite_selection():
     return None
 
 
-# @st.cache_data
-# def get_chroms_for_each_sample(metabolite):
-#     # Get index of row in df where "metabolite" is equal to metabolite
-#     all_samples = [
-#         col.replace(".mzML_IDs", "")
-#         for col in df.columns
-#         if col.endswith("mzML_IDs")
-#     ]
-#     dfs = []
-#     samples = []
-#     for sample in all_samples:
-#         # Get feature ID for sample
-#         fid = df.loc[metabolite, sample + ".mzML_IDs"]
-#         path = Path(feature_df_dir, sample + ".parquet")
-#         f_df = load_parquet(path)
-#         if fid in f_df.index:
-#             dfs.append(f_df.loc[[fid]])
-#             samples.append(sample)
-#     df = pd.concat(dfs)
-#     df["sample"] = samples
-#     color_cycle = cycle(px.colors.qualitative.Plotly)
-#     df["color"] = [next(color_cycle) for _ in range(len(df))]
-
-#     return df
+@st.cache_data
+def get_chroms_for_each_sample(metabolite):
+    # Get index of row in df where "metabolite" is equal to metabolite
+    all_samples = [
+        i.replace(".mzML", "")
+        for i in metabolite.index
+        if i.endswith("mzML")
+    ]
+    dfs = []
+    samples = []
+    for sample in all_samples:
+        # Get feature ID for sample
+        fid = metabolite[sample + ".mzML_IDs"]
+        path = Path(st.session_state.results_dir, "ffmid-df" if metabolite["re-quantified"] else "ffm-df", sample + ".parquet")
+        f_df = load_parquet(path)
+        if fid in f_df.index:
+            dfs.append(f_df.loc[[fid]])
+            samples.append(sample)
+    df = pd.concat(dfs)
+    df["sample"] = samples
+    df = add_color_column(df)
+    return df
 
 
 @st.cache_resource
@@ -110,33 +112,40 @@ def get_feature_chromatogram_plot(df):
         )
     # Update layout of the figure
     fig.update_layout(
-        title=metabolite,
         xaxis_title="retention time (s)",
-        yaxis_title="intensity (counts per second)",
+        yaxis_title="intensity (counts)",
         plot_bgcolor="rgb(255,255,255)",
         template="plotly_white",
         showlegend=True,
+                margin=dict(l=0, r=0, t=0, b=0),
+        height=300
     )
     return fig
 
-
-def feature_intensity_plot(metabolite):
+@st.cache_resource
+def get_feature_intensity_plot(metabolite):
     df = pd.DataFrame(
         {
             "sample": [i for i in metabolite.index if i.endswith(".mzML")],
-            "intensity": metabolite["intensity"],
+            "intensity": metabolite["intensity"]
         }
     )
-    fig = px.bar(df, x="sample", y="intensity", color="sample", opacity=0.8)
+    df = add_color_column(df)
+
+    # Create a mapping from sample to color
+    color_map = dict(zip(df["sample"], df["color"]))
+
+    # Plot bar chart
+    fig = px.bar(df, x="sample", y="intensity", color="sample", 
+                color_discrete_map=color_map)
 
     fig.update_layout(
         xaxis_title="",
-        yaxis_title="metabolite intensity",
+        yaxis_title="intensity (AUC)",
         plot_bgcolor="rgb(255,255,255)",
         template="plotly_white",
         showlegend=False,
         margin=dict(l=0, r=0, t=0, b=0),
         height=300
-
     )
-    show_fig(fig, f"AUC_{metabolite.index[0]}")
+    return fig

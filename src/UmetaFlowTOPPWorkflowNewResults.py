@@ -1169,50 +1169,23 @@ class Workflow(WorkflowManager):
         if metabolite is None:
             return
 
-        cols = st.columns(4)
-        cols[0].metric("RT (seconds)", round(metabolite["RT"],1))
-        cols[1].metric("*m/z* (monoisotopic)", round(metabolite["mz"],1))
-        cols[2].metric("charge", metabolite["charge"])
-        if "adduct" in metabolite:
-            cols[3].metric("adduct", metabolite["adduct"])
+        # Metrics
+        with st.popover("🔢 **Metrics**", use_container_width=True):
+            cols = st.columns(3)
+            with cols[0]:
+                st.metric("*m/z* (monoisotopic)", round(metabolite["mz"],1))
+                st.metric("RT (seconds)", round(metabolite["RT"],1))
+            with cols[1]:
+                st.metric("charge", metabolite["charge"])
+                if "adduct" in metabolite:
+                    st.metric("adduct", metabolite["adduct"])
+            with cols[2]:
+                st.metric("re-quantified", metabolite["re-quantified"])
 
+        chrom_data = get_chroms_for_each_sample(metabolite)
+        chrom_fig = get_feature_chromatogram_plot(chrom_data)
+        auc_fig = get_feature_intensity_plot(metabolite)
 
-        st.markdown("**Feature Intensities & Chromatograms**")
-        c1, c2 = st.columns(2)
-        with c1:
-            feature_intensity_plot(metabolite)
-
-
-
-
-
-
-                    
-
-            #         df = get_chroms_for_each_sample(metabolite)
-            #         with c2:
-            #             consensus_tabs = st.tabs(
-            #                 ["📈 **Chromatograms**", "📊 **Intensities**"]
-            #             )
-            #             with consensus_tabs[0]:
-            #                 fig = get_feature_chromatogram_plot(df)
-            #                 show_fig(
-            #                     fig, f"chromatograms_{metabolite}", container_width=True
-            #                 )
-            #             with consensus_tabs[1]:
-            #                 show_fig(
-            #                     get_feature_intensity_plot(df),
-            #                     f"intensity_{metabolite}",
-            #                     container_width=True,
-            #                 )
-            #     else:
-            #         c2.info(
-            #             "💡 Select a row to display chromatogram and intensity diagrams."
-            #         )
-            #     c1, c2, _, _ = st.columns(4)
-            #     c1.metric(
-            #         "Number of samples",
-            #         len([col for col in df_matrix.columns if col.endswith(".mzML")]),
-            #     )
-            #     c2.metric("Number of features", len(df_matrix))
-
+        with st.expander("**📈 Chromatograms & 📊 Intensities**", expanded=True):
+            show_fig(chrom_fig, f"chromatograms_{metabolite.name}")
+            show_fig(auc_fig, f"AUC_{metabolite.name}")

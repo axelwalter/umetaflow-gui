@@ -93,7 +93,8 @@ if __name__ == "__main__":
     df["MS2_native_specs"] = [";".join([f"{fnames[p.getMetaValue('map_index')]}_{p.getMetaValue('spectrum_index')+1}" for p in f.getPeptideIdentifications()]) for f in consensus_map]
 
     # set re-quantified false (will be updated in merge_consensus.py)
-    df["re-quantified"] = False
+    if "re-quantified" not in df.columns:
+        df["re-quantified"] = False
 
     # Rename columns to not show full file path
     df = df.rename(columns={col: Path(col).name for col in df.columns if Path(col).exists()})

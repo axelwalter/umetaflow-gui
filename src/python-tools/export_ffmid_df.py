@@ -52,15 +52,7 @@ if __name__ == "__main__":
         
         rts = []
         intys = []
-        # for f in fm:
-        #     rts.append([
-        #         [float(x[0]) for x in sub.getConvexHulls()[0].getHullPoints()]
-        #         for sub in f.getSubordinates()
-        #     ])
-        #     intys.append([
-        #         [int(y[1]) for y in sub.getConvexHulls()[0].getHullPoints()]
-        #         for sub in f.getSubordinates()
-        #     ])
+
         for f in fm:
             rts.append([float(x[0]) for x in f.getSubordinates()[0].getConvexHulls()[0].getHullPoints()])
             intys.append([int(y[1]) for y in f.getSubordinates()[0].getConvexHulls()[0].getHullPoints()])

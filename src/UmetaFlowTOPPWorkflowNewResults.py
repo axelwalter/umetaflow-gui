@@ -1166,6 +1166,22 @@ class Workflow(WorkflowManager):
         # Select a metabolite from the final FeatureMatrix
         metabolite = metabolite_selection()
 
+        if metabolite is None:
+            return
+
+        cols = st.columns(4)
+        cols[0].metric("RT (seconds)", round(metabolite["RT"],1))
+        cols[1].metric("*m/z* (monoisotopic)", round(metabolite["mz"],1))
+        cols[2].metric("charge", metabolite["charge"])
+        if "adduct" in metabolite:
+            cols[3].metric("adduct", metabolite["adduct"])
+
+
+        st.markdown("**Feature Intensities & Chromatograms**")
+        c1, c2 = st.columns(2)
+        with c1:
+            feature_intensity_plot(metabolite)
+
 
 
 

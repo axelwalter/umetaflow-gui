@@ -4,6 +4,7 @@ from pathlib import Path
 from rdkit import Chem
 from rdkit.Chem import Draw
 
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from itertools import cycle
@@ -33,34 +34,35 @@ def metabolite_selection():
     df["intensity"] = df["intensity"].apply(
         lambda intensities: [i / max(intensities) for i in intensities]
     )
-    with st.expander(f"**Feature Matrix** containing {df.shape[0]} metabolites"):
-        event = st.dataframe(
-            df,
-            column_order=["intensity", "RT", "mz", "charge", "adduct"],
-            hide_index=False,
-            column_config={
-                "intensity": st.column_config.BarChartColumn(
-                    width="small",
-                    help=", ".join(
-                        [
-                            str(Path(col).stem)
-                            for col in sorted(df.columns)
-                            if col.endswith(".mzML")
-                        ]
-                    ),
+    st.markdown(f"**Feature Matrix** containing {df.shape[0]} metabolites")
+    event = st.dataframe(
+        df,
+        column_order=["intensity", "RT", "mz", "charge", "adduct"],
+        hide_index=False,
+        column_config={
+            "intensity": st.column_config.BarChartColumn(
+                width="small",
+                help=", ".join(
+                    [
+                        str(Path(col).stem)
+                        for col in sorted(df.columns)
+                        if col.endswith(".mzML")
+                    ]
                 ),
-            },
-            height=300,
-            use_container_width=True,
-            on_select="rerun",
-            selection_mode="single-row",
-        )
-        rows = event.selection.rows
-        if rows:
-            return df.index[rows[0]]
-        st.info("💡 Select a row (metabolite) in the feature matrix for more information.")
-        return None
-
+            ),
+        },
+        height=300,
+        use_container_width=True,
+        on_select="rerun",
+        selection_mode="single-row",
+    )
+    rows = event.selection.rows
+    if rows:
+        return df.iloc[rows[0], :]
+    st.info(
+        "💡 Select a row (metabolite) in the feature matrix for more information."
+    )
+    return None
 
 
 # @st.cache_data
@@ -118,16 +120,23 @@ def get_feature_chromatogram_plot(df):
     return fig
 
 
-def get_feature_intensity_plot(df):
-    fig = px.bar(df, x="sample", y="intensity", opacity=0.8)
-    fig.data[0].marker.color = df["color"]
-    # Update layout of the figure
+def feature_intensity_plot(metabolite):
+    df = pd.DataFrame(
+        {
+            "sample": [i for i in metabolite.index if i.endswith(".mzML")],
+            "intensity": metabolite["intensity"],
+        }
+    )
+    fig = px.bar(df, x="sample", y="intensity", color="sample", opacity=0.8)
+
     fig.update_layout(
-        title=metabolite,
         xaxis_title="",
-        yaxis_title="feature intensity",
+        yaxis_title="metabolite intensity",
         plot_bgcolor="rgb(255,255,255)",
         template="plotly_white",
         showlegend=False,
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=300
+
     )
-    return fig
+    show_fig(fig, f"AUC_{metabolite.index[0]}")

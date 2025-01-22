@@ -715,37 +715,35 @@ class Workflow(WorkflowManager):
         new["MetaboliteAdductDecharger"][
             "algorithm:MetaboliteFeatureDeconvolution:potential_adducts"
         ] = (
-            simple["adducts_pos"]
+            simple["adducts_pos"].replace(" ", "\n")
             if simple["ion_mode"] == "positive"
-            else simple["adducts_neg"]
+            else simple["adducts_neg"].replace(" ", "\n")
         )
-        new["MetaboliteAdductDecharger"][
-            "algorithm:MetaboliteFeatureDeconvolution:negative_mode"
-        ] = ("false" if simple["ion_mode"] == "positive" else "true")
+        if simple["ion_mode"] == "negative":
+            new["MetaboliteAdductDecharger"][
+                "algorithm:MetaboliteFeatureDeconvolution:negative_mode"
+            ] = ""
 
         new["MetaboliteAdductDecharger"][
             "algorithm:MetaboliteFeatureDeconvolution:max_neutrals"
         ] = 1
+        new["MetaboliteAdductDecharger"][
+            "algorithm:MetaboliteFeatureDeconvolution:charge_span_max"
+        ] = 3
         if simple["ion_mode"] == "positive":
             new["MetaboliteAdductDecharger"][
                 "algorithm:MetaboliteFeatureDeconvolution:charge_max"
-            ] = 2
-            new["MetaboliteAdductDecharger"][
-                "algorithm:MetaboliteFeatureDeconvolution:charge_span_max"
-            ] = 1
+            ] = 3
         else:
             new["MetaboliteAdductDecharger"][
                 "algorithm:MetaboliteFeatureDeconvolution:charge_min"
-            ] = -2
-            new["MetaboliteAdductDecharger"][
-                "algorithm:MetaboliteFeatureDeconvolution:charge_span_max"
-            ] = 3
+            ] = -3
             new["MetaboliteAdductDecharger"][
                 "algorithm:MetaboliteFeatureDeconvolution:max_neutrals"
             ] = 1
             new["MetaboliteAdductDecharger"][
                 "algorithm:MetaboliteFeatureDeconvolution:charge_max"
-            ] = 0
+            ] = -1
 
         # SIRIUS logic
         if not simple["run-sirius"] and simple["run-fingerid"]:

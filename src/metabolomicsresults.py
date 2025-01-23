@@ -42,14 +42,27 @@ def filter_dialog(df):
         adduct = st.selectbox(
             "adduct", ["all"] + sorted(df["adduct"].unique().tolist())
         )
+    # filter text
+    filter_text = ""
+    if rt[0] > df["RT"].min():
+        filter_text += f" **RT** min = {rt[0]};"
+    if rt[1] < df["RT"].max():
+        filter_text += f" **RT** max = {rt[1]};"
+    if mz[0] > df["mz"].min():
+        filter_text += f" ***m/z*** min = {mz[0]};"
+    if mz[1] < df["mz"].max():
+        filter_text += f" ***m/z*** max = {mz[1]};"
     if filter_sirius:
+        filter_text += " **SIRIUS** annotations only;"
         df_sirius = df[
             [c for c in df.columns if c.startswith("CSI:FingerID_")]
         ].dropna()
         df = df.loc[df_sirius.index, :]
     if charge != "all":
+        filter_text += f" **charge** = {charge};"
         df = df[df["charge"] == int(charge)]
     if adduct != "all":
+        filter_text += f" **adduct** = {adduct};"
         df = df[df["adduct"] == adduct]
     df = df[(df["mz"] >= mz[0]) & (df["mz"] <= mz[1])]
     df = df[(df["RT"] >= rt[0]) & (df["RT"] <= rt[1])]
@@ -64,6 +77,7 @@ def filter_dialog(df):
     if c2.button("Apply", type="primary", use_container_width=True):
         if len(df) != len_unfiltered and not df.empty:
             st.session_state["feature-matrix-filtered"] = df
+            st.session_state["fm-filter-info"] = filter_text
         st.rerun()
 
 
@@ -95,6 +109,7 @@ def metabolite_selection():
         if c2.button("❌ Reset", use_container_width=True):
             del st.session_state["feature-matrix-filtered"]
             st.rerun()
+        st.success(st.session_state["fm-filter-info"])
     if c3.button("🔎 Filter", use_container_width=True):
         filter_dialog(df)
     if "feature-matrix-filtered" in st.session_state:

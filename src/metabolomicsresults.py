@@ -16,6 +16,31 @@ def add_color_column(df):
     df["color"] = [next(color_cycle) for _ in range(len(df))]
     return df
 
+@st.dialog("🔎 Filter Feature Matrix")
+def filter_dialog(df):
+    # ><
+    st.session_state["feature-matrix-filtered"] = pd.DataFrame()
+    mz = st.slider("*m/z* range", df["mz"].min(), df["mz"].max(), value=(df["mz"].min(), df["mz"].max()))
+    rt = st.slider("RT range", df["RT"].min(), df["RT"].max(), value=(df["RT"].min(), df["RT"].max()))
+    filter_sirius = st.toggle("keep only metabolites with SIRIUS annotation", False)
+    charge = st.selectbox("charge state", ["all"]+sorted(df["charge"].unique().tolist()))
+    if filter_sirius:
+        df_sirius = df[[c for c in df.columns if c.startswith("CSI:FingerID_")]].dropna()
+        df = df.loc[df_sirius.index, :]
+    if charge != "all":
+        df = df[df["charge"] == int(charge)]
+    df = df[(df["mz"] > mz[0]) & (df["mz"] < mz[1])]
+    df = df[(df["RT"] > rt[0]) & (df["RT"] < rt[1])]
+    if df.empty:
+        st.warning("⚠️ Feature Matrix is empty after filtering. Filter will not be applied.")
+    _, _, c1, c2 = st.columns(4)
+    if c1.button("Cancel", use_container_width=True):
+        st.rerun()
+
+    if c2.button("Apply", type="primary", use_container_width=True):
+        st.session_state["feature-matrix-filtered"] = df
+        st.rerun()
+
 def metabolite_selection():
     st.session_state.results_metabolite = "none"
 
@@ -38,7 +63,18 @@ def metabolite_selection():
     df["intensity"] = df["intensity"].apply(
         lambda intensities: [i / max(intensities) for i in intensities]
     )
-    st.markdown(f"**Feature Matrix** containing {df.shape[0]} metabolites")
+    c1, c2, c3 = st.columns([0.5, 0.25, 0.25])
+    c1.markdown(f"**Feature Matrix** containing {df.shape[0]} metabolites")
+    if "feature-matrix-filtered" in st.session_state:
+        if c2.button("❌ Reset", use_container_width=True):
+            del st.session_state["feature-matrix-filtered"]
+            st.rerun()
+    if c3.button("🔎 Filter", use_container_width=True):
+        filter_dialog(df)
+    if "feature-matrix-filtered" in st.session_state:
+        if not st.session_state["feature-matrix-filtered"].empty:
+            df = st.session_state["feature-matrix-filtered"]
+
     event = st.dataframe(
         df,
         column_order=["intensity", "RT", "mz", "charge", "adduct"],
@@ -144,8 +180,9 @@ def get_feature_intensity_plot(metabolite):
         yaxis_title="intensity (AUC)",
         plot_bgcolor="rgb(255,255,255)",
         template="plotly_white",
-        showlegend=False,
+        showlegend=True,
         margin=dict(l=0, r=0, t=0, b=0),
         height=300
     )
     return fig
+

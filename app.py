@@ -12,7 +12,7 @@ if __name__ == '__main__':
             st.Page(Path("content", "umetaflow_configure.py"), title="Configure", icon="⚙️"),
             st.Page(Path("content", "umetaflow_run.py"), title="Run", icon="🚀"),
             st.Page(Path("content", "umetaflow_results.py"), title="Results", icon="📊"),
-            st.Page(Path("content", "umetaflow_results_new_results.py"), title="New Results", icon="📊"),
+            st.Page(Path("content", "umetaflow_results_old.py"), title="Old Results", icon="📊"),
         ],
         "Targeted Quantification: Extracted Ion Chromatograms": [
             st.Page(Path("content", "mz_calculator.py"), title="m/z Calculator", icon="📟"),

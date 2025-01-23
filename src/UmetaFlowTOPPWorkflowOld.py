@@ -2,15 +2,19 @@ import streamlit as st
 from pathlib import Path
 from .workflow.WorkflowManager import WorkflowManager
 
-import pandas as pd
+from src.common.common import show_fig
 
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from itertools import cycle
 import shutil
 import json
 import sys
 
+from rdkit import Chem
+from rdkit.Chem import Draw
 
-
-from src.metabolomicsresults import *
 
 class Workflow(WorkflowManager):
     # Setup pages for upload, parameter, execution and results.
@@ -1153,39 +1157,334 @@ class Workflow(WorkflowManager):
         # ZIP all relevant files for Download
         self.executor.run_python("zip-result-files", {"in": consensus_df})
 
-
     def results(self) -> None:
-        # Set current results directory
-        st.session_state.results_dir = Path(self.workflow_dir, "results")
+        def load_parquet(file):
+            if Path(file).exists():
+                return pd.read_parquet(file)
+            else:
+                return pd.DataFrame()
 
-        # Check if results exist at all
-        if not st.session_state.results_dir.exists():
+        consensus_df_file = Path(
+            self.workflow_dir, "results", "consensus-dfs", "feature-matrix.parquet"
+        )
+
+        if not Path(self.workflow_dir, "results").exists():
             st.info("No results yet.")
             return
-
-        # Select a metabolite from the final FeatureMatrix
-        metabolite = metabolite_selection()
-
-        if metabolite is None:
+        elif not consensus_df_file.exists():
+            st.error("No feature matrix found in results, please check log for errors.")
             return
 
-        # Metrics
-        with st.popover("🔢 **Metrics**", use_container_width=True):
-            cols = st.columns(3)
-            with cols[0]:
-                st.metric("*m/z* (monoisotopic)", round(metabolite["mz"],1))
-                st.metric("RT (seconds)", round(metabolite["RT"],1))
-            with cols[1]:
-                st.metric("charge", metabolite["charge"])
-                if "adduct" in metabolite:
-                    st.metric("adduct", metabolite["adduct"])
-            with cols[2]:
-                st.metric("re-quantified", metabolite["re-quantified"])
+        tabs = st.tabs(
+            [
+                "📊 **FeatureMatrix**",
+                "📁 **Sample Features**",
+                "🔖 Annotations",
+                "⬇️ Downloads",
+            ]
+        )
 
-        chrom_data = get_chroms_for_each_sample(metabolite)
-        chrom_fig = get_feature_chromatogram_plot(chrom_data)
-        auc_fig = get_feature_intensity_plot(metabolite)
+        df_matrix = load_parquet(consensus_df_file)
 
-        with st.expander("**📈 Chromatograms & 📊 Intensities**", expanded=True):
-            show_fig(chrom_fig, f"chromatograms_{metabolite.name}")
-            show_fig(auc_fig, f"AUC_{metabolite.name}")
+        def quality_colors(value):
+            # Ensure the value is within the expected range
+            value = max(0, min(1, value))
+
+            # Adjust the components to emphasize yellow in the middle
+            if value < 0.5:
+                # Increase green component towards the middle
+                green = 255 * (value * 2)
+                red = 255
+            else:
+                # Decrease red component after the middle
+                green = 255
+                red = 255 * ((1 - value) * 2)
+
+            return f"background-color: rgba({red}, {green}, 0, 0.3);"
+
+        feature_df_dir = Path(self.file_manager.workflow_dir, "results", "feature-dfs")
+        if not feature_df_dir.exists():
+            feature_df_dir = Path(self.file_manager.workflow_dir, "results", "ffm-df")
+
+        with tabs[0]:
+            sample_cols = sorted(
+                [col for col in df_matrix.columns if col.endswith(".mzML")]
+            )
+            # Insert a column with normalized intensity values to display as barchart column in dataframe
+            df_matrix.insert(
+                1,
+                "intensity",
+                df_matrix.apply(
+                    lambda row: [int(row[col]) for col in sample_cols], axis=1
+                ),
+            )
+            df_matrix["intensity"] = df_matrix["intensity"].apply(
+                lambda intensities: [i / max(intensities) for i in intensities]
+            )
+            df_matrix.set_index("metabolite", inplace=True)
+
+            @st.fragment
+            def feature_matrix_results():
+                c1, c2 = st.columns(2)
+                event = c1.dataframe(
+                    df_matrix,
+                    column_order=["intensity", "RT", "mz", "charge", "adduct"],
+                    hide_index=False,
+                    column_config={
+                        "intensity": st.column_config.BarChartColumn(
+                            width="small",
+                            help=", ".join(
+                                [
+                                    str(Path(col).stem)
+                                    for col in sorted(df_matrix.columns)
+                                    if col.endswith(".mzML")
+                                ]
+                            ),
+                        ),
+                        # "quality ranked": st.column_config.Column(width="small", help="Evenly spaced quality values between 0 and 1."),
+                    },
+                    height=510,
+                    use_container_width=True,
+                    on_select="rerun",
+                    selection_mode="single-row",
+                )
+                rows = event.selection.rows
+                if rows:
+                    metabolite = df_matrix.index[rows[0]]
+
+                    @st.cache_data
+                    def get_chroms_for_each_sample(metabolite):
+                        # Get index of row in df_matrix where "metabolite" is equal to metabolite
+                        all_samples = [
+                            col.replace(".mzML_IDs", "")
+                            for col in df_matrix.columns
+                            if col.endswith("mzML_IDs")
+                        ]
+                        dfs = []
+                        samples = []
+                        for sample in all_samples:
+                            # Get feature ID for sample
+                            fid = df_matrix.loc[metabolite, sample + ".mzML_IDs"]
+                            path = Path(feature_df_dir, sample + ".parquet")
+                            f_df = load_parquet(path)
+                            if fid in f_df.index:
+                                dfs.append(f_df.loc[[fid]])
+                                samples.append(sample)
+                        df = pd.concat(dfs)
+                        df["sample"] = samples
+                        color_cycle = cycle(px.colors.qualitative.Plotly)
+                        df["color"] = [next(color_cycle) for _ in range(len(df))]
+
+                        return df
+
+                    @st.cache_resource
+                    def get_feature_chromatogram_plot(df):
+                        # Create an empty figure
+                        fig = go.Figure()
+                        # Loop through each row in the DataFrame and add a line trace for each
+                        for _, row in df.iterrows():
+                            fig.add_trace(
+                                go.Scatter(
+                                    x=row[
+                                        "chrom_RT"
+                                    ],  # Assuming chrom_RT is a list of values
+                                    y=row[
+                                        "chrom_intensity"
+                                    ],  # Assuming chrom_intensity is a list of values
+                                    mode="lines",  # Line plot
+                                    name=row[
+                                        "sample"
+                                    ],  # Giving each line a name based on its index
+                                    marker=dict(color=row["color"]),
+                                )
+                            )
+                        # Update layout of the figure
+                        fig.update_layout(
+                            title=metabolite,
+                            xaxis_title="retention time (s)",
+                            yaxis_title="intensity (counts per second)",
+                            plot_bgcolor="rgb(255,255,255)",
+                            template="plotly_white",
+                            showlegend=True,
+                        )
+                        return fig
+
+                    def get_feature_intensity_plot(df):
+                        fig = px.bar(df, x="sample", y="intensity", opacity=0.8)
+                        fig.data[0].marker.color = df["color"]
+                        # Update layout of the figure
+                        fig.update_layout(
+                            title=metabolite,
+                            xaxis_title="",
+                            yaxis_title="feature intensity",
+                            plot_bgcolor="rgb(255,255,255)",
+                            template="plotly_white",
+                            showlegend=False,
+                        )
+                        return fig
+
+                    df = get_chroms_for_each_sample(metabolite)
+                    with c2:
+                        consensus_tabs = st.tabs(
+                            ["📈 **Chromatograms**", "📊 **Intensities**"]
+                        )
+                        with consensus_tabs[0]:
+                            fig = get_feature_chromatogram_plot(df)
+                            show_fig(
+                                fig, f"chromatograms_{metabolite}", container_width=True
+                            )
+                        with consensus_tabs[1]:
+                            show_fig(
+                                get_feature_intensity_plot(df),
+                                f"intensity_{metabolite}",
+                                container_width=True,
+                            )
+                else:
+                    c2.info(
+                        "💡 Select a row to display chromatogram and intensity diagrams."
+                    )
+                c1, c2, _, _ = st.columns(4)
+                c1.metric(
+                    "Number of samples",
+                    len([col for col in df_matrix.columns if col.endswith(".mzML")]),
+                )
+                c2.metric("Number of features", len(df_matrix))
+
+            feature_matrix_results()
+
+        with tabs[1]:
+
+            @st.fragment
+            def feature_file_results():
+                c1, c2, _ = st.columns(3)
+                feature_file = c1.selectbox(
+                    "Select feature file",
+                    feature_df_dir.iterdir(),
+                    format_func=lambda x: x.stem,
+                )
+                if feature_file != "None":
+                    df = load_parquet(feature_file).style.map(
+                        quality_colors, subset=["quality ranked"]
+                    )
+                    st.dataframe(
+                        df,
+                        hide_index=False,
+                        column_order=[
+                            "chrom_intensity",
+                            "quality ranked",
+                            "charge",
+                            "RT",
+                            "mz",
+                            "intensity",
+                            "num_of_masstraces",
+                            "adduct",
+                            "FWHM",
+                            "re-quantified",
+                            "metabolite",
+                        ],
+                        column_config={
+                            "chrom_intensity": st.column_config.LineChartColumn(
+                                "chromatogram", width="small"
+                            )
+                        },
+                        use_container_width=True,
+                        height=700,
+                    ),
+
+            feature_file_results()
+
+        @st.fragment
+        def sirius_results():
+            sirius_samples = [
+                c.split("_")[1] for c in df_matrix.columns if "SIRIUS" in c
+            ]
+            sirius_cols = []
+            if sirius_samples:
+                c1, c2 = st.columns(2)
+                if len(sirius_samples) > 1:
+                    sirius_sample = c1.selectbox(
+                        "Show SIRIUS results for sample", sirius_samples
+                    )
+                else:
+                    sirius_sample = sirius_samples[0]
+                st.markdown(f"SIRIUS results for: **{sirius_sample}.mzML**")
+                sirius_cols = [
+                    col
+                    for col in df_matrix.columns
+                    if (
+                        f"SIRIUS_{sirius_sample}" in col
+                        or f"CSI:FingerID_{sirius_sample}" in col
+                        or f"CANOPUS_{sirius_sample}" in col
+                    )
+                ]
+            else:
+                st.info("No SIRIUS results found.")
+                return
+            df = df_matrix[sirius_cols].dropna()
+            df = df.rename(
+                columns={
+                    col: col.replace(f"_{sirius_sample}", "") for col in df.columns
+                }
+            )
+            event = st.dataframe(
+                df,
+                hide_index=False,
+                column_config={
+                    "intensity": st.column_config.BarChartColumn(
+                        width="small",
+                        help=", ".join(
+                            [
+                                str(Path(col).stem)
+                                for col in sorted(df_matrix.columns)
+                                if col.endswith(".mzML")
+                            ]
+                        ),
+                    ),
+                    # "quality ranked": st.column_config.Column(width="small", help="Evenly spaced quality values between 0 and 1."),
+                },
+                height=510,
+                use_container_width=True,
+                on_select="rerun",
+                selection_mode="single-row",
+            )
+            rows = event.selection.rows
+            if rows:
+                metabolite = df.index[rows[0]]
+                st.markdown(
+                    f"{metabolite}: **{df.loc[metabolite, 'CSI:FingerID_name']}**"
+                )
+                st.markdown(
+                    f"molecular formula: **{df.loc[metabolite, 'CSI:FingerID_molecularFormula']}**"
+                )
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    # SMILES
+                    smiles = df.loc[metabolite, "CSI:FingerID_smiles"]
+                    molecule = Chem.MolFromSmiles(smiles)
+                    img = Draw.MolToImage(molecule)
+                    st.image(img)
+                    st.markdown("SMILES")
+                with c2:
+                    # InChI
+                    inchi = df.loc[metabolite, "CSI:FingerID_InChI"]
+                    molecule = Chem.MolFromInchi(inchi)
+                    img = Draw.MolToImage(molecule)
+                    st.image(img)
+                    st.markdown("InChI")
+
+        with tabs[2]:
+            sirius_results()
+
+        with tabs[3]:
+            if st.button("Prepare result files for download"):
+                with open(
+                    Path(self.workflow_dir, "results", "results.zip"), "rb"
+                ) as fp:
+                    st.download_button(
+                        label="Download Results",
+                        type="primary",
+                        data=fp,
+                        file_name="UmetaFlow-results.zip",
+                        mime="application/zip",
+                    )

@@ -11,39 +11,61 @@ from itertools import cycle
 
 from src.common.common import show_fig, load_parquet
 
+
 def add_color_column(df):
     color_cycle = cycle(px.colors.qualitative.Plotly)
     df["color"] = [next(color_cycle) for _ in range(len(df))]
     return df
 
+
 @st.dialog("🔎 Filter Feature Matrix")
 def filter_dialog(df):
-    st.session_state["feature-matrix-filtered"] = pd.DataFrame()
-    mz = st.slider("*m/z* range", df["mz"].min(), df["mz"].max(), value=(df["mz"].min(), df["mz"].max()))
-    rt = st.slider("RT range", df["RT"].min(), df["RT"].max(), value=(df["RT"].min(), df["RT"].max()))
+    len_unfiltered = len(df)
+    mz = st.slider(
+        "*m/z* range",
+        df["mz"].min(),
+        df["mz"].max(),
+        value=(df["mz"].min(), df["mz"].max()),
+    )
+    rt = st.slider(
+        "RT range",
+        df["RT"].min(),
+        df["RT"].max(),
+        value=(df["RT"].min(), df["RT"].max()),
+    )
     filter_sirius = st.toggle("keep only metabolites with SIRIUS annotation", False)
-    charge = st.selectbox("charge state", ["all"]+sorted(df["charge"].unique().tolist()))
+    charge = st.selectbox(
+        "charge state", ["all"] + sorted(df["charge"].unique().tolist())
+    )
     adduct = "all"
     if "adduct" in df.columns:
-        adduct = st.selectbox("adduct", ["all"]+sorted(df["adduct"].unique().tolist()))
+        adduct = st.selectbox(
+            "adduct", ["all"] + sorted(df["adduct"].unique().tolist())
+        )
     if filter_sirius:
-        df_sirius = df[[c for c in df.columns if c.startswith("CSI:FingerID_")]].dropna()
+        df_sirius = df[
+            [c for c in df.columns if c.startswith("CSI:FingerID_")]
+        ].dropna()
         df = df.loc[df_sirius.index, :]
     if charge != "all":
         df = df[df["charge"] == int(charge)]
     if adduct != "all":
         df = df[df["adduct"] == adduct]
-    df = df[(df["mz"] > mz[0]) & (df["mz"] < mz[1])]
-    df = df[(df["RT"] > rt[0]) & (df["RT"] < rt[1])]
+    df = df[(df["mz"] >= mz[0]) & (df["mz"] <= mz[1])]
+    df = df[(df["RT"] >= rt[0]) & (df["RT"] <= rt[1])]
     if df.empty:
-        st.warning("⚠️ Feature Matrix is empty after filtering. Filter will not be applied.")
+        st.warning(
+            "⚠️ Feature Matrix is empty after filtering. Filter will not be applied."
+        )
     _, _, c1, c2 = st.columns(4)
     if c1.button("Cancel", use_container_width=True):
         st.rerun()
 
     if c2.button("Apply", type="primary", use_container_width=True):
-        st.session_state["feature-matrix-filtered"] = df
+        if len(df) != len_unfiltered and not df.empty:
+            st.session_state["feature-matrix-filtered"] = df
         st.rerun()
+
 
 def metabolite_selection():
     st.session_state.results_metabolite = "none"
@@ -103,9 +125,7 @@ def metabolite_selection():
     rows = event.selection.rows
     if rows:
         return df.iloc[rows[0], :]
-    st.info(
-        "💡 Select a row (metabolite) in the feature matrix for more information."
-    )
+    st.info("💡 Select a row (metabolite) in the feature matrix for more information.")
     return None
 
 
@@ -113,16 +133,18 @@ def metabolite_selection():
 def get_chroms_for_each_sample(metabolite):
     # Get index of row in df where "metabolite" is equal to metabolite
     all_samples = [
-        i.replace(".mzML", "")
-        for i in metabolite.index
-        if i.endswith("mzML")
+        i.replace(".mzML", "") for i in metabolite.index if i.endswith("mzML")
     ]
     dfs = []
     samples = []
     for sample in all_samples:
         # Get feature ID for sample
         fid = metabolite[sample + ".mzML_IDs"]
-        path = Path(st.session_state.results_dir, "ffmid-df" if metabolite["re-quantified"] else "ffm-df", sample + ".parquet")
+        path = Path(
+            st.session_state.results_dir,
+            "ffmid-df" if metabolite["re-quantified"] else "ffm-df",
+            sample + ".parquet",
+        )
         f_df = load_parquet(path)
         if fid in f_df.index:
             dfs.append(f_df.loc[[fid]])
@@ -157,17 +179,18 @@ def get_feature_chromatogram_plot(df):
         plot_bgcolor="rgb(255,255,255)",
         template="plotly_white",
         showlegend=True,
-                margin=dict(l=0, r=0, t=0, b=0),
-        height=300
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=300,
     )
     return fig
+
 
 @st.cache_resource
 def get_feature_intensity_plot(metabolite):
     df = pd.DataFrame(
         {
             "sample": [i for i in metabolite.index if i.endswith(".mzML")],
-            "intensity": metabolite["intensity"]
+            "intensity": metabolite["intensity"],
         }
     )
     df = add_color_column(df)
@@ -176,8 +199,9 @@ def get_feature_intensity_plot(metabolite):
     color_map = dict(zip(df["sample"], df["color"]))
 
     # Plot bar chart
-    fig = px.bar(df, x="sample", y="intensity", color="sample", 
-                color_discrete_map=color_map)
+    fig = px.bar(
+        df, x="sample", y="intensity", color="sample", color_discrete_map=color_map
+    )
 
     fig.update_layout(
         xaxis_title="",
@@ -186,7 +210,6 @@ def get_feature_intensity_plot(metabolite):
         template="plotly_white",
         showlegend=True,
         margin=dict(l=0, r=0, t=0, b=0),
-        height=300
+        height=300,
     )
     return fig
-

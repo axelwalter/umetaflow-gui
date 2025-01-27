@@ -259,6 +259,13 @@ jobs:
         foreach ($file in $files) {
           Copy-Item "openms-bin/${file}.exe" -Destination "streamlit_exe/${file}.exe"
         }
+  
+    - name: Download and Unpack SIRIUS 5.8.6
+      run: |
+        wget https://github.com/OpenMS/THIRDPARTY/releases/download/SIRIUS/SIRIUS-5.8.6.zip -O SIRIUS-5.8.6.zip
+        unzip SIRIUS-5.8.6.zip -d temp_dir
+        mv temp_dir/SIRIUS-5.8.6/sirius-5.8.6-win64/sirius streamlit_exe/
+        rm -rf temp_dir SIRIUS-5.8.6.zip
 
     - name: Generate Readme.txt
       shell: bash
@@ -316,7 +323,7 @@ jobs:
         cat <<EOF > streamlit_exe.wxs
         <?xml version="1.0"?>
         <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-          <Product Id="8434b940-a943-40f1-ab1f-4db3feedb4ba" Name="${{ env.APP_NAME }}" Language="1033" Version="1.0.0.0" Codepage="1252" Manufacturer="OpenMS Developer Team" UpgradeCode="8d28e8c7-45dc-446c-b889-99a6aea2f1a5">
+          <Product Id="*" Name="${{ env.APP_NAME }}" Language="1033" Version="1.0.0.0" Codepage="1252" Manufacturer="OpenMS Developer Team" UpgradeCode="${{ env.APP_UpgradeCode }}">
             <Package Id="*" InstallerVersion="300" Compressed="yes" InstallPrivileges="elevated" Platform="x64" />
             <Media Id="1" Cabinet="streamlit.cab" EmbedCab="yes" />
         

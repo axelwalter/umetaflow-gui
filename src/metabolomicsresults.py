@@ -163,7 +163,7 @@ def metabolite_selection():
 def metabolite_metrics(metabolite):
     cols = st.columns(5)
     with cols[0]:
-        st.metric("*m/z* (monoisotopic)", round(metabolite["mz"], 1))
+        st.metric("*m/z* (monoisotopic)", round(metabolite["mz"], 4))
     with cols[1]:
         st.metric("RT (seconds)", round(metabolite["RT"], 1))
     with cols[2]:
@@ -225,10 +225,9 @@ def get_feature_chromatogram_plot(df):
         template="plotly_white",
         showlegend=True,
         margin=dict(l=0, r=0, t=0, b=0),
-        height=300,
+        height=500,
     )
     return fig
-
 
 @st.cache_resource
 def get_feature_intensity_plot(metabolite):
@@ -255,7 +254,7 @@ def get_feature_intensity_plot(metabolite):
         template="plotly_white",
         showlegend=True,
         margin=dict(l=0, r=0, t=0, b=0),
-        height=300,
+        height=500,
     )
     return fig
 
@@ -305,7 +304,7 @@ def sirius_summary(s):
         if "InChI" in s.index:
             molecule = Chem.MolFromInchi(s["InChI"])
             img = Draw.MolToImage(molecule)
-            st.image(img, use_container_width=True)
+            st.image(img, width=500)
 
 @st.cache_resource
 def plot_consensus_map(df):

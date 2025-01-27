@@ -1175,6 +1175,11 @@ class Workflow(WorkflowManager):
         chrom_fig = get_feature_chromatogram_plot(chrom_data)
         auc_fig = get_feature_intensity_plot(metabolite)
 
-        with st.expander(f"**📈 Chromatograms & 📊 Intensities**", expanded=True):
-            show_fig(chrom_fig, f"chromatograms_{metabolite.name}")
-            show_fig(auc_fig, f"AUC_{metabolite.name}")
+        c1, c2 = st.columns(2)
+        with c1:
+            with st.expander(f"**📈 Chromatograms**", expanded=True):
+                show_fig(chrom_fig, f"chromatograms_{metabolite.name}")
+
+        with c2:
+            with st.expander(f"**📊 Intensities**", expanded=True):
+                show_fig(auc_fig, f"AUC_{metabolite.name}")

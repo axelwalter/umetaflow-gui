@@ -303,14 +303,7 @@ def render_sidebar(page: str = "") -> None:
                 img_formats.index(params["image-format"]),
                 key="image-format",
             )
-            st.markdown("## Spectrum Plotting")
-            st.selectbox("Bin Peaks", ["auto", True, False], key="spectrum_bin_peaks")
-            if st.session_state["spectrum_bin_peaks"] == True:
-                st.number_input(
-                    "Number of Bins (m/z)", 1, 10000, 50, key="spectrum_num_bins"
-                )
-            else:
-                st.session_state["spectrum_num_bins"] = 50
+
     return params
 
 

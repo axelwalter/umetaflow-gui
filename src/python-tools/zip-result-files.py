@@ -51,12 +51,11 @@ if __name__ == "__main__":
     df["Sample_Type"] = "Sample"
     df.to_csv(path, sep="\t")
     paths.append(path)
-    
-    path = Path(dir, "feature-dfs")
+
+    paths.append(Path(dir, "ffm-df"))
+    path = Path(dir, "ffmid-df")
     if path.exists():
         paths.append(path)
-    else:
-        paths.append(Path(dir, "ffm-df"))
     path = Path(dir, "sirius-export")
     if path.exists():
         paths.append(path)

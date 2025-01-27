@@ -305,20 +305,17 @@ class Workflow(WorkflowManager):
                 )
             with cols[1]:
                 st.image(str(Path("assets", "GNPS_logo.png")), width=200)
-            st.info(
-                "💡 Run GNPS with the generated input files. Once ready, annotate your FeatureMatrix with GNPS library hits the FBMN network graph with SIRIUS results. There is a separate page in the sidebar."
-            )
-            st.divider()
-            cols = st.columns([0.75, 0.25])
-            with cols[0]:
-                self.ui.input_widget(
-                    "run-ms2query",
-                    False,
-                    "predict **chemical analogues and compound classes** with MS2Query",
-                    help="Unlike traditional library search methods that focus exclusively on exact matches, MS2Query identifies related spectra of analogs with high chemical similarity. It employs machine learning-based chemical similarity predictors trained on existing spectral libraries. UmetaFlow automatically downloads the default models, which are trained on the GNPS library. The FeatureMatrix is annotated with MS2Query hits, including compound names, structures, and classes.",
-                )
-            with cols[1]:
-                st.image(str(Path("assets", "ms2query_logo.png")), width=200)
+            # st.divider()
+            # cols = st.columns([0.75, 0.25])
+            # with cols[0]:
+            #     self.ui.input_widget(
+            #         "run-ms2query",
+            #         False,
+            #         "predict **chemical analogues and compound classes** with MS2Query",
+            #         help="Unlike traditional library search methods that focus exclusively on exact matches, MS2Query identifies related spectra of analogs with high chemical similarity. It employs machine learning-based chemical similarity predictors trained on existing spectral libraries. UmetaFlow automatically downloads the default models, which are trained on the GNPS library. The FeatureMatrix is annotated with MS2Query hits, including compound names, structures, and classes.",
+            #     )
+            # with cols[1]:
+            #     st.image(str(Path("assets", "ms2query_logo.png")), width=200)
             with st.columns(2)[0].container(border=True):
                 st.image(str(Path("assets", "annotations.png")))
 
@@ -400,7 +397,7 @@ class Workflow(WorkflowManager):
                     "In-house MS2 library",
                     "SIRIUS, CSI:FingerID & CANOPUS",
                     "GNPS FBMN & IIMN File Export",
-                    "M2Query",
+                    # "M2Query",
                 ]
             )
             with t[0]:
@@ -613,18 +610,18 @@ class Workflow(WorkflowManager):
             with t[2]:
                 self.ui.input_widget(
                     "export-gnps",
-                    False,
+                    True,
                     "export files for GNPS FBMN and IIMN",
                     help="Generate input files for GNPS feature based molecular networking (FBMN) and ion identity molecular networking (IIMN) from raw data and feature information using the OpenMS TOPP tool *GNPSExport*.",
                 )
                 self.ui.input_TOPP("GNPSExport")
-            with t[3]:
-                self.ui.input_widget(
-                    "run-ms2query",
-                    False,
-                    "predict **chemical analogues and compound classes** with MS2Query",
-                    help="Unlike traditional library search methods that focus exclusively on exact matches, MS2Query identifies related spectra of analogs with high chemical similarity. It employs machine learning-based chemical similarity predictors trained on existing spectral libraries. UmetaFlow automatically downloads the default models, which are trained on the GNPS library. The FeatureMatrix is annotated with MS2Query hits, including compound names, structures, and classes.",
-                )
+            # with t[3]:
+            #     self.ui.input_widget(
+            #         "run-ms2query",
+            #         False,
+            #         "predict **chemical analogues and compound classes** with MS2Query",
+            #         help="Unlike traditional library search methods that focus exclusively on exact matches, MS2Query identifies related spectra of analogs with high chemical similarity. It employs machine learning-based chemical similarity predictors trained on existing spectral libraries. UmetaFlow automatically downloads the default models, which are trained on the GNPS library. The FeatureMatrix is annotated with MS2Query hits, including compound names, structures, and classes.",
+            #     )
 
     def configure(self) -> None:
         if not self.expert_mode:
@@ -1183,3 +1180,18 @@ class Workflow(WorkflowManager):
         with c2:
             with st.expander(f"**📊 Intensities**", expanded=True):
                 show_fig(auc_fig, f"AUC_{metabolite.name}")
+
+        _, c2, _ = st.columns(3)
+        with c2:
+            if st.button("Download Result Files", type="primary", use_container_width=True):
+                with open(
+                    Path(self.workflow_dir, "results", "results.zip"), "rb"
+                ) as fp:
+                    st.success("Files are ready.")
+                    st.download_button(
+                        label="⬇️",
+                        data=fp,
+                        file_name="UmetaFlow-results.zip",
+                        mime="application/zip",
+                        use_container_width=True
+                    )

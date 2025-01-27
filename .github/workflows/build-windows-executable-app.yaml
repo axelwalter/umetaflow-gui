@@ -262,7 +262,7 @@ jobs:
   
     - name: Download and Unpack SIRIUS 5.8.6
       run: |
-        wget https://github.com/OpenMS/THIRDPARTY/releases/download/SIRIUS/SIRIUS-5.8.6.zip -O SIRIUS-5.8.6.zip
+        curl -O SIRIUS-5.8.6.zip https://github.com/OpenMS/THIRDPARTY/releases/download/SIRIUS/SIRIUS-5.8.6.zip
         unzip SIRIUS-5.8.6.zip -d temp_dir
         mv temp_dir/SIRIUS-5.8.6/sirius-5.8.6-win64/sirius streamlit_exe/
         rm -rf temp_dir SIRIUS-5.8.6.zip

@@ -88,10 +88,3 @@ Here, you can do basic statistics right away such as calculating mean intensitie
 
 For an advanced and complete workflow visit the [app for statistical analysis of metabolomics data](https://axelwalter-streamlit-metabol-statistics-for-metabolomics-3ornhb.streamlit.app/).
     """)
-
-# make sure new default params are saved in workspace params
-with open("assets/default-params.json", "r") as f:
-    default_params = json.load(f)
-for key, value in default_params.items():
-    if key not in params.keys():
-        params[key] = value

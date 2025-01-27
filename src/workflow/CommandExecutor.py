@@ -167,10 +167,11 @@ class CommandExecutor:
             if tool in params.keys():
                 for k, v in params[tool].items():
                     command += [f"-{k}"]
-                    if isinstance(v, str) and "\n" in v:
-                        command += v.split("\n")
-                    else:
-                        command += [str(v)]
+                    if v:
+                        if isinstance(v, str) and "\n" in v:
+                            command += v.split("\n")
+                        else:
+                            command += [str(v)]
             # Add custom parameters
             for k, v in custom_params.items():
                 command += [f"-{k}"]

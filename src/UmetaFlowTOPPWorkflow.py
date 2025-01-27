@@ -1146,15 +1146,17 @@ class Workflow(WorkflowManager):
         if not st.session_state.results_dir.exists():
             st.info("No results yet.")
             return
+        
+        with st.expander("**Feature Matrix**", expanded=True):
 
-        # Select a metabolite from the final FeatureMatrix
-        metabolite = metabolite_selection()
+            # Select a metabolite from the final FeatureMatrix
+            metabolite = metabolite_selection()
 
-        if metabolite is None:
-            return
+            if metabolite is None:
+                return
 
-        # Metrics
-        metabolite_metrics(metabolite)
+            # Metrics
+            metabolite_metrics(metabolite)
 
         # Annotations
         sirius = metabolite[
@@ -1163,7 +1165,7 @@ class Workflow(WorkflowManager):
                 for i in metabolite.index
                 if any(i.startswith(k) for k in ("SIRIUS_", "CSI", "CANOPUS"))
             ]
-        ]
+        ].dropna()
         if not sirius.empty:
             with st.expander(f"🔖 **SIRIUS Annotations**", expanded=True):
                 sirius_summary(sirius)

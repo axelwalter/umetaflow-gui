@@ -1,9 +1,8 @@
-# test_my_math.py
 import unittest
-from urllib.request import urlretrieve
 
-
-from pathlib import Path
+class TestDummy(unittest.TestCase):
+    def test_dummy(self):
+        self.assertEqual(1, 1)
 
 if __name__ == '__main__':
     unittest.main()

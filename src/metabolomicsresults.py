@@ -77,7 +77,7 @@ def filter_dialog(df):
     if c2.button("Apply", type="primary", use_container_width=True):
         if len(df) != len_unfiltered and not df.empty:
             st.session_state["feature-matrix-filtered"] = df
-            st.session_state["fm-filter-info"] = filter_text
+            st.session_state["fm-filter-info"] = filter_text.rstrip(";")
         st.rerun()
 
 
@@ -143,6 +143,19 @@ def metabolite_selection():
     st.info("💡 Select a row (metabolite) in the feature matrix for more information.")
     return None
 
+def metabolite_metrics(metabolite):
+    cols = st.columns(5)
+    with cols[0]:
+        st.metric("*m/z* (monoisotopic)", round(metabolite["mz"], 1))
+    with cols[1]:
+        st.metric("RT (seconds)", round(metabolite["RT"], 1))
+    with cols[2]:
+        st.metric("charge", metabolite["charge"])
+    with cols[3]:
+        st.metric("re-quantified", metabolite["re-quantified"])
+    with cols[4]:
+        if "adduct" in metabolite:
+            st.metric("adduct", metabolite["adduct"])
 
 @st.cache_data
 def get_chroms_for_each_sample(metabolite):
@@ -228,3 +241,51 @@ def get_feature_intensity_plot(metabolite):
         height=300,
     )
     return fig
+
+
+def sirius_summary(s):
+    """s containing SIRIUS, CSI:FingerID and CANOPUS results for selected metabolite"""
+    samples = list(set(s.split("_")[1] for s in s.index if s.startswith("SIRIUS_")))
+    c1, c2 = st.columns(2)
+    if not samples:
+        return
+    if len(samples) > 1:
+        sample = c1.selectbox("select file", samples)
+    else:
+        sample = samples[0]
+
+    s = s[[i for i in s.index if f"_{sample}_" in i]]
+    new_index = [
+        "formula (CSI:FingerID)",
+        "name",
+        "InChI",
+        "smiles",
+        "formula (SIRIUS)",
+        "pathway",
+        "superclass",
+        "class",
+        "most specific class",
+    ]
+    s.index = new_index
+    custom_order = [
+        "name",
+        "formula (SIRIUS)",
+        "formula (CSI:FingerID)",
+        "InChI",
+        "smiles",
+        "pathway",
+        "superclass",
+        "class",
+        "most specific class",
+    ]
+    s = s.reindex(custom_order)
+    s.name = f"{sample}; {s.name}"
+    s = s.dropna()
+    with c1:
+        s.index = [i.replace(f"_{sample}_", " ") for i in s.index]
+        st.dataframe(s, use_container_width=True)
+    with c2:
+        if "InChI" in s.index:
+            molecule = Chem.MolFromInchi(s["InChI"])
+            img = Draw.MolToImage(molecule)
+            st.image(img, use_container_width=True)

@@ -730,7 +730,7 @@ class Workflow(WorkflowManager):
         # SIRIUS logic
         if not simple["run-sirius"] and simple["run-fingerid"]:
             new["run-sirius"] = True
-        
+
         if simple["run-fingerid"]:
             new["run-canopus"] = True
 
@@ -957,6 +957,7 @@ class Workflow(WorkflowManager):
                 ]
             )
             mzML = sorted(mzML)
+
         self.add_sirius_path_to_session_state()
         if st.session_state["sirius-path"]:
             if (
@@ -1153,31 +1154,25 @@ class Workflow(WorkflowManager):
             return
 
         # Metrics
-        with st.popover("⭐ **Summary**", use_container_width=True):
-            cols = st.columns(3)
-            with cols[0]:
-                st.metric("*m/z* (monoisotopic)", round(metabolite["mz"], 1))
-                st.metric("RT (seconds)", round(metabolite["RT"], 1))
-            with cols[1]:
-                st.metric("charge", metabolite["charge"])
-                if "adduct" in metabolite:
-                    st.metric("adduct", metabolite["adduct"])
-            with cols[2]:
-                st.metric("re-quantified", metabolite["re-quantified"])
+        metabolite_metrics(metabolite)
 
         # Annotations
-        sirius_indices = [
-            i
-            for i in metabolite.index
-            if any(i.startswith(k) for k in ("SIRIUS_", "CSI", "CANOPUS"))
+        sirius = metabolite[
+            [
+                i
+                for i in metabolite.index
+                if any(i.startswith(k) for k in ("SIRIUS_", "CSI", "CANOPUS"))
+            ]
         ]
-        # st.write(metabolite[sirius_indices])
+        if not sirius.empty:
+            with st.expander(f"🔖 **SIRIUS Annotations**", expanded=True):
+                sirius_summary(sirius)
 
         # Chromatograms and Intensities
         chrom_data = get_chroms_for_each_sample(metabolite)
         chrom_fig = get_feature_chromatogram_plot(chrom_data)
         auc_fig = get_feature_intensity_plot(metabolite)
 
-        with st.expander("**📈 Chromatograms & 📊 Intensities**", expanded=True):
+        with st.expander(f"**📈 Chromatograms & 📊 Intensities**", expanded=True):
             show_fig(chrom_fig, f"chromatograms_{metabolite.name}")
             show_fig(auc_fig, f"AUC_{metabolite.name}")

@@ -209,7 +209,7 @@ class CommandExecutor:
                 self.logger.log(f"Failed to kill process {pid}: {e}")
         
         shutil.rmtree(self.pid_dir, ignore_errors=True)
-        self.logger.log("Workflow stopped.")
+        self.logger.log("WORKFLOW FINISHED - STOPPED MANUALLY")
 
     def run_python(self, script_file: str, input_output: dict = {}) -> None:
         """

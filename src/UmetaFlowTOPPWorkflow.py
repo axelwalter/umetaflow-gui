@@ -1045,10 +1045,9 @@ class Workflow(WorkflowManager):
                         commands.append(command)
                 if commands:
                     self.logger.log("Running SIRIUS... (might take a VERY long time)")
-                    if len(commands) > 1:
-                        self.executor.run_multiple_commands(commands)
-                    else:
-                        self.executor.run_command(commands[0])
+                    for command in commands:
+                        self.logger.log(f"Running file {Path(command[2]).stem}...")
+                        self.executor.run_command(command)
                 else:
                     self.logger.log("No MS2 data for SIRIUS to process.")
 
@@ -1076,6 +1075,9 @@ class Workflow(WorkflowManager):
                     "in": self.file_manager.get_files(ffm, collect=True),
                     "out": gnps_consensus,
                 },
+            )
+            consensus_df = self.file_manager.get_files(
+                "feature-matrix-gnps", "parquet", "consensus-dfs"
             )
             # Export to dataframe
             self.executor.run_python(

@@ -91,8 +91,6 @@ def filter_dialog(df):
 
 
 def metabolite_selection():
-    st.session_state.results_metabolite = "none"
-
     df = load_parquet(
         Path(st.session_state.results_dir, "consensus-dfs", "feature-matrix.parquet")
     )
@@ -118,6 +116,7 @@ def metabolite_selection():
     if "feature-matrix-filtered" in st.session_state:
         if c2.button("❌ Reset", use_container_width=True):
             del st.session_state["feature-matrix-filtered"]
+            del st.session_state["fm-filter-info"]
             st.rerun()
         st.success(st.session_state["fm-filter-info"])
     if c3.button("🔎 Filter", use_container_width=True):
@@ -194,6 +193,9 @@ def get_chroms_for_each_sample(metabolite):
         if fid in f_df.index:
             dfs.append(f_df.loc[[fid]])
             samples.append(sample)
+
+    if not dfs:
+        return pd.DataFrame()
     df = pd.concat(dfs)
     df["sample"] = samples
     df = add_color_column(df)

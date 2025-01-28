@@ -1007,8 +1007,13 @@ class StreamlitUI:
             if self.executor.pid_dir.exists():
                 with st.spinner("**Workflow running...**"):
                     with open(log_path, "r", encoding="utf-8") as f:
+                        content = f.readlines()
+                        if len(content) > 500:
+                            content = "".join(content[-500:])
+                        else:
+                            content = "".join(content)
                         st.code(
-                            f.read(),
+                            content,
                             language="neon",
                             line_numbers=False,
                         )
@@ -1019,7 +1024,11 @@ class StreamlitUI:
                     f"**Workflow log file: {datetime.fromtimestamp(log_path.stat().st_ctime).strftime('%Y-%m-%d %H:%M')} CET**"
                 )
                 with open(log_path, "r", encoding="utf-8") as f:
-                    content = f.read()
+                    content = f.readlines()
+                    if len(content) > 500:
+                        content = "".join(content[-500:])
+                    else:
+                        content = "".join(content)
                     # Check if workflow finished successfully
                     if not "WORKFLOW FINISHED" in content:
                         st.error("**Errors occurred, check log file.**")

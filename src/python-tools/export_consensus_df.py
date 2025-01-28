@@ -92,8 +92,10 @@ if __name__ == "__main__":
     # annotate spectrum IDs for MS2 specs associated with feature
     df["MS2_native_specs"] = [";".join([f"{fnames[p.getMetaValue('map_index')]}_{p.getMetaValue('spectrum_index')+1}" for p in f.getPeptideIdentifications()]) for f in consensus_map]
 
-    # set re-quantified false (will be updated in merge_consensus.py)
-    if "re-quantified" not in df.columns:
+    # set re-quantified
+    if "ffmid" in params["out"][0]:
+        df["re-quantified"] = True
+    else:
         df["re-quantified"] = False
 
     # Rename columns to not show full file path

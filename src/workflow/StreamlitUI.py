@@ -1067,6 +1067,11 @@ class StreamlitUI:
         # Don't want file paths to be shown in summary for export
         params = remove_full_paths(self.params)
 
+        if "sirius-user-email" in params:
+            del params["sirius-user-email"]
+        if "sirius-user-password" in params:
+            del params["sirius-user-password"]
+
         summary_text = ""
         python = {}
         topp = {}

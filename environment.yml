@@ -19,5 +19,3 @@ dependencies:
     - pyopenms_viz>=0.1.2
     - pyteomics
     - ms2query
-    - scikit-learn
-    - scipy

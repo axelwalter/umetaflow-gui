@@ -11,5 +11,3 @@ ms2query
 streamlit-plotly-events
 streamlit-js-eval
 pyteomics
-scikit-learn
-scipy

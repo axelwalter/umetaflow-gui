@@ -43,8 +43,7 @@ if __name__ == "__main__":
     df_ffm["re-quantified"] = False
     df_ffmid["re-quantified"] = True
     
-    df = pd.concat([df_ffm, df_ffmid]).reset_index(drop=True)
-    df.index.name = "id"
+    df = pd.concat([df_ffm, df_ffmid])# .reset_index(drop=True)
     
     path = Path(params["out"][0])
     df.to_parquet(path)

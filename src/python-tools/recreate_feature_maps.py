@@ -65,7 +65,8 @@ if __name__ == "__main__":
             # Set the charge state of the feature
             f.setCharge(row["charge"])
             # Set the adduct of the feature
-            f.setMetaValue("dc_charge_adducts", row["adduct"])
+            if row["adduct"] != "nan":
+                f.setMetaValue("dc_charge_adducts", row["adduct"])
             # Set num masstraces
             f.setMetaValue("num_of_masstraces", row["num_of_masstraces"])
             # Set the unique id of the feature

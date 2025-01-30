@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     lib = pd.DataFrame(
         {
-            "CompoundName": df["metabolite"],
+            "CompoundName": df.index,
             "SumFormula": "",
             # calculate neutral mass if charge is not zero, else assume charge = 1
             "Mass": df.apply(lambda x: x["mz"] * x["charge"] - x["charge"] * 1.007825 if x["charge"] else x["mz"] - 1.007825, axis=1),

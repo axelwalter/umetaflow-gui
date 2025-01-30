@@ -101,9 +101,8 @@ if __name__ == "__main__":
     # Rename columns to not show full file path
     df = df.rename(columns={col: Path(col).name for col in df.columns if Path(col).exists()})
     
-    df = df.reset_index(drop=True)
-    df.index = df.index + 1
-    df.index.name = "id"
+    df["consensus_feature_id"] = df.index
+    df = df.set_index("metabolite")
 
     path = Path(params["out"][0])
     df.to_parquet(path)

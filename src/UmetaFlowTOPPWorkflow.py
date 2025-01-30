@@ -305,17 +305,17 @@ class Workflow(WorkflowManager):
                 )
             with cols[1]:
                 st.image(str(Path("assets", "GNPS_logo.png")), width=200)
-            # st.divider()
-            # cols = st.columns([0.75, 0.25])
-            # with cols[0]:
-            #     self.ui.input_widget(
-            #         "run-ms2query",
-            #         False,
-            #         "predict **chemical analogues and compound classes** with MS2Query",
-            #         help="Unlike traditional library search methods that focus exclusively on exact matches, MS2Query identifies related spectra of analogs with high chemical similarity. It employs machine learning-based chemical similarity predictors trained on existing spectral libraries. UmetaFlow automatically downloads the default models, which are trained on the GNPS library. The FeatureMatrix is annotated with MS2Query hits, including compound names, structures, and classes.",
-            #     )
-            # with cols[1]:
-            #     st.image(str(Path("assets", "ms2query_logo.png")), width=200)
+            st.divider()
+            cols = st.columns([0.75, 0.25])
+            with cols[0]:
+                self.ui.input_widget(
+                    "run-ms2query",
+                    False,
+                    "predict **chemical analogues and compound classes** with MS2Query",
+                    help="Unlike traditional library search methods that focus exclusively on exact matches, MS2Query identifies related spectra of analogs with high chemical similarity. It employs machine learning-based chemical similarity predictors trained on existing spectral libraries. UmetaFlow automatically downloads the default models, which are trained on the GNPS library. The FeatureMatrix is annotated with MS2Query hits, including compound names, structures, and classes.",
+                )
+            with cols[1]:
+                st.image(str(Path("assets", "ms2query_logo.png")), width=200)
             with st.columns(2)[0].container(border=True):
                 st.image(str(Path("assets", "annotations.png")))
 
@@ -397,7 +397,7 @@ class Workflow(WorkflowManager):
                     "In-house MS2 library",
                     "SIRIUS, CSI:FingerID & CANOPUS",
                     "GNPS FBMN & IIMN File Export",
-                    # "M2Query",
+                    "M2Query",
                 ]
             )
             with t[0]:
@@ -615,13 +615,20 @@ class Workflow(WorkflowManager):
                     help="Generate input files for GNPS feature based molecular networking (FBMN) and ion identity molecular networking (IIMN) from raw data and feature information using the OpenMS TOPP tool *GNPSExport*.",
                 )
                 self.ui.input_TOPP("GNPSExport")
-            # with t[3]:
-            #     self.ui.input_widget(
-            #         "run-ms2query",
-            #         False,
-            #         "predict **chemical analogues and compound classes** with MS2Query",
-            #         help="Unlike traditional library search methods that focus exclusively on exact matches, MS2Query identifies related spectra of analogs with high chemical similarity. It employs machine learning-based chemical similarity predictors trained on existing spectral libraries. UmetaFlow automatically downloads the default models, which are trained on the GNPS library. The FeatureMatrix is annotated with MS2Query hits, including compound names, structures, and classes.",
-            #     )
+            with t[3]:
+                self.ui.input_widget(
+                    "run-ms2query",
+                    False,
+                    "predict **chemical analogues and compound classes** with MS2Query",
+                    help="Unlike traditional library search methods that focus exclusively on exact matches, MS2Query identifies related spectra of analogs with high chemical similarity. It employs machine learning-based chemical similarity predictors trained on existing spectral libraries. UmetaFlow automatically downloads the default models, which are trained on the GNPS library. The FeatureMatrix is annotated with MS2Query hits, including compound names, structures, and classes.",
+                )
+                self.ui.input_widget(
+                    "ion_mode",
+                    "positive",
+                    name="ion mode for MS2Query",
+                    options=["positive", "negative"],
+                    help="Ion mode for MS2Query analog search.",
+                )
 
     def configure(self) -> None:
         if not self.expert_mode:
@@ -792,7 +799,7 @@ class Workflow(WorkflowManager):
 
         # Feature Detection
         self.logger.log("Detecting features.")
-        ffm = self.file_manager.get_files(mzML, "featureXML", "feature-detection")
+        ffm = self.file_manager.get_files(mzML, "featureXML", "ffm-featureXML")
         self.executor.run_topp(
             "FeatureFinderMetabo",
             input_output={
@@ -845,7 +852,7 @@ class Workflow(WorkflowManager):
         # Feature Linking and Export to pd.DataFrame
         self.logger.log("Linking features.")
         consensusXML = self.file_manager.get_files(
-            "feature-matrix", "consensusXML", "feature-linker"
+            "feature-matrix-ffm", "consensusXML", "feature-linker"
         )
         self.executor.run_topp(
             "FeatureLinkerUnlabeledKD",
@@ -881,7 +888,7 @@ class Workflow(WorkflowManager):
             )
 
             # Run FeatureFinderMetaboIdent
-            ffmid = self.file_manager.get_files(mzML, "featureXML", "ffmid-features")
+            ffmid = self.file_manager.get_files(mzML, "featureXML", "ffmid-featureXML")
             self.executor.run_topp(
                 "FeatureFinderMetaboIdent",
                 {"in": mzML, "out": ffmid, "id": ffmid_library},
@@ -1067,7 +1074,7 @@ class Workflow(WorkflowManager):
             )
             # Link features with MS2 info
             gnps_consensus = self.file_manager.get_files(
-                "feature-matrix", "consensusXML", "gnps-consensus"
+                "feature-matrix-gnps", "consensusXML", "feature-linker"
             )
             self.executor.run_topp(
                 "FeatureLinkerUnlabeledKD",
@@ -1076,16 +1083,15 @@ class Workflow(WorkflowManager):
                     "out": gnps_consensus,
                 },
             )
-            consensus_df = self.file_manager.get_files(
-                "feature-matrix-gnps", "parquet", "consensus-dfs"
-            )
             # Export to dataframe
             self.executor.run_python(
                 "export_consensus_df",
-                {"in": gnps_consensus, "out": consensus_df},
+                {"in": gnps_consensus, "out": self.file_manager.get_files(
+                "feature-matrix-gnps", "parquet", "consensus-dfs"
+            )},
             )
 
-        if self.params["export-gnps"]:
+        if self.params["export-gnps"] or self.params["run-ms2query"]:
             # Filter consensus features which have missing values
             self.executor.run_topp(
                 "FileFilter",
@@ -1134,6 +1140,22 @@ class Workflow(WorkflowManager):
         if st.session_state["sirius-path"]:
             self.executor.run_python("annotate-sirius", {"in": consensus_df})
 
+        if self.params["run-ms2query"]:
+            self.logger.log(
+                "Detecting chemical analogues and compound classes with MS2Query. This will take a while..."
+            )
+            self.executor.run_python(
+                "run_ms2query",
+                {
+                "in": consensus_df,
+                "in_mgf": self.file_manager.get_files("MS2", "mgf", "gnps-export"),
+                "out_ms2query_csv": self.file_manager.get_files(
+                    "MS2", "csv", "ms2query"
+                ),
+                "ion_mode": self.params["ion_mode"],
+            },
+            )
+
         # ZIP all relevant files for Download
         self.executor.run_python("zip-result-files", {"in": consensus_df})
 
@@ -1145,7 +1167,7 @@ class Workflow(WorkflowManager):
         if not st.session_state.results_dir.exists():
             st.info("No results yet.")
             return
-        
+
         with st.expander("**Feature Matrix**", expanded=True):
 
             # Select a metabolite from the final FeatureMatrix
@@ -1157,6 +1179,7 @@ class Workflow(WorkflowManager):
             # Metrics
             metabolite_metrics(metabolite)
 
+
         # Annotations
         sirius = metabolite[
             [
@@ -1166,8 +1189,20 @@ class Workflow(WorkflowManager):
             ]
         ].dropna()
         if not sirius.empty:
-            with st.expander(f"🔖 **SIRIUS Annotations**", expanded=True):
+            with st.expander(f"⭐ **SIRIUS, CSI:FingerID & CANOPUS**", expanded=True):
                 sirius_summary(sirius)
+
+        ms2query = metabolite[
+            [
+                i
+                for i in metabolite.index
+                if i.startswith("MS2Query")
+            ]
+        ].dropna()
+        if not ms2query.empty:
+            with st.expander(f"🤖 **MS2Query**", expanded=True):
+                ms2query_summary(ms2query)
+
 
         # Chromatograms and Intensities
         chrom_data = get_chroms_for_each_sample(metabolite)
@@ -1183,9 +1218,13 @@ class Workflow(WorkflowManager):
             with st.expander(f"**📊 Intensities**", expanded=True):
                 show_fig(auc_fig, f"AUC_{metabolite.name}")
 
+        
+        # Downloads
         _, c2, _ = st.columns(3)
         with c2:
-            if st.button("Download Result Files", type="primary", use_container_width=True):
+            if st.button(
+                "Download Result Files", type="primary", use_container_width=True
+            ):
                 with open(
                     Path(self.workflow_dir, "results", "results.zip"), "rb"
                 ) as fp:
@@ -1195,5 +1234,5 @@ class Workflow(WorkflowManager):
                         data=fp,
                         file_name="UmetaFlow-results.zip",
                         mime="application/zip",
-                        use_container_width=True
+                        use_container_width=True,
                     )

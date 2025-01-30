@@ -18,5 +18,4 @@ dependencies:
     - captcha==0.5.0
     - pyopenms_viz>=0.1.2
     - pyteomics
-    - scikit-learn
-    - scipy
+    - ms2query

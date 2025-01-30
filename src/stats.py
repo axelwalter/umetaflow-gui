@@ -13,7 +13,7 @@ import plotly.figure_factory as ff
 from sklearn.preprocessing import StandardScaler
 
 
-INFO = "💡 Both workflows provide input for the [advanced metabolomics statistis tool](https://metabolomics-statistics.streamlit.app/). Visit [the GitHub repository](https://github.com/axelwalter/streamlit-metabolomics-statistics)."
+INFO = "💡 Both workflows provide input for the [FBMN stats guide](https://fbmn-statsguide.gnps2.org/). Visit [the GitHub repository](https://github.com/axelwalter/streamlit-metabolomics-statistics)."
 
 
 @st.cache_data

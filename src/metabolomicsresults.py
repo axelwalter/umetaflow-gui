@@ -21,6 +21,7 @@ COLOR_SCALE = [
     (1.0, "rgba(33, 0, 101, 1.0)"),
 ]
 
+
 def add_color_column(df):
     color_cycle = cycle(px.colors.qualitative.Plotly)
     df["color"] = [next(color_cycle) for _ in range(len(df))]
@@ -42,7 +43,7 @@ def filter_dialog(df):
         df["RT"].max(),
         value=(df["RT"].min(), df["RT"].max()),
     )
-    filter_sirius = st.toggle("keep only metabolites with SIRIUS annotation", False)
+    filter_annotation = st.toggle("keep only metabolites with annotation", False)
     charge = st.selectbox(
         "charge state", ["all"] + sorted(df["charge"].unique().tolist())
     )
@@ -61,10 +62,10 @@ def filter_dialog(df):
         filter_text += f" ***m/z*** min = {mz[0]};"
     if mz[1] < df["mz"].max():
         filter_text += f" ***m/z*** max = {mz[1]};"
-    if filter_sirius:
-        filter_text += " **SIRIUS** annotations only;"
+    if filter_annotation:
+        filter_text += " **Annotations** only;"
         df_sirius = df[
-            [c for c in df.columns if c.startswith("CSI:FingerID_")]
+            [c for c in df.columns if any([c.startswith(k) for k in ("SIRIUS_")])]
         ].dropna()
         df = df.loc[df_sirius.index, :]
     if charge != "all":
@@ -100,8 +101,6 @@ def metabolite_selection():
         return None
 
     sample_cols = sorted([col for col in df.columns if col.endswith(".mzML")])
-
-    df.set_index("metabolite", inplace=True)
 
     # Insert a column with normalized intensity values to display as barchart column in dataframe
     df.insert(
@@ -155,7 +154,9 @@ def metabolite_selection():
         rows = event.selection.rows
         if rows:
             return df.iloc[rows[0], :]
-        st.info("💡 Select a row (metabolite) in the feature matrix for more information.")
+        st.info(
+            "💡 Select a row (metabolite) in the feature matrix for more information."
+        )
         return None
 
 
@@ -172,6 +173,7 @@ def metabolite_metrics(metabolite):
     with cols[4]:
         if "adduct" in metabolite:
             st.metric("adduct", metabolite["adduct"])
+
 
 @st.cache_data
 def get_chroms_for_each_sample(metabolite):
@@ -231,6 +233,7 @@ def get_feature_chromatogram_plot(df):
     )
     return fig
 
+
 @st.cache_resource
 def get_feature_intensity_plot(metabolite):
     df = pd.DataFrame(
@@ -264,7 +267,7 @@ def get_feature_intensity_plot(metabolite):
 def sirius_summary(s):
     """s containing SIRIUS, CSI:FingerID and CANOPUS results for selected metabolite"""
     samples = list(set(s.split("_")[1] for s in s.index if s.startswith("SIRIUS_")))
-    c1, c2 = st.columns(2)
+    c1, c2 = st.columns([0.6, 0.4])
     if not samples:
         return
     if len(samples) > 1:
@@ -273,30 +276,11 @@ def sirius_summary(s):
         sample = samples[0]
 
     s = s[[i for i in s.index if f"_{sample}_" in i]]
-    new_index = [
-        "formula (CSI:FingerID)",
-        "name",
-        "InChI",
-        "smiles",
-        "formula (SIRIUS)",
-        "pathway",
-        "superclass",
-        "class",
-        "most specific class",
+
+    s.index = [
+        i.replace(f"SIRIUS_{sample}_molecularFormula", "formula (SIRIUS)").replace(f"_{sample}_", "").replace("CANOPUS", "").replace("CSI:FingerID", "").replace("_", " ").replace("molecularFormula", "formula (CSI:FingerID)")
+        for i in s.index
     ]
-    s.index = new_index
-    custom_order = [
-        "name",
-        "formula (SIRIUS)",
-        "formula (CSI:FingerID)",
-        "InChI",
-        "smiles",
-        "pathway",
-        "superclass",
-        "class",
-        "most specific class",
-    ]
-    s = s.reindex(custom_order)
     s.name = f"{sample}; {s.name}"
     s = s.dropna()
     with c1:
@@ -307,6 +291,23 @@ def sirius_summary(s):
             molecule = Chem.MolFromInchi(s["InChI"])
             img = Draw.MolToImage(molecule)
             st.image(img, width=500)
+
+
+def ms2query_summary(s):
+    s = s[s != "nan"]
+    s.index = [
+        i.lstrip("MS2Query_").replace("_", " ").replace("cf ", "").replace("npc ", "")
+        for i in s.index
+    ]
+    c1, c2 = st.columns([0.6, 0.4])
+    with c1:
+        st.dataframe(s, use_container_width=True)
+    with c2:
+        if "smiles" in s.index:
+            molecule = Chem.MolFromSmiles(s["smiles"])
+            img = Draw.MolToImage(molecule)
+            st.image(img, use_container_width=True)
+
 
 @st.cache_resource
 def plot_consensus_map(df):

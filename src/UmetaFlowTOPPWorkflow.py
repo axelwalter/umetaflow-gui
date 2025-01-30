@@ -1179,6 +1179,7 @@ class Workflow(WorkflowManager):
             # Metrics
             metabolite_metrics(metabolite)
 
+
         # Annotations
         sirius = metabolite[
             [
@@ -1188,8 +1189,20 @@ class Workflow(WorkflowManager):
             ]
         ].dropna()
         if not sirius.empty:
-            with st.expander(f"🔖 **SIRIUS Annotations**", expanded=True):
+            with st.expander(f"⭐ **SIRIUS, CSI:FingerID & CANOPUS**", expanded=True):
                 sirius_summary(sirius)
+
+        ms2query = metabolite[
+            [
+                i
+                for i in metabolite.index
+                if i.startswith("MS2Query")
+            ]
+        ].dropna()
+        if not ms2query.empty:
+            with st.expander(f"🤖 **MS2Query**", expanded=True):
+                ms2query_summary(ms2query)
+
 
         # Chromatograms and Intensities
         chrom_data = get_chroms_for_each_sample(metabolite)
@@ -1205,6 +1218,8 @@ class Workflow(WorkflowManager):
             with st.expander(f"**📊 Intensities**", expanded=True):
                 show_fig(auc_fig, f"AUC_{metabolite.name}")
 
+        
+        # Downloads
         _, c2, _ = st.columns(3)
         with c2:
             if st.button(

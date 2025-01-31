@@ -1,6 +1,6 @@
 import pandas as pd
 import sys
-from pyopenms import *
+from pyopenms import MSExperiment, MzMLFile
 import pyteomics
 from pyteomics import mztab
 from pyteomics import mgf, auxiliary

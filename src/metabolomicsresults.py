@@ -78,7 +78,8 @@ def filter_dialog(df):
             mask = [cols[-1]]
         df_annotation = df[
             [c for c in df.columns if any([c.startswith(k) for k in mask])]
-        ].replace('', pd.NA).dropna()
+        ].replace('', pd.NA).dropna(how="all")
+        st.write(df_annotation)
         df = df.loc[df_annotation.index, :]
     if charge != "all":
         filter_text += f" **charge** = {charge};"

@@ -1208,15 +1208,14 @@ class Workflow(WorkflowManager):
             st.info("No results yet.")
             return
 
-        with st.expander("**Feature Matrix**", expanded=True):
+        # Select a metabolite from the final FeatureMatrix
+        metabolite = metabolite_selection()
 
-            # Select a metabolite from the final FeatureMatrix
-            metabolite = metabolite_selection()
+        if metabolite is None:
+            return
 
-            if metabolite is None:
-                return
-
-            # Metrics
+        # Metrics
+        with st.expander("📝 **Summary**", expanded=True):
             metabolite_metrics(metabolite)
 
         # Annotations

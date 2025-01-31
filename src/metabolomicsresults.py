@@ -136,7 +136,7 @@ def metabolite_selection():
     if "feature-matrix-filtered" in st.session_state:
         if not st.session_state["feature-matrix-filtered"].empty:
             df = st.session_state["feature-matrix-filtered"]
-    c1.markdown(f"number of metabolites: {df.shape[0]}")
+    c1.markdown(f"**Feature Matrix** number of metabolites: {df.shape[0]}")
 
     tab1, tab2 = st.tabs(["✅ **Selection**", "👀 View"])
     with tab2:
@@ -242,7 +242,7 @@ def get_feature_chromatogram_plot(df):
         template="plotly_white",
         showlegend=True,
         margin=dict(l=0, r=0, t=0, b=0),
-        height=500,
+        height=400,
     )
     return fig
 
@@ -272,7 +272,7 @@ def get_feature_intensity_plot(metabolite):
         template="plotly_white",
         showlegend=True,
         margin=dict(l=0, r=0, t=0, b=0),
-        height=500,
+        height=400,
     )
     return fig
 

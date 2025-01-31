@@ -1128,11 +1128,15 @@ class StreamlitUI:
             version = result.stderr.split("Version: ")[1].split("-")[0]
 
         markdown.append(
-            f"""Data was processed using **{st.session_state.settings['app-name']}** ([{url}]({url})), a web application based on the OpenMS WebApps framework.
-OpenMS ([https://www.openms.de](https://www.openms.de)) is a free and open-source software for LC-MS data analysis [1].
+            f"""Data was processed using **{st.session_state.settings['app-name']}** ([{url}]({url})), a web application based on the OpenMS WebApps framework [1].
+OpenMS ([https://www.openms.de](https://www.openms.de)) is a free and open-source software for LC-MS data analysis [2].
 The workflow includes the **OpenMS {version}** TOPP tools {tools} as well as Python scripts. Non-default parameters are listed in the supplementary section below.
 
-[1] Sachsenberg, Timo, et al. "OpenMS 3 expands the frontiers of open-source computational mass spectrometry." (2023).
+[1] Tom David Müller, Arslan Siraj, Axel Walter, Jihyung Kim, Samuel Wein, Johannes von Kleist, Ayesha Feroz, Matteo Pilz, Kyowon Jeong, Justin Cyril Sing, Joshua Charkow, Hannes Luc Röst, and Timo Sachsenberg
+Journal of Proteome Research Article ASAP
+DOI: 10.1021/acs.jproteome.4c00872
+
+[2] Sachsenberg, Timo, et al. "OpenMS 3 expands the frontiers of open-source computational mass spectrometry." (2023).
 """
         )
         markdown.append(self.non_default_params_summary())
@@ -1140,7 +1144,7 @@ The workflow includes the **OpenMS {version}** TOPP tools {tools} as well as Pyt
     
     def simple_file_uploader(self, key: str, file_type: str, name: str = "") -> None:
         upload = st.file_uploader(
-            name, file_type, False, help="Save parameters after uploading."
+            name, file_type, False
         )
         dir_path = Path(self.workflow_dir, "input-files", key)
         if upload:
@@ -1152,5 +1156,5 @@ The workflow includes the **OpenMS {version}** TOPP tools {tools} as well as Pyt
                 f.write(upload.getbuffer())
         if dir_path.exists():
             st.info([p.name for p in dir_path.iterdir()][0])
-        # else:
-        #     st.warning(f"⚠️ **Missing:** {name}")
+        else:
+            st.warning(f"No {name} file in workspace.")

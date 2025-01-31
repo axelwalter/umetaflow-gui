@@ -179,6 +179,7 @@ class Workflow(WorkflowManager):
                 self.ui.simple_file_uploader(
                     "ms2-library", "mgf", "MS2 library in mgf format"
                 )
+
             with cols[1]:
                 st.image(str(Path("assets", "OpenMS.png")), width=200)
             st.divider()
@@ -1058,7 +1059,11 @@ class Workflow(WorkflowManager):
                 else:
                     self.logger.log("No MS2 data for SIRIUS to process.")
 
-        if self.params["export-gnps"] or self.params["annotate-ms2"]:
+        if (
+            self.params["export-gnps"]
+            or self.params["annotate-ms2"]
+            or self.params["run-ms2query"]
+        ):
             self.logger.log("Exporting input files for GNPS.")
             # Map MS2 specs to features
             self.executor.run_topp(
@@ -1083,20 +1088,23 @@ class Workflow(WorkflowManager):
                     "out": gnps_consensus,
                 },
             )
-            # Export to dataframe
-            self.executor.run_python(
-                "export_consensus_df",
-                {"in": gnps_consensus, "out": self.file_manager.get_files(
-                "feature-matrix-gnps", "parquet", "consensus-dfs"
-            )},
-            )
 
-        if self.params["export-gnps"] or self.params["run-ms2query"]:
             # Filter consensus features which have missing values
             self.executor.run_topp(
                 "FileFilter",
                 {"in": gnps_consensus, "out": gnps_consensus},
                 custom_params={"id:remove_unannotated_features": ""},
+            )
+
+            # Export to dataframe
+            self.executor.run_python(
+                "export_consensus_df",
+                {
+                    "in": gnps_consensus,
+                    "out": self.file_manager.get_files(
+                        "feature-matrix-gnps", "parquet", "consensus-dfs"
+                    ),
+                },
             )
 
             # Run GNPSExport
@@ -1121,21 +1129,53 @@ class Workflow(WorkflowManager):
         if self.params["annotate-ms2"]:
             dir_path = Path(self.workflow_dir, "input-files", "ms2-library")
             if dir_path.exists():
-                files = [p for p in dir_path.iterdir()]
-                if files:
-                    self.logger.log("Annotating consensus features on MS2 level.")
-                    ms2_matches = self.file_manager.get_files(
-                        mzML, "mzTab", "ms2-matches"
-                    )
-                    self.executor.run_topp(
-                        "MetaboliteSpectralMatcher",
-                        {
-                            "in": mzML,
-                            "database": self.file_manager.get_files(str(files[0])),
-                            "out": ms2_matches,
-                        },
-                    )
-                    self.executor.run_python("annotate-ms2", {"in": consensus_df})
+                dir_path = Path(self.workflow_dir, "input-files", "ms2-library")
+                if dir_path.exists():
+                    files = [p for p in dir_path.iterdir()]
+                    if files:
+                        self.logger.log("Annotating consensus features on MS2 level.")
+                        self.executor.run_topp(
+                            "FileConverter",
+                            {
+                                "in": self.file_manager.get_files(
+                                    "MS2", "mgf", "gnps-export"
+                                ),
+                                "out": self.file_manager.get_files(
+                                    "MS2", "mzML", "spectral-matcher"
+                                ),
+                            },
+                        )
+                        self.executor.run_topp(
+                            "MetaboliteSpectralMatcher",
+                            {
+                                "in": self.file_manager.get_files(
+                                    "MS2", "mzML", "spectral-matcher"
+                                ),
+                                "database": self.file_manager.get_files(str(files[0])),
+                                "out": self.file_manager.get_files(
+                                    "MS2-matches", "mzTab", "spectral-matcher"
+                                ),
+                            },
+                            custom_params={"algorithm:merge_spectra": "false"},
+                        )
+                        self.executor.run_python(
+                            "annotate-ms2",
+                            {
+                                "in_mzTab": self.file_manager.get_files(
+                                    "MS2-matches", "mzTab", "spectral-matcher"
+                                ),
+                                "in_mzML": self.file_manager.get_files(
+                                    "MS2", "mzML", "spectral-matcher"
+                                ),
+                                "in_mgf": self.file_manager.get_files(
+                                    "MS2", "mgf", "gnps-export"
+                                ),
+                                "in_gnps_consensus": self.file_manager.get_files(
+                                    "feature-matrix-gnps", "parquet", "consensus-dfs"
+                                ),
+                                "out": consensus_df,
+                            },
+                        )
 
         if st.session_state["sirius-path"]:
             self.executor.run_python("annotate-sirius", {"in": consensus_df})
@@ -1147,13 +1187,13 @@ class Workflow(WorkflowManager):
             self.executor.run_python(
                 "run_ms2query",
                 {
-                "in": consensus_df,
-                "in_mgf": self.file_manager.get_files("MS2", "mgf", "gnps-export"),
-                "out_ms2query_csv": self.file_manager.get_files(
-                    "MS2", "csv", "ms2query"
-                ),
-                "ion_mode": self.params["ion_mode"],
-            },
+                    "in": consensus_df,
+                    "in_mgf": self.file_manager.get_files("MS2", "mgf", "gnps-export"),
+                    "out_ms2query_csv": self.file_manager.get_files(
+                        "MS2", "csv", "ms2query"
+                    ),
+                    "ion_mode": self.params["ion_mode"],
+                },
             )
 
         # ZIP all relevant files for Download
@@ -1179,7 +1219,6 @@ class Workflow(WorkflowManager):
             # Metrics
             metabolite_metrics(metabolite)
 
-
         # Annotations
         sirius = metabolite[
             [
@@ -1193,16 +1232,11 @@ class Workflow(WorkflowManager):
                 sirius_summary(sirius)
 
         ms2query = metabolite[
-            [
-                i
-                for i in metabolite.index
-                if i.startswith("MS2Query")
-            ]
+            [i for i in metabolite.index if i.startswith("MS2Query")]
         ].dropna()
         if not ms2query.empty:
             with st.expander(f"🤖 **MS2Query**", expanded=True):
                 ms2query_summary(ms2query)
-
 
         # Chromatograms and Intensities
         chrom_data = get_chroms_for_each_sample(metabolite)
@@ -1218,7 +1252,6 @@ class Workflow(WorkflowManager):
             with st.expander(f"**📊 Intensities**", expanded=True):
                 show_fig(auc_fig, f"AUC_{metabolite.name}")
 
-        
         # Downloads
         _, c2, _ = st.columns(3)
         with c2:

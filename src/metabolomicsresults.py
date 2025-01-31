@@ -43,15 +43,18 @@ def filter_dialog(df):
         df["RT"].max(),
         value=(df["RT"].min(), df["RT"].max()),
     )
-    filter_annotation = st.toggle("keep only metabolites with annotation", False)
-    charge = st.selectbox(
+    c1, c2 = st.columns(2)
+    charge = c1.selectbox(
         "charge state", ["all"] + sorted(df["charge"].unique().tolist())
     )
     adduct = "all"
     if "adduct" in df.columns:
-        adduct = st.selectbox(
+        adduct = c2.selectbox(
             "adduct", ["all"] + sorted(df["adduct"].unique().tolist())
         )
+    c1, c2 = st.columns(2)
+    filter_annotation = c1.toggle("filter for annotation", False)
+    filter_annotation_type = c2.selectbox("annotation type", ["all", "Spectral Matcher", "SIRIUS", "MS2Query"], 0)
     # filter text
     filter_text = ""
     if rt[0] > df["RT"].min():
@@ -63,11 +66,20 @@ def filter_dialog(df):
     if mz[1] < df["mz"].max():
         filter_text += f" ***m/z*** max = {mz[1]};"
     if filter_annotation:
-        filter_text += " **Annotations** only;"
-        df_sirius = df[
-            [c for c in df.columns if any([c.startswith(k) for k in ("SIRIUS_")])]
-        ].dropna()
-        df = df.loc[df_sirius.index, :]
+        filter_text += f" **Annotations:** {filter_annotation_type};"
+        cols = ["SpectralMatch", "SIRIUS_", "CSI:FingerID", "CANOPUS", "MS2Query"]
+        if filter_annotation_type == "all":
+            mask = cols
+        elif filter_annotation_type == "Spectral Matcher":
+            mask = [cols[0]]
+        elif filter_annotation_type == "SIRIUS":
+            mask = cols[1:4]
+        elif filter_annotation_type == "MS2Query":
+            mask = [cols[-1]]
+        df_annotation = df[
+            [c for c in df.columns if any([c.startswith(k) for k in mask])]
+        ].replace('', pd.NA).dropna()
+        df = df.loc[df_annotation.index, :]
     if charge != "all":
         filter_text += f" **charge** = {charge};"
         df = df[df["charge"] == int(charge)]
@@ -263,6 +275,30 @@ def get_feature_intensity_plot(metabolite):
     )
     return fig
 
+def spectralmatching_summary(s):
+    s.index = [
+        i.replace("SpectralMatch_", "").replace("SpectralMatch", "name")
+        for i in s.index
+    ]
+    # Split each value by " ## " and create a DataFrame
+    split_data = s.apply(lambda x: x.split(' ## '))
+
+    # Convert to a DataFrame with single entries
+    df = pd.DataFrame(split_data.tolist(), index=s.index).T
+
+    # Rename columns to match the original Series index
+    df.columns = s.index
+    for i, row in df.iterrows():
+        row.name = f"Spectra Match #{i+1}"
+        c1, c2 = st.columns([0.7, 0.3])
+        with c1:
+            st.dataframe(row, use_container_width=True)
+        with c2:
+            if "smiles" in row.index:
+                if row["smiles"] != "None":
+                    molecule = Chem.MolFromSmiles(row["smiles"])
+                    img = Draw.MolToImage(molecule)
+                    st.image(img, use_container_width=True)
 
 def sirius_summary(s):
     """s containing SIRIUS, CSI:FingerID and CANOPUS results for selected metabolite"""

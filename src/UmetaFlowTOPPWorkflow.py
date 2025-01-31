@@ -1220,6 +1220,12 @@ class Workflow(WorkflowManager):
             metabolite_metrics(metabolite)
 
         # Annotations
+        spectralmatching = metabolite[
+            [i for i in metabolite.index if i.startswith("SpectralMatch")]
+        ].replace('', pd.NA).dropna()
+        if not spectralmatching.empty:
+            with st.expander(f"🎯 **MS2 Spectral Matching**", expanded=True):
+                spectralmatching_summary(spectralmatching)
         sirius = metabolite[
             [
                 i

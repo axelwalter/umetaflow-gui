@@ -111,7 +111,7 @@ def plot_bpc_tic() -> go.Figure:
             df_eic = df[
                 (df["mz"] >= target_value - tolerance)
                 & (df["mz"] <= target_value + tolerance)
-            ]
+            ].copy()
             if not df_eic.empty:
                 df_eic["type"] = "XIC"
                 if df_eic["inty"].max() > max_int:
@@ -143,7 +143,7 @@ def plot_bpc_tic() -> go.Figure:
 
 
 @st.cache_resource
-def plot_ms_spectrum(df, title, bin_peaks, num_x_bins):
+def plot_ms_spectrum(df, title):
     fig = df.plot(
         kind="spectrum",
         backend="ms_plotly",
@@ -153,8 +153,8 @@ def plot_ms_spectrum(df, title, bin_peaks, num_x_bins):
         title=title,
         show_plot=False,
         grid=False,
-        bin_peaks=bin_peaks,
-        num_x_bins=num_x_bins,
+        # bin_peaks=bin_peaks,
+        # num_x_bins=num_x_bins,
     )
     fig.update_layout(
         template="plotly_white", dragmode="select", plot_bgcolor="rgb(255,255,255)"
@@ -208,8 +208,6 @@ def view_peak_map():
                 title="",
                 show_plot=False,
                 grid=False,
-                bin_peaks=st.session_state.spectrum_bin_peaks,
-                num_x_bins=st.session_state.spectrum_num_bins,
                 height=650,
                 width=900,
             )
@@ -266,8 +264,8 @@ def view_spectrum():
                 fig = plot_ms_spectrum(
                     df_selected,
                     title,
-                    st.session_state.spectrum_bin_peaks,
-                    st.session_state.spectrum_num_bins,
+                    # st.session_state.spectrum_bin_peaks,
+                    # st.session_state.spectrum_num_bins,
                 )
 
                 show_fig(fig, title.replace(" ", "_"), True, "view_spectrum_selection")

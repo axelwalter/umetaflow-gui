@@ -135,7 +135,7 @@ def metabolite_selection():
     if "feature-matrix-filtered" in st.session_state:
         if not st.session_state["feature-matrix-filtered"].empty:
             df = st.session_state["feature-matrix-filtered"]
-    c1.markdown(f"**Feature Matrix** number of metabolites: {df.shape[0]}")
+    c1.markdown(f"##### Feature Matrix ({df.shape[0]} metabolites)")
 
     tab1, tab2 = st.tabs(["✅ **Selection**", "👀 View"])
     with tab2:
@@ -446,4 +446,58 @@ Input files for SIRIUS in the **sirius-export** directory. Useful to run SIRIUS 
 **GNPS Input Files**
 
 Input files for GNPS FBMN and IIMN in the **gnps-export** directory.                 
+""")
+        
+def help_section():
+    with st.popover("❓ Result Dashboard Help", use_container_width=True):
+        st.markdown("""
+**Welcome to the Result Dashboard!** This page provides a detailed overview of the analysis results for your UmetaFlow run. Here's how to navigate and interpret the information.
+
+**1. Metabolite Selection**
+
+Use checkbox on the left side of the table to select a metabolite from the final FeatureMatrix or take a look at a scatter plot to check out consensus feature distribution.
+
+The table contains an intensity column with bar charts for quick identificantion of differential metabolites. Hover over the column header to see the order of samples in the bar chart.
+
+💡 Use the option to **filter** the data.
+
+**2. 📝 Summary:**
+
+Displays key metrics and statistics for the selected metabolite, such as:
+
+- Retention time
+- Mass-to-charge ratio (m/z)
+- charge
+- adduct
+- if it has been re-quantified
+
+**3. Annotaions:**
+                    
+Each of the three annotation methods will be displayed in a separate panel (if data is available).
+                    
+**🎯 Spectral Matching**
+
+MS2 spectral matching based on in-house library. Here, multiple matches can be displayed together with the structure from SMILES (if available). Take a look at the score and mass error in ppm.
+
+**⭐ SIRIUS, CSI:FingerID & CANOPUS**
+
+Formula, structure and compound class predictions. If available, the structure will be displayed based on InChI determined from CSI:FingerID.
+                    
+**🤖 MS2Query**
+
+Predicted compound names structures and compound classes together with structure drawn from SMILES string.
+
+💡 In general, a score of > 0.7 can be considered a good match. Take a look at the precursor *m/z* difference. While a very small difference indicates an exact match, larger differences are valid and refer to chemical analogues.
+
+**4. Quantification: 📈 Chromatograms & 📊 Intensities**
+
+This section shows quantitative differences in your samples. Check out the chromatograms to determine valid feature detection settings. E.g. chromatograms should be complete and not cut off.
+                    
+**Tips**
+
+- Expand or collapse sections using the 🔽 icons
+- Hover over charts for detailed tooltips
+- Hovering over charts opens a menu in the top right corner to save the image or make them full screen
+- Tables offer a search and download button in the top right corner
+- If new results don't appear, try to reset the filter (can contain old results)
 """)

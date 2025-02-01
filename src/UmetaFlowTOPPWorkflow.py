@@ -1209,6 +1209,9 @@ class Workflow(WorkflowManager):
             return
 
         c1, c2 = st.columns(2)
+        # Help
+        with c1:
+            help_section()
         # Downloads
         with c2:
             download_section(self.workflow_dir)

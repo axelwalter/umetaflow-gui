@@ -1208,6 +1208,11 @@ class Workflow(WorkflowManager):
             st.info("No results yet.")
             return
 
+        c1, c2 = st.columns(2)
+        # Downloads
+        with c2:
+            download_section(self.workflow_dir)
+
         # Select a metabolite from the final FeatureMatrix
         metabolite = metabolite_selection()
 
@@ -1257,20 +1262,4 @@ class Workflow(WorkflowManager):
             with st.expander(f"**📊 Intensities**", expanded=True):
                 show_fig(auc_fig, f"AUC_{metabolite.name}")
 
-        # Downloads
-        _, c2, _ = st.columns(3)
-        with c2:
-            if st.button(
-                "Download Result Files", type="primary", use_container_width=True
-            ):
-                with open(
-                    Path(self.workflow_dir, "results", "results.zip"), "rb"
-                ) as fp:
-                    st.success("Files are ready.")
-                    st.download_button(
-                        label="⬇️",
-                        data=fp,
-                        file_name="UmetaFlow-results.zip",
-                        mime="application/zip",
-                        use_container_width=True,
-                    )
+

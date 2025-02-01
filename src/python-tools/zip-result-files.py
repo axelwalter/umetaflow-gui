@@ -45,10 +45,8 @@ if __name__ == "__main__":
     # create meta value template dataframe
     df = pd.read_parquet(paths[0])
     path = Path(dir, "meta-value-template.tsv")
-    df = df.loc[[1], [col for col in df.columns if col.endswith(".mzML")]].T
+    df = pd.DataFrame({"Sample_Type": ""}, index=[col for col in df.columns if col.endswith(".mzML")])
     df.index.name = "filename"
-    df.rename(columns={1: "Sample_Type"}, inplace=True)
-    df["Sample_Type"] = "Sample"
     df.to_csv(path, sep="\t")
     paths.append(path)
 

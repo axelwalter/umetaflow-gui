@@ -410,3 +410,40 @@ quality: %{customdata[5]}<br>
     )
 
     return fig
+
+def download_section(workflow_dir):
+    with st.popover("⬇️ Downloads", use_container_width=True):
+        if st.button(
+            "Prepare files for download", use_container_width=True
+        ):
+            with open(
+                Path(workflow_dir, "results", "results.zip"), "rb"
+            ) as fp:
+                st.success("Files are ready.")
+                st.download_button(
+                    label="⬇️ Download Now",
+                    data=fp,
+                    file_name="UmetaFlow-results.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                )
+        st.markdown("""**Feature Matrix**:
+                        
+The main result file with consensus feature meta data (*m/z*, retention time, charge, adduct), intensities, annotations and additional information such as original & consensus feature IDs (for mapping with sample feature map data) and re-quantification status. In **tsv** and **parquet** format.
+
+**Meta Value Table Template**:
+
+A template table for entering sample meta data for downstream processing tools such as the FBMN stats guide. In **tsv** file format.
+
+**Sample Feature Maps:**
+
+Dataframes for feature information on sample level. Containing meta data, intensities and chromatogram data for the monoisotopic mass trace. In two directories: **ffm-df** (from the initial feature detection step with FeatureFinderMetabo) and **ffmid-df** (Re-quantified by FeatureFinderMetaboIdent) In **parquet** file format.
+                        
+**SIRIUS Input Files**
+                        
+Input files for SIRIUS in the **sirius-export** directory. Useful to run SIRIUS independently for instance in the GUI app. In **.ms** file format.
+
+**GNPS Input Files**
+
+Input files for GNPS FBMN and IIMN in the **gnps-export** directory.                 
+""")

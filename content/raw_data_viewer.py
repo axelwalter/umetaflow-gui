@@ -8,10 +8,8 @@ from src import view
 
 params = page_setup()
 
-st.title("View raw MS data")
-
 # File selection can not be in fragment since it influences the subsequent sections
-cols = st.columns(3)
+cols = st.columns(2)
 
 mzML_dir = Path(st.session_state.workspace, "mzML-files")
 file_options = [f.name for f in mzML_dir.iterdir() if "external_files.txt" not in f.name]

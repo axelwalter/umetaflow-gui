@@ -186,8 +186,9 @@ def view_peak_map():
         show_plot=False,
         bin_peaks=True,
         backend="ms_plotly",
+        height=500
     )
-    peak_map.update_layout(template="simple_white", dragmode="select")
+    peak_map.update_layout(template="simple_white", dragmode="select", margin=dict(l=0, r=0, t=40, b=0))
     show_fig(
         peak_map,
         f"peak_map_{st.session_state.view_selected_file}",
@@ -208,10 +209,11 @@ def view_peak_map():
             height=650,
             width=1200,
         )
+        peak_map_3D.update_layout(margin=dict(l=0, r=0, t=0, b=0))
         st.plotly_chart(peak_map_3D, use_container_width=True)
     else:
         st.info(
-            "💡 Zoom in via rectangular selection for more details and 3D plot. Double click plot to zoom back out."
+            "💡 Zoom in via rectangular selection for more details and 3D plot below."
         )
 
 @st.fragment

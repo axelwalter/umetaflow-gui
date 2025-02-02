@@ -6,7 +6,6 @@ from src.stats import *
 
 params = page_setup(page="workflow")
 
-st.title("Statistics")
 st.info(INFO)
 
 result_files = {

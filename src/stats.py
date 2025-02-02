@@ -13,7 +13,14 @@ import plotly.figure_factory as ff
 from sklearn.preprocessing import StandardScaler
 
 
-INFO = "💡 Both workflows provide input for the [FBMN stats guide](https://fbmn-statsguide.gnps2.org/). Visit [the GitHub repository](https://github.com/axelwalter/streamlit-metabolomics-statistics)."
+INFO = """💡 **For statistical analysis of metabolomics data we recommend the [FBMN stats guide](https://fbmn-statsguide.gnps2.org/).**
+
+Both UmetaFlow and Extracted Ion Chromatograms workflows provide input files (feature matrix and meta data table).
+
+Visit [the GitHub repository](https://github.com/axelwalter/streamlit-metabolomics-statistics).
+
+Here, we provide simple statistics for the Extracted Ion Chromatograms workflow.
+"""
 
 
 @st.cache_data
@@ -96,8 +103,8 @@ def mean_intensity_plot(samples, features, mean, std):
 def get_mean_change_std(df, a, b):
     mean = pd.concat(
         [
-            df[[col for col in df.columns if a in col]].mean(axis=1),
             df[[col for col in df.columns if b in col]].mean(axis=1),
+            df[[col for col in df.columns if a in col]].mean(axis=1),
         ],
         axis=1,
     ).rename(columns={0: a, 1: b})

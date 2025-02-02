@@ -8,39 +8,14 @@ params = page_setup(page="workflow")
 
 st.info(INFO)
 
-result_files = {
-    "Extracted Ion Chromatograms": Path(
+path = Path(
         st.session_state.workspace,
         "extracted-ion-chromatograms",
         "summary.tsv",
-    ),
-    "Metabolomics": Path(
-        st.session_state.workspace, "umetaflow-results", "FeatureMatrix.tsv"
-    ),
-    "Metabolomics MS1 annotated features": Path(
-        st.session_state.workspace,
-        "umetaflow-results",
-        "MS1-annotations",
-        "MS1-annotation.tsv",
-    ),
-    "Metabolomics MS2 annotated features": Path(
-        st.session_state.workspace,
-        "umetaflow",
-        "MS2-annotations",
-        "MS2-annotation.tsv",
-    )}
-
-options = []
-for name, path in result_files.items():
-    if path.exists():
-        options.append(name)
-
-cols = st.columns(2)
-experiment = cols[0].selectbox("choose data set", options)
-
-if experiment:
-    df = pd.read_csv(result_files[experiment],
-                     sep="\t").set_index("metabolite")
+    )
+if path.exists():
+    df = pd.read_csv(path,
+                     sep="\t", index_col=0)
 
     samples = set(
         [col[:-5].split("#")[0]

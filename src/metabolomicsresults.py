@@ -135,7 +135,7 @@ def metabolite_selection():
     if "feature-matrix-filtered" in st.session_state:
         if not st.session_state["feature-matrix-filtered"].empty:
             df = st.session_state["feature-matrix-filtered"]
-    c1.markdown(f"##### Feature Matrix ({df.shape[0]} metabolites)")
+    c1.markdown(f"**Feature Matrix** ({df.shape[0]} metabolites)")
 
     tab1, tab2 = st.tabs(["✅ **Selection**", "👀 View"])
     with tab2:
@@ -449,9 +449,10 @@ Input files for GNPS FBMN and IIMN in the **gnps-export** directory.
 """)
         
 def help_section():
-    with st.popover("❓ Result Dashboard Help", use_container_width=True):
-        st.markdown("""
-**Welcome to the Result Dashboard!** This page provides a detailed overview of the analysis results for your UmetaFlow run. Here's how to navigate and interpret the information.
+    st.markdown("""
+**Welcome to the UmetaFlow Result Dashboard!**
+                
+This page provides a detailed overview of the analysis results for your UmetaFlow run. Here's how to navigate and interpret the information.
 
 **1. Metabolite Selection**
 
@@ -471,7 +472,7 @@ Displays key metrics and statistics for the selected metabolite, such as:
 - adduct
 - if it has been re-quantified
 
-**3. Annotaions:**
+**3. Annotations:**
                     
 Each of the three annotation methods will be displayed in a separate panel (if data is available).
                     

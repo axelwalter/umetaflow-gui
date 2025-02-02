@@ -1210,7 +1210,7 @@ class Workflow(WorkflowManager):
 
         c1, c2 = st.columns(2)
         # Help
-        with c1:
+        with st.sidebar:
             help_section()
         # Downloads
         with c2:

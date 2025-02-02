@@ -326,7 +326,7 @@ def v_space(n: int, col=None) -> None:
 
 
 def display_large_dataframe(
-    df, chunk_sizes: list[int] = [10, 100, 1_000, 10_000], **kwargs
+    df, chunk_sizes: list[int] = [100, 1_000, 10_000], **kwargs
 ):
     """
     Displays a large DataFrame in chunks with pagination controls and row selection.

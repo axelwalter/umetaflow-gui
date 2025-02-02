@@ -173,6 +173,9 @@ def view_peak_map():
             df = df[df["mz"] > box[0]["y"][1]]
             df = df[df["mz"] < box[0]["y"][0]]
             df = df[df["RT"] < box[0]["x"][1]]
+    if df.empty:
+        df = st.session_state.view_ms1
+        st.warning("No data points to display for seleced zoom level. Resetting.")
     peak_map = df.plot(
         kind="peakmap",
         x="RT",
@@ -185,95 +188,92 @@ def view_peak_map():
         backend="ms_plotly",
     )
     peak_map.update_layout(template="simple_white", dragmode="select")
-    c1, c2 = st.columns(2)
-    with c1:
+    show_fig(
+        peak_map,
+        f"peak_map_{st.session_state.view_selected_file}",
+        selection_session_state_key="view_peak_map_selection",
+    )
+    if df.shape[0] < 2500:
+        peak_map_3D = df.plot(
+            kind="peakmap",
+            plot_3d=True,
+            backend="ms_plotly",
+            x="RT",
+            y="mz",
+            z="inty",
+            zlabel="Intensity",
+            title="",
+            show_plot=False,
+            grid=False,
+            height=650,
+            width=1200,
+        )
+        st.plotly_chart(peak_map_3D, use_container_width=True)
+    else:
         st.info(
             "💡 Zoom in via rectangular selection for more details and 3D plot. Double click plot to zoom back out."
         )
-        show_fig(
-            peak_map,
-            f"peak_map_{st.session_state.view_selected_file}",
-            selection_session_state_key="view_peak_map_selection",
-        )
-    with c2:
-        if df.shape[0] < 2500:
-            peak_map_3D = df.plot(
-                kind="peakmap",
-                plot_3d=True,
-                backend="ms_plotly",
-                x="RT",
-                y="mz",
-                z="inty",
-                zlabel="Intensity",
-                title="",
-                show_plot=False,
-                grid=False,
-                height=650,
-                width=900,
-            )
-            st.plotly_chart(peak_map_3D, use_container_width=True)
-
 
 @st.fragment
 def view_spectrum():
-    cols = st.columns([0.34, 0.66])
-    with cols[0]:
-        df = st.session_state.view_spectra.copy()
-        df["spectrum ID"] = df.index + 1
-        index = display_large_dataframe(
-            df,
-            column_order=[
-                "spectrum ID",
-                "RT",
-                "MS level",
-                "max intensity m/z",
-                "precursor m/z",
-            ],
-            selection_mode="single-row",
-            on_select="rerun",
-            use_container_width=True,
-            hide_index=True,
-        )
-    with cols[1]:
-        if index is not None:
-            df = st.session_state.view_spectra.iloc[index]
-            if "view_spectrum_selection" in st.session_state:
-                box = st.session_state.view_spectrum_selection.selection.box
-                if box:
-                    mz_min, mz_max = sorted(box[0]["x"])
-                    mask = (df["mzarray"] > mz_min) & (df["mzarray"] < mz_max)
-                    df["intarray"] = df["intarray"][mask]
-                    df["mzarray"] = df["mzarray"][mask]
+    df = st.session_state.view_spectra.copy()
+    df["spectrum ID"] = df.index + 1
+    event = st.dataframe(
+        df,
+        column_order=[
+            "spectrum ID",
+            "RT",
+            "MS level",
+            "max intensity m/z",
+            "precursor m/z",
+        ],
+        selection_mode="single-row",
+        on_select="rerun",
+        use_container_width=True,
+        hide_index=True,
+        height=300
+    )
+    if event["selection"]["rows"]:
+        index = event["selection"]["rows"][0]
+    else:
+        index = None
+    if index is not None:
+        df = st.session_state.view_spectra.iloc[index]
+        if "view_spectrum_selection" in st.session_state:
+            box = st.session_state.view_spectrum_selection.selection.box
+            if box:
+                mz_min, mz_max = sorted(box[0]["x"])
+                mask = (df["mzarray"] > mz_min) & (df["mzarray"] < mz_max)
+                df["intarray"] = df["intarray"][mask]
+                df["mzarray"] = df["mzarray"][mask]
 
-            if df["mzarray"].size > 0:
-                title = f"{st.session_state.view_selected_file}  spec={index+1}  mslevel={df['MS level']}"
-                if df["precursor m/z"] > 0:
-                    title += f" precursor m/z: {round(df['precursor m/z'], 4)}"
+        if df["mzarray"].size > 0:
+            title = f"{st.session_state.view_selected_file}  spec={index+1}  mslevel={df['MS level']}"
+            if df["precursor m/z"] > 0:
+                title += f" precursor m/z: {round(df['precursor m/z'], 4)}"
 
-                df_selected = pd.DataFrame(
-                    {
-                        "mz": df["mzarray"],
-                        "intensity": df["intarray"],
-                    }
-                )
-                df_selected["RT"] = df["RT"]
-                df_selected["MS level"] = df["MS level"]
-                df_selected["precursor m/z"] = df["precursor m/z"]
-                df_selected["max intensity m/z"] = df["max intensity m/z"]
+            df_selected = pd.DataFrame(
+                {
+                    "mz": df["mzarray"],
+                    "intensity": df["intarray"],
+                }
+            )
+            df_selected["RT"] = df["RT"]
+            df_selected["MS level"] = df["MS level"]
+            df_selected["precursor m/z"] = df["precursor m/z"]
+            df_selected["max intensity m/z"] = df["max intensity m/z"]
 
-                fig = plot_ms_spectrum(
-                    df_selected,
-                    title,
-                    # st.session_state.spectrum_bin_peaks,
-                    # st.session_state.spectrum_num_bins,
-                )
+            fig = plot_ms_spectrum(
+                df_selected,
+                title,
+            )
 
-                show_fig(fig, title.replace(" ", "_"), True, "view_spectrum_selection")
-            else:
-                st.session_state.pop("view_spectrum_selection")
-                st.rerun()
+            show_fig(fig, title.replace(" ", "_"), True, "view_spectrum_selection")
         else:
-            st.info("💡 Select rows in the spectrum table to display plot.")
+            st.session_state.pop("view_spectrum_selection")
+            st.rerun()
+    else:
+        st.info("💡 Select rows in the spectrum table to display plot.")
 
 
 @st.fragment()

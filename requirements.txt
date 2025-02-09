@@ -11,4 +11,4 @@ streamlit-plotly-events
 streamlit-js-eval
 pyteomics
 rdkit
-sklearn
+scikit-learn

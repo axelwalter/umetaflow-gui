@@ -15,9 +15,7 @@ from src.metabolomicsresults import *
 class Workflow(WorkflowManager):
     # Setup pages for upload, parameter, execution and results.
     # For layout use any streamlit components such as tabs (as shown in example), columns, or even expanders.
-    def __init__(self) -> None:
-        workspace = st.session_state["workspace"]
-
+    def __init__(self, workspace) -> None:
         flag_file = Path(workspace, "umetaflow-expert-flag.txt")
 
         name = "UmetaFlow"
@@ -27,7 +25,7 @@ class Workflow(WorkflowManager):
             name = "UmetaFlow-Expert"
 
         # Initialize the parent class with the workflow name.
-        super().__init__(name, st.session_state["workspace"])
+        super().__init__(name, workspace)
 
     def upload(self) -> None:
         return
@@ -641,12 +639,12 @@ class Workflow(WorkflowManager):
     def format_simple_params(self) -> dict:
         """Takes the paramter file from simple configuration page and translate into one useable in this workflow."""
         with open(
-            Path(st.session_state.workspace, "umetaflow", "params.json"), "r"
+            Path(self.workflow_dir, "..", "umetaflow", "params.json"), "r"
         ) as f:
             simple = json.load(f)
 
         expert_params_path = Path(
-            st.session_state.workspace, "umetaflow-expert", "params.json"
+            self.workflow_dir, "..", "umetaflow-expert", "params.json"
         )
         if expert_params_path.exists():
             with open(expert_params_path, "r") as f:
@@ -759,7 +757,7 @@ class Workflow(WorkflowManager):
             self.params = self.format_simple_params()
 
         # Get mzML files
-        df_path = Path(st.session_state.workspace, "mzML-files.tsv")
+        df_path = Path(self.workflow_dir, '..', "mzML-files.tsv")
 
         if not df_path.exists():
             mzML = []
@@ -771,7 +769,7 @@ class Workflow(WorkflowManager):
 
             # Construct full file paths
             mzML = [
-                str(Path(st.session_state.workspace, "mzML-files", file_name))
+                str(Path(self.workflow_dir, '..', "mzML-files", file_name))
                 for file_name in selected_files
             ]
 

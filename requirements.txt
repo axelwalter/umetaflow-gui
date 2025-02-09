@@ -10,3 +10,4 @@ pyopenms_viz>=0.1.2
 streamlit-plotly-events
 streamlit-js-eval
 pyteomics
+rdkit

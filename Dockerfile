@@ -56,9 +56,8 @@ RUN echo "mamba activate streamlit-env" >> ~/.bashrc
 SHELL ["/bin/bash", "--rcfile", "~/.bashrc"]
 SHELL ["mamba", "run", "-n", "streamlit-env", "/bin/bash", "-c"]
 
-# Install up-to-date cmake via mamba and packages for pyOpenMS build.
+# Install up-to-date cmake via mamba
 RUN mamba install cmake
-RUN pip install --upgrade pip && python -m pip install -U setuptools nose Cython autowrap pandas numpy pytest
 
 # Clone OpenMS branch and the associcated contrib+thirdparties+pyOpenMS-doc submodules.
 RUN git clone --recursive --depth=1 -b ${OPENMS_BRANCH} --single-branch ${OPENMS_REPO} && cd /OpenMS

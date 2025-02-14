@@ -194,7 +194,6 @@ def get_chroms_for_each_sample(metabolite):
         i.replace(".mzML", "") for i in metabolite.index if i.endswith("mzML")
     ]
     dfs = []
-    samples = []
     for sample in all_samples:
         # Get feature ID for sample
         fid = metabolite[sample + ".mzML_IDs"]
@@ -205,34 +204,38 @@ def get_chroms_for_each_sample(metabolite):
         )
         f_df = load_parquet(path)
         if fid in f_df.index:
+            f_df = f_df.loc[[fid]]
+            f_df["sample"] = [sample]
             dfs.append(f_df.loc[[fid]])
-            samples.append(sample)
+        else:
+            dfs.append(pd.DataFrame({"sample": [sample], "chrom_RT": [None], "chrom_intensity": [None]}))
 
     if not dfs:
         return pd.DataFrame()
     df = pd.concat(dfs)
-    df["sample"] = samples
-    df = add_color_column(df)
     return df
 
 
 @st.cache_resource
 def get_feature_chromatogram_plot(df):
+    df = df.sort_values("sample")
+    df = add_color_column(df)
     # Create an empty figure
     fig = go.Figure()
     # Loop through each row in the DataFrame and add a line trace for each
     for _, row in df.iterrows():
-        fig.add_trace(
-            go.Scatter(
-                x=row["chrom_RT"],  # Assuming chrom_RT is a list of values
-                y=row[
-                    "chrom_intensity"
-                ],  # Assuming chrom_intensity is a list of values
-                mode="lines",  # Line plot
-                name=row["sample"],  # Giving each line a name based on its index
-                marker=dict(color=row["color"]),
+        if row["chrom_RT"] is not None:
+            fig.add_trace(
+                go.Scatter(
+                    x=row["chrom_RT"],  # Assuming chrom_RT is a list of values
+                    y=row[
+                        "chrom_intensity"
+                    ],  # Assuming chrom_intensity is a list of values
+                    mode="lines",  # Line plot
+                    name=row["sample"],  # Giving each line a name based on its index
+                    marker=dict(color=row["color"]),
+                )
             )
-        )
     # Update layout of the figure
     fig.update_layout(
         xaxis_title="retention time (s)",
@@ -250,10 +253,12 @@ def get_feature_chromatogram_plot(df):
 def get_feature_intensity_plot(metabolite):
     df = pd.DataFrame(
         {
-            "sample": [i for i in metabolite.index if i.endswith(".mzML")],
-            "intensity": metabolite["intensity"],
+            "sample": [i for i in metabolite.index if i.endswith(".mzML")]
         }
     )
+    df["intensity"] = df["sample"].apply(lambda x: metabolite[x])
+    df["sample"] = df["sample"].apply(lambda x: Path(x).stem)
+    df = df.sort_values("sample")
     df = add_color_column(df)
 
     # Create a mapping from sample to color

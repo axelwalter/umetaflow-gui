@@ -56,9 +56,8 @@ RUN echo "mamba activate streamlit-env" >> ~/.bashrc
 SHELL ["/bin/bash", "--rcfile", "~/.bashrc"]
 SHELL ["mamba", "run", "-n", "streamlit-env", "/bin/bash", "-c"]
 
-# Install up-to-date cmake via mamba and packages for pyOpenMS build.
+# Install up-to-date cmake via mamba
 RUN mamba install cmake
-RUN pip install --upgrade pip && python -m pip install -U setuptools nose Cython autowrap pandas numpy pytest
 
 # Clone OpenMS branch and the associcated contrib+thirdparties+pyOpenMS-doc submodules.
 RUN git clone --recursive --depth=1 -b ${OPENMS_BRANCH} --single-branch ${OPENMS_REPO} && cd /OpenMS
@@ -81,17 +80,11 @@ RUN mkdir /openms-build
 WORKDIR /openms-build
 
 # Configure.
-RUN /bin/bash -c "cmake -DCMAKE_BUILD_TYPE='Release' -DCMAKE_PREFIX_PATH='/OpenMS/contrib-build/;/usr/;/usr/local' -DHAS_XSERVER=OFF -DBOOST_USE_STATIC=OFF -DPYOPENMS=ON ../OpenMS -DPY_MEMLEAK_DISABLE=On"
+RUN /bin/bash -c "cmake -DCMAKE_BUILD_TYPE='Release' -DCMAKE_PREFIX_PATH='/OpenMS/contrib-build/;/usr/;/usr/local' -DHAS_XSERVER=OFF -DBOOST_USE_STATIC=OFF ../OpenMS"
 
 # Build TOPP tools and clean up.
 RUN make -j4 TOPP
 RUN rm -rf src doc CMakeFiles
-
-# Build pyOpenMS wheels and install via pip.
-RUN make -j4 pyopenms
-WORKDIR /openms-build/pyOpenMS
-RUN pip install dist/*.whl
-
 
 WORKDIR /
 RUN mkdir openms

@@ -655,6 +655,8 @@ class Workflow(WorkflowManager):
 
         new = expert.copy()
 
+        new["ion_mode"] = "positive"
+
         for key in ["correct-precursor", "map-alignement"]:
             new[key] = True
 

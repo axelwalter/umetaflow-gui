@@ -9,7 +9,6 @@ import pandas as pd
 from src.common.common import reset_directory
 
 
-@st.cache_data
 def save_uploaded_mzML(uploaded_files: list[bytes]) -> None:
     """
     Saves uploaded mzML files to the mzML directory.

@@ -22,7 +22,7 @@ tabs = st.tabs(tabs)
 with tabs[0]:
     with st.form("mzML-upload", clear_on_submit=True):
         files = st.file_uploader(
-            "mzML files", accept_multiple_files=(st.session_state.location == "local"))
+            "mzML files", accept_multiple_files=True)
         _, c2, _ = st.columns(3)
         if c2.form_submit_button("Add files to workspace", use_container_width=True, type="primary"):
             if files:

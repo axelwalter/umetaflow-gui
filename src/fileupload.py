@@ -20,9 +20,6 @@ def save_uploaded_mzML(uploaded_files: list[bytes]) -> None:
         None
     """
     mzML_dir = Path(st.session_state.workspace, "mzML-files")
-    # A list of files is required, since online allows only single upload, create a list
-    if st.session_state.location == "online":
-        uploaded_files = [uploaded_files]
     # If no files are uploaded, exit early
     if not uploaded_files:
         st.warning("Upload some files first.")

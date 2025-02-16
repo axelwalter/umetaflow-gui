@@ -21,6 +21,6 @@ st.toggle(
     on_change=update_expert_mode
 )
 
-wf = Workflow()
+wf = Workflow(st.session_state["workspace"])
 
 wf.show_parameter_section()

@@ -14,7 +14,7 @@ env:
   # Define unique GUID for UpgradeCode
   APP_UpgradeCode: "b2d49692-dcc7-11ef-991a-0242ac140002"
   # Define needed TOPP tools here
-  TOPP_TOOLS: "HighResPrecursorMassCorrector MapRTTransformer FileFilter FeatureFinderMetabo MapAlignerPoseClustering MetaboliteAdductDecharger FeatureFinderMetaboIdent FeatureLinkerUnlabeledKD IDMapper SiriusExport GNPSExport MetaboliteSpectralMatcher"
+  TOPP_TOOLS: "HighResPrecursorMassCorrector MapRTTransformer FileFilter FileConverter FeatureFinderMetabo MapAlignerPoseClustering MetaboliteAdductDecharger FeatureFinderMetaboIdent FeatureLinkerUnlabeledKD IDMapper SiriusExport GNPSExport MetaboliteSpectralMatcher"
 
 jobs:
   build-openms:
@@ -261,12 +261,6 @@ jobs:
         foreach ($file in $files) {
           Copy-Item "openms-bin/${file}.exe" -Destination "streamlit_exe/${file}.exe"
         }
-  
-    - name: Download and Unpack SIRIUS 5.8.6
-      run: |
-        curl -L -o SIRIUS-5.8.6.zip https://github.com/OpenMS/THIRDPARTY/releases/download/SIRIUS/SIRIUS-5.8.6.zip
-        unzip SIRIUS-5.8.6.zip -d temp_dir
-        mv temp_dir/SIRIUS-5.8.6/sirius-5.8.6-win64/sirius streamlit_exe/
 
     - name: Generate Readme.txt
       shell: bash

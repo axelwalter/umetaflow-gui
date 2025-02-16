@@ -13,3 +13,4 @@ numpy==1.24.4
 rdkit==2023.9.4
 plotly==6.0.0
 torch==2.5.0
+scikit-learn

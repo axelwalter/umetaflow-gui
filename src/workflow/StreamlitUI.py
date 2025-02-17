@@ -1125,7 +1125,7 @@ class StreamlitUI:
         )
         version = ""
         if result.returncode == 0:
-            version = result.stderr.split("Version: ")[1].split("-")[0]
+            version = result.stderr.split("Version: ")[1][:5]
 
         markdown.append(
             f"""Data was processed using **{st.session_state.settings['app-name']}** ([{url}]({url})), a web application based on the OpenMS WebApps framework [1].
